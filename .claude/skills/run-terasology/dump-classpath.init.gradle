@@ -1,0 +1,21 @@
+// Registers :facades:PC:dumpRunSpec, which writes the exact runtime classpath the
+// `game` task would use into build/run-classpath.txt, and makes sure the natives and
+// the module jars the game reads off disk are built.
+// The guard on rootProject.name matters: an init script also runs for the included
+// build `build-logic`, where :facades:PC does not exist.
+gradle.projectsEvaluated {
+    if (rootProject.name != 'Terasology') {
+        return
+    }
+    def pc = rootProject.project(':facades:PC')
+    pc.tasks.register('dumpRunSpec') {
+        dependsOn pc.configurations.named('natives')
+        dependsOn pc.configurations.named('modules')
+        dependsOn pc.tasks.named('classes')
+        doLast {
+            def cp = pc.sourceSets.main.runtimeClasspath.files.collect { it.absolutePath }
+            new File(rootProject.projectDir, 'build/run-classpath.txt').text = cp.join(File.pathSeparator)
+            println "wrote build/run-classpath.txt (${cp.size()} entries)"
+        }
+    }
+}

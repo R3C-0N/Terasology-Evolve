@@ -8,6 +8,8 @@
 !.gitattributes
 !.gitignore
 !.github
+# Les skills d'agent versionnes avec le fork
+!/.claude
 
 # Ignore generated code
 /engine/src/jmh/generated
