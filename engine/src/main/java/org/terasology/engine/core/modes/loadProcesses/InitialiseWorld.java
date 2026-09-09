@@ -33,6 +33,9 @@ import org.terasology.engine.world.block.BlockManager;
 import org.terasology.engine.world.chunks.ChunkProvider;
 import org.terasology.engine.world.chunks.localChunkProvider.LocalChunkProvider;
 import org.terasology.engine.world.chunks.localChunkProvider.RelevanceSystem;
+import org.terasology.engine.rendering.sphere.SphereProjection;
+import org.terasology.engine.rendering.sphere.SphereProjectionProvider;
+import org.terasology.engine.rendering.world.ChunkVisibilityPolicy;
 import org.terasology.engine.world.generator.ScalableWorldGenerator;
 import org.terasology.engine.world.generator.UnresolvedWorldGeneratorException;
 import org.terasology.engine.world.generator.WorldGenerator;
@@ -102,6 +105,15 @@ public class InitialiseWorld extends SingleStepLoadProcess {
             serviceRegistry.with(WorldGenerator.class).lifetime(Lifetime.Singleton).use(() -> worldGenerator);
             if (worldGenerator instanceof ScalableWorldGenerator) {
                 serviceRegistry.with(ScalableWorldGenerator.class).lifetime(Lifetime.Singleton).use(() -> (ScalableWorldGenerator) worldGenerator);
+            }
+            // A world whose geometry is not the grid it is stored in publishes how it is drawn and
+            // how it is culled. Registered here because this runs before the renderer is built.
+            if (worldGenerator instanceof SphereProjectionProvider) {
+                SphereProjectionProvider provider = (SphereProjectionProvider) worldGenerator;
+                serviceRegistry.with(SphereProjection.class).lifetime(Lifetime.Singleton)
+                        .use(provider::getSphereProjection);
+                serviceRegistry.with(ChunkVisibilityPolicy.class).lifetime(Lifetime.Singleton)
+                        .use(provider::getChunkVisibilityPolicy);
             }
         } catch (UnresolvedWorldGeneratorException | UnresolvedDependencyException e) {
             logger.atError().log("Unable to load world generator {}. Available world generators: {}",

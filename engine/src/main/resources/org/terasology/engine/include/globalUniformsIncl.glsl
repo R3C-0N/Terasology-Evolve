@@ -28,3 +28,14 @@ uniform vec3 cameraDirection;
 uniform vec3 cameraParameters;
 #define zNear cameraParameters.x
 #define zFar cameraParameters.y
+
+// A world whose geometry is not the grid it is stored in. Absent a SphereProjection in the
+// context, sphereEnabled stays 0 and every vertex keeps its plain model-view transform.
+uniform int sphereEnabled;
+uniform int sphereTableSize;
+uniform sampler2D sphereTable;
+uniform float sphereRadius;
+uniform float sphereFaceEdge;
+uniform float sphereReferenceHeight;
+uniform vec3 sphereFocus;
+uniform vec3 sphereModelOrigin;

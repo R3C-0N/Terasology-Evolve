@@ -24,7 +24,9 @@ import org.terasology.engine.entitySystem.systems.RenderSystem;
 import org.terasology.engine.logic.location.LocationComponent;
 import org.terasology.engine.network.ClientComponent;
 import org.terasology.engine.network.NetworkSystem;
+import org.terasology.engine.registry.CoreRegistry;
 import org.terasology.engine.registry.In;
+import org.terasology.engine.rendering.sphere.SphereProjection;
 import org.terasology.engine.rendering.assets.material.Material;
 import org.terasology.engine.rendering.world.WorldRenderer;
 import org.terasology.engine.world.WorldProvider;
@@ -41,6 +43,15 @@ import java.util.Set;
  */
 @RegisterSystem(RegisterMode.CLIENT)
 public class MeshRenderer extends BaseComponentSystem implements RenderSystem {
+    /**
+     * Null on a flat world, in which case nothing below changes. Resolved by hand rather than
+     * injected, because an absent binding makes the injector log, and a flat world has nothing to
+     * report.
+     */
+    private SphereProjection sphereProjection;
+
+    private final Matrix3f surfaceFrame = new Matrix3f();
+
     private static final Logger logger = LoggerFactory.getLogger(MeshRenderer.class);
 
     @In
@@ -62,6 +73,7 @@ public class MeshRenderer extends BaseComponentSystem implements RenderSystem {
 
     @Override
     public void initialise() {
+        sphereProjection = CoreRegistry.get(SphereProjection.class);
         opaqueMeshSorter.initialise(worldRenderer.getActiveCamera());
         translucentMeshSorter.initialise(worldRenderer.getActiveCamera());
     }
@@ -194,6 +206,19 @@ public class MeshRenderer extends BaseComponentSystem implements RenderSystem {
 
                     Vector3f offsetFromCamera = worldPos.sub(cameraPosition, new Vector3f());
                     matrixCameraSpace.translationRotateScale(offsetFromCamera, worldRot, worldScale);
+
+                    if (sphereProjection != null) {
+                        // A rigid body is placed in the local frame at its own origin, never bent
+                        // vertex by vertex: a model straddling a seam would tear. What that leaves
+                        // is the sag across the model itself, a twentieth of a block for five.
+                        sphereProjection.curvedPosition(worldPos, offsetFromCamera);
+                        sphereProjection.frameAt(worldPos, surfaceFrame);
+                        matrixCameraSpace.set(new Matrix4f()
+                                .translation(offsetFromCamera)
+                                .mul(new Matrix4f().set(surfaceFrame))
+                                .rotate(worldRot)
+                                .scale(worldScale));
+                    }
 
 
                     AABBf aabb = meshComp.mesh.getAABB()

@@ -75,9 +75,18 @@ public class RenderableWorldImpl implements RenderableWorld {
 
     private final ChunkMeshWorker chunkWorker;
 
+    /**
+     * How visibility is decided. A world drawn where it is stored keeps the frustum test; one whose
+     * vertices are bent by the shader supplies its own, because the bounding box no longer bounds
+     * the geometry.
+     */
+    private final ChunkVisibilityPolicy visibilityPolicy;
+
     @Inject
     public RenderableWorldImpl(Provider<WorldRenderer> worldRenderer, Optional<LodChunkProvider> lodChunkProvider, ChunkProvider chunkProvider,
-                               ChunkTessellator chunkTessellator, WorldProvider worldProvider, Config config) {
+                               ChunkTessellator chunkTessellator, WorldProvider worldProvider, Config config,
+                               Optional<ChunkVisibilityPolicy> visibilityPolicy) {
+        this.visibilityPolicy = visibilityPolicy.orElse(FrustumChunkVisibilityPolicy.INSTANCE);
         frontToBackComparator = new RenderableWorldImpl.ChunkFrontToBackComparator(worldRenderer);
         backToFrontComparator = new RenderableWorldImpl.ChunkBackToFrontComparator(worldRenderer);
 
@@ -366,13 +375,11 @@ public class RenderableWorldImpl implements RenderableWorld {
     }
 
     private boolean isChunkVisible(Camera camera, RenderableChunk chunk) {
-        return camera.hasInSight(chunk.getAABB());
+        return visibilityPolicy.isVisible(camera, chunk);
     }
 
     private boolean isChunkVisibleReflection(RenderableChunk chunk) {
-        AABBfc bounds = chunk.getAABB();
-        return worldRenderer.get().getActiveCamera().getViewFrustumReflected().testAab(bounds.minX(), bounds.minY(), bounds.minZ(),
-                bounds.maxX(), bounds.maxY(), bounds.maxZ());
+        return visibilityPolicy.isVisibleReflected(worldRenderer.get().getActiveCamera(), chunk);
     }
 
     @Override
