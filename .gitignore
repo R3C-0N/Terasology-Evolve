@@ -25,6 +25,7 @@ extensions
 !/modules/CoreAssets
 !/modules/Minimap
 !/modules/CubeWorlds
+!/modules/CoreSampleGameplay
 /metas/*
 !/metas/subprojects.gradle
 /libs/*

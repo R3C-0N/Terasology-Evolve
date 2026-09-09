@@ -13,3 +13,6 @@
 [submodule "modules/CubeWorlds"]
 	path = modules/CubeWorlds
 	url = ../CubeWorlds-Evolve.git
+[submodule "modules/CoreSampleGameplay"]
+	path = modules/CoreSampleGameplay
+	url = ../CoreSampleGameplay-Evolve.git
