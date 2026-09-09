@@ -1,0 +1,12 @@
+[submodule "modules/CoreWorlds"]
+	path = modules/CoreWorlds
+	url = git@github.com:R3C-0N/CoreWorlds-Evolve.git
+[submodule "modules/CoreRendering"]
+	path = modules/CoreRendering
+	url = git@github.com:R3C-0N/CoreRendering-Evolve.git
+[submodule "modules/CoreAssets"]
+	path = modules/CoreAssets
+	url = git@github.com:R3C-0N/CoreAssets-Evolve.git
+[submodule "modules/Minimap"]
+	path = modules/Minimap
+	url = git@github.com:R3C-0N/Minimap-Evolve.git

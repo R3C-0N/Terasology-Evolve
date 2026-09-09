@@ -19,6 +19,11 @@ extensions
 !/facades/subprojects.gradle
 /modules/*
 !/modules/subprojects.gradle
+# Modules rattaches en submodules pour l'etude de la topologie cubique
+!/modules/CoreWorlds
+!/modules/CoreRendering
+!/modules/CoreAssets
+!/modules/Minimap
 /metas/*
 !/metas/subprojects.gradle
 /libs/*
