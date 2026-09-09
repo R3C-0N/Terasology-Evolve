@@ -10,3 +10,6 @@
 [submodule "modules/Minimap"]
 	path = modules/Minimap
 	url = git@github.com:R3C-0N/Minimap-Evolve.git
+[submodule "modules/CubeWorlds"]
+	path = modules/CubeWorlds
+	url = git@github.com:R3C-0N/CubeWorlds-Evolve.git

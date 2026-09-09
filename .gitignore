@@ -24,6 +24,7 @@ extensions
 !/modules/CoreRendering
 !/modules/CoreAssets
 !/modules/Minimap
+!/modules/CubeWorlds
 /metas/*
 !/metas/subprojects.gradle
 /libs/*
