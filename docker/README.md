@@ -23,13 +23,26 @@ cubique dépend.
 | Fichier | `docker/docker-compose.yaml` |
 | Submodules | **à activer** (`Advanced → Git Submodules`) — sans eux `modules/` reste vide et il n'y a aucun générateur |
 | Source | la **GitHub App**, pas « Public GitHub » : `CubeWorlds-Evolve` est privé, et une clé de déploiement ne couvre qu'un dépôt. Les URL du `.gitmodules` sont relatives pour que les submodules héritent du jeton du parent — vérifier que l'installation de l'App a accès aux six dépôts |
-| Domaine | généré depuis `SERVICE_FQDN_TERASOLOGY_6080` |
+| Domaine | **à poser à la main** : `SERVICE_FQDN_TERASOLOGY_6080=terasology.exemple.fr` |
 | Mot de passe | généré depuis `SERVICE_PASSWORD_VNC`, visible dans l'interface Coolify |
 
 Aucun port n'est publié sur l'hôte : le proxy joint le conteneur par le réseau
 de Coolify. Le premier démarrage est long — Gradle résout ses dépendances, puis
 le jeu écrit sa configuration lors d'un passage sans écran — d'où un
 `start_period` de dix minutes sur le contrôle de santé.
+
+**Le domaine ne s'invente pas.** Coolify n'engendre un domaine que s'il a un
+domaine génériqu**e configuré sur le serveur ; sans lui, `SERVICE_FQDN_…`
+déclarée sans valeur ne produit rien, Coolify ne pose **aucun label de routeur**
+sur le conteneur, et Traefik répond `404` — non pas parce que le service va mal,
+mais parce qu'aucun routeur ne correspond à l'hôte. Le symptôme ne dit pas la
+cause : pour la voir, regarder les labels du conteneur déployé.
+
+```bash
+docker inspect <conteneur> --format '{{json .Config.Labels}}' | tr ',' '\n' | grep traefik
+```
+
+S'il n'y a que `coolify.traefik.middlewares`, c'est qu'il manque le domaine.
 
 **La source est copiée dans l'image, pas montée.** Coolify convertit un montage
 lié relatif en volume nommé : un compose demandant `.:/work` en reçoit un vide,

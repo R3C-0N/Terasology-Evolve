@@ -41,6 +41,20 @@ if [[ -f templates/build.gradle ]]; then
     done
 fi
 
+# The source modules declare dependencies that are not source modules themselves — BiomesAPI, for
+# one — and those arrive as jars. Gradle syncs them into the repository's cachedModules, but the
+# game reads <homedir>/modules and never looks there, so without this copy it reports
+# "Could not resolve dependencies for module: CoreWorlds" and offers no world generator at all.
+echo "fetching the jar dependencies of the source modules"
+./gradlew --console=plain --no-daemon :modules:fetchModuleDependencies > /dev/null 2>&1 || true
+mkdir -p "$GAME_HOME/modules"
+if compgen -G "/work/cachedModules/*.jar" > /dev/null; then
+    cp -f /work/cachedModules/*.jar "$GAME_HOME/modules/"
+    echo "placed $(ls -1 /work/cachedModules/*.jar | wc -l) jar module(s) in $GAME_HOME/modules"
+else
+    echo "warning: no jar module was fetched; the world generators will not resolve" >&2
+fi
+
 # Match the window to the screen and drop the passes a software rasteriser cannot afford. Only
 # touched once the game itself has written a config, so nothing here invents a schema.
 patch_config() {
