@@ -1,0 +1,59 @@
+# Copyright 2026 R3C-0N
+# SPDX-License-Identifier: Apache-2.0
+#
+# Terasology, rendered in software and served to a browser.
+#
+# Meant to be deployed by Coolify: it attaches its own proxy network and generates the Traefik
+# labels from the SERVICE_FQDN_ variable below, so no host port is published and nothing is
+# reachable except through the proxy.
+#
+# Coolify must clone this repository with its submodules: the modules live in modules/ as
+# submodules, and without them there is no world generator to run.
+
+services:
+  terasology:
+    build:
+      # The repository root, because the build has to see gradlew, the engine and the modules.
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+
+    environment:
+      # Coolify generates the domain and the Traefik labels from this one, on the container's 6080.
+      - SERVICE_FQDN_TERASOLOGY_6080
+      # And generates this password once, then keeps it. The entrypoint refuses to start without it.
+      - VNC_PASSWORD=${SERVICE_PASSWORD_VNC}
+      # Software rendering: give it the cores, it has nothing else.
+      - SCREEN=${SCREEN:-1600x900x24}
+      - LP_NUM_THREADS=${LP_NUM_THREADS:-8}
+      - WORLD_GENERATOR=${WORLD_GENERATOR:-CubeWorlds:cubeworld}
+      - GAME_ARGS=${GAME_ARGS:-}
+
+    expose:
+      - "6080"
+
+    volumes:
+      # Read-write: Gradle writes its build output inside the tree, and the entrypoint deposits the
+      # build.gradle that module repositories do not track.
+      - ..:/work
+      # Around three gigabytes of dependencies. Losing this on every deploy would be painful.
+      - gradle-cache:/home/game/.gradle
+      # Saves, config and screenshots.
+      - game-home:/home/game/terasology
+
+    # Xvfb and llvmpipe both want room; the JVM is capped by the engine's own settings.
+    shm_size: "512mb"
+    mem_limit: ${MEM_LIMIT:-8g}
+    cpus: ${CPUS:-8}
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:6080/vnc.html"]
+      interval: 30s
+      timeout: 5s
+      # Gradle resolves its dependencies on a cold cache before the display is ever served.
+      start_period: 600s
+      retries: 5
+
+volumes:
+  gradle-cache:
+  game-home:

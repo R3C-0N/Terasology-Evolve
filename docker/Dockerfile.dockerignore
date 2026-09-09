@@ -1,0 +1,4 @@
+# The image only needs the entrypoint; the work tree arrives as a bind mount at run time.
+# Without this the whole repository, submodules included, would be shipped to the daemon.
+*
+!docker/entrypoint.sh
