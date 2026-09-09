@@ -21,7 +21,8 @@ cubique dépend.
 |---|---|
 | Type de ressource | Docker Compose |
 | Fichier | `docker/docker-compose.yaml` |
-| Submodules | **à activer** — les modules du jeu sont des submodules, sans eux il n'y a aucun générateur |
+| Submodules | **à activer** (`Advanced → Git Submodules`) — sans eux `modules/` reste vide et il n'y a aucun générateur |
+| Source | la **GitHub App**, pas « Public GitHub » : `CubeWorlds-Evolve` est privé, et une clé de déploiement ne couvre qu'un dépôt. Les URL du `.gitmodules` sont relatives pour que les submodules héritent du jeton du parent — vérifier que l'installation de l'App a accès aux six dépôts |
 | Domaine | généré depuis `SERVICE_FQDN_TERASOLOGY_6080` |
 | Mot de passe | généré depuis `SERVICE_PASSWORD_VNC`, visible dans l'interface Coolify |
 
@@ -48,6 +49,19 @@ VNC est un secret court et le protocole n'en fait pas grand-chose. **Mettre
 l'Authelia déjà en place devant ce domaine** : c'est la seule authentification
 sérieuse ici, le mot de passe VNC n'étant qu'un second verrou.
 
+Trois points, détaillés dans le README du dépôt `authelia-config` :
+
+- le domaine doit être **sous la portée du cookie** d'Authelia, faute de quoi la
+  session n'y sera jamais vue ;
+- une **règle d'`access_control`** doit nommer ce domaine — la politique par
+  défaut est `deny`, donc sans elle il est fermé à son propre propriétaire ;
+- le middleware `authelia@docker` doit être **ajouté** à la liste du routeur que
+  Coolify engendre (`middlewares=gzip,authelia@docker`), et non la remplacer.
+
+Un `curl -sI` sur le domaine doit répondre `302` vers le portail. Un `200`
+signifie que le middleware n'est pas accroché et que la page s'ouvre sans rien
+demander.
+
 ## Ce à quoi il ne faut pas s'attendre
 
 **La fluidité.** Un rasteriseur logiciel dessine un moteur de voxels à pipeline
@@ -73,8 +87,13 @@ docker cp <conteneur>:/tmp/shot.png ./shot.png
 
 ## Essai local, hors Coolify
 
+Les chemins du compose sont relatifs au **répertoire de projet**, pas au fichier.
+Coolify passe `--project-directory` sur la racine du dépôt ; en local il faut le
+dire, sans quoi Compose prend le dossier `docker/` et tout se décale d'un cran —
+`context: .` devient `docker/`, et le build échoue sur `lstat …/docker`.
+
 ```bash
-docker compose -f docker/docker-compose.yaml build
+docker compose --project-directory . -f docker/docker-compose.yaml build
 docker run -d --name tera -e VNC_PASSWORD=changeme -e SCREEN=1280x720x24 \
   -v "$PWD":/work -v "$HOME/.gradle":/home/game/.gradle \
   -v tera-home:/home/game/terasology \

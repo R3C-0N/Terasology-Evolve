@@ -13,8 +13,14 @@
 services:
   terasology:
     build:
-      # The repository root, because the build has to see gradlew, the engine and the modules.
-      context: ..
+      # Both of these are relative to the *project directory*, not to this file. Coolify passes
+      # --project-directory <repo root>, so they are written from the repository root, which is
+      # also where the build has to look: it needs gradlew, the engine and the modules.
+      #
+      # A local build therefore has to say where the root is, or Compose takes the directory of
+      # this file and everything shifts one level:
+      #     docker compose --project-directory . -f docker/docker-compose.yaml build
+      context: .
       dockerfile: docker/Dockerfile
     restart: unless-stopped
 
@@ -29,13 +35,14 @@ services:
       - WORLD_GENERATOR=${WORLD_GENERATOR:-CubeWorlds:cubeworld}
       - GAME_ARGS=${GAME_ARGS:-}
 
-    expose:
-      - "6080"
+    # No expose and no ports: the proxy reaches the container over the network it shares with it,
+    # and the port it should aim at is the one named in SERVICE_FQDN_TERASOLOGY_6080.
 
     volumes:
       # Read-write: Gradle writes its build output inside the tree, and the entrypoint deposits the
-      # build.gradle that module repositories do not track.
-      - ..:/work
+      # build.gradle that module repositories do not track. Relative to the project directory, as
+      # above — and this one fails silently rather than loudly, mounting the wrong directory.
+      - .:/work
       # Around three gigabytes of dependencies. Losing this on every deploy would be painful.
       - gradle-cache:/home/game/.gradle
       # Saves, config and screenshots.
