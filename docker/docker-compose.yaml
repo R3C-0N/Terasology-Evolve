@@ -38,11 +38,23 @@ services:
     # No expose and no ports: the proxy reaches the container over the network it shares with it,
     # and the port it should aim at is the one named in SERVICE_FQDN_TERASOLOGY_6080.
 
+    labels:
+      # Coolify reads this label and merges its contents into the middleware list of the router it
+      # generates, so nothing here has to name that router. Naming it would mean carrying the
+      # resource's uuid in the file, and a label pointing at a router that no longer exists is
+      # ignored in silence — an authentication gate that fails by opening.
+      #
+      # The middleware itself is defined by the Authelia stack, which is what the @docker suffix
+      # says: Traefik prefixes a middleware with the provider that handed it over.
+      #
+      # Order matters on first deployment: Traefik rejects a router that references a middleware it
+      # does not know, so deploy Authelia before this. That failure is at least the safe way round.
+      - coolify.traefik.middlewares=authelia@docker
+
     volumes:
-      # Read-write: Gradle writes its build output inside the tree, and the entrypoint deposits the
-      # build.gradle that module repositories do not track. Relative to the project directory, as
-      # above — and this one fails silently rather than loudly, mounting the wrong directory.
-      - .:/work
+      # The source tree is not mounted: it is baked into the image. Coolify converts a relative
+      # bind into a named volume, so `.:/work` produced an empty one and the game found no gradlew.
+      #
       # Around three gigabytes of dependencies. Losing this on every deploy would be painful.
       - gradle-cache:/home/game/.gradle
       # Saves, config and screenshots.

@@ -31,6 +31,43 @@ de Coolify. Le premier démarrage est long — Gradle résout ses dépendances, 
 le jeu écrit sa configuration lors d'un passage sans écran — d'où un
 `start_period` de dix minutes sur le contrôle de santé.
 
+**La source est copiée dans l'image, pas montée.** Coolify convertit un montage
+lié relatif en volume nommé : un compose demandant `.:/work` en reçoit un vide,
+et le jeu n'y trouve jamais `gradlew` — il redémarre alors en boucle sur
+`./gradlew: No such file or directory`. Et l'arbre que Coolify clone vit dans le
+constructeur, qui ne survit pas jusqu'au conteneur. D'où le `COPY` : l'image est
+un artefact déployable, pas une coquille autour d'un chemin. Contrepartie : la
+compilation est refaite à chaque déploiement, environ deux minutes, le cache des
+dépendances étant lui conservé dans son volume.
+
+## L'authentification, dans l'ordre
+
+Le compose porte déjà `coolify.traefik.middlewares=authelia@docker` : Coolify
+lit ce label et l'ajoute à la liste du routeur qu'il engendre, sans qu'il faille
+nommer ce routeur — le nommer voudrait dire inscrire l'uuid de la ressource dans
+le fichier, et un label visant un routeur disparu est ignoré en silence, ce qui
+laisserait la porte ouverte.
+
+Trois conditions, et l'ordre compte :
+
+1. **Déployer Authelia d'abord.** Traefik refuse un routeur qui réclame un
+   middleware inconnu ; cette panne-là ferme au moins la porte au lieu de
+   l'ouvrir.
+2. **Une règle d'`access_control` nommant le domaine.** La politique par défaut
+   est `deny`, donc sans elle le service est fermé à son propre propriétaire.
+   Elle est dans le dépôt `authelia-config`, avec `GAME_DOMAIN`.
+3. **Un domaine sous la portée du cookie** d'Authelia, sinon la session n'y sera
+   jamais vue.
+
+Pour vérifier plutôt que supposer :
+
+```bash
+curl -sI https://<domaine> | head -1
+```
+
+`302` vers le portail : le portier est en place. `200` : le middleware n'est pas
+accroché, et la page s'ouvre sans rien demander.
+
 ### Variables
 
 | Variable | Défaut | Ce qu'elle fait |
@@ -95,10 +132,13 @@ dire, sans quoi Compose prend le dossier `docker/` et tout se décale d'un cran 
 ```bash
 docker compose --project-directory . -f docker/docker-compose.yaml build
 docker run -d --name tera -e VNC_PASSWORD=changeme -e SCREEN=1280x720x24 \
-  -v "$PWD":/work -v "$HOME/.gradle":/home/game/.gradle \
+  -v "$HOME/.gradle":/home/game/.gradle \
   -v tera-home:/home/game/terasology \
-  -p 127.0.0.1:6080:6080 --shm-size=512m docker-terasology
+  -p 127.0.0.1:6080:6080 --shm-size=512m terasology-evolve-terasology
 ```
+
+Ne rien monter sur `/work` : la source est dans l'image, et un volume par-dessus
+la masquerait.
 
 Puis `http://127.0.0.1:6080/` — par un tunnel SSH si la machine est distante,
 ce qui évite d'exposer quoi que ce soit. Monter le `~/.gradle` de l'hôte évite

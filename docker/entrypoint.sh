@@ -10,6 +10,14 @@ if [[ -z "${VNC_PASSWORD:-}" ]]; then
     exit 1
 fi
 
+# Fail with the reason rather than with a missing file: a container that restarts forever on
+# "./gradlew: No such file or directory" says nothing about why the tree is not there.
+if [[ ! -x ./gradlew ]]; then
+    echo "no work tree in $(pwd): gradlew is missing." >&2
+    echo "The source is copied into the image at build time; a volume mounted over /work hides it." >&2
+    exit 1
+fi
+
 WORLD_GENERATOR="${WORLD_GENERATOR:-CubeWorlds:cubeworld}"
 GAME_ARGS="${GAME_ARGS:-}"
 SCREEN="${SCREEN:-1600x900x24}"

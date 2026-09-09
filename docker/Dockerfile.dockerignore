@@ -1,4 +1,8 @@
-# The image only needs the entrypoint; the work tree arrives as a bind mount at run time.
-# Without this the whole repository, submodules included, would be shipped to the daemon.
-*
-!docker/entrypoint.sh
+# The source tree is copied into the image, so the context is the repository. What is excluded is
+# what would only make it heavier: history, build output, and anything Gradle regenerates.
+.git
+**/.git
+**/build
+**/.gradle
+cachedModules
+docker/*.png

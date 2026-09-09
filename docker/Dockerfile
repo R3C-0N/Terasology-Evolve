@@ -38,6 +38,12 @@ RUN if id -u 1000 > /dev/null 2>&1; then \
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+# The source is baked in rather than bind-mounted. Coolify turns a relative bind into a named
+# volume, so a compose asking for `.:/work` gets an empty one and the game never finds gradlew;
+# and the tree it clones lives in the builder, which does not survive into the running container.
+# Copying it here is what makes the image a deployable artifact instead of a shell around a path.
+COPY --chown=1000:1000 . /work
+
 USER game
 WORKDIR /work
 
