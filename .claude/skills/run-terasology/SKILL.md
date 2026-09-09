@@ -21,8 +21,9 @@ there.
 
 ## Prerequisites
 
-- **JDK 17, exactly.** `build.gradle.kts` asserts it and refuses 11 or 21. On
-  this machine: `C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot`. The driver
+- **JDK 17.** `build.gradle.kts` asserts at least 17 and warns on anything that
+  is not exactly 17; the default `JAVA_HOME` here is 11, which fails the assert.
+  On this machine: `C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot`. The driver
   sets `JAVA_HOME` itself; override with the `TERA_JAVA_HOME` environment
   variable if the JDK moves.
 - **Python 3** (3.11 here). Standard library only — `ctypes` and `zlib`, no pip
@@ -38,9 +39,9 @@ python .claude/skills/run-terasology/driver.py build
 
 Compiles the engine, the subsystems, the modules under `modules/`, extracts the
 LWJGL natives into `natives/`, and writes the runtime classpath to
-`build/run-classpath.txt`. Incremental and fast (~8 s when everything is
-up to date); the first build of a fresh clone downloads dependencies and takes
-much longer. `--clean` is accepted and forces a full rebuild.
+`build/run-classpath.txt`. Incremental: 8 s here with everything already built,
+and expect much longer the first time, when Gradle still has to fetch
+dependencies and compile. `--clean` is accepted and forces a full rebuild.
 
 The classpath dump comes from a Gradle init script kept next to the driver,
 `dump-classpath.init.gradle`, which registers `:facades:PC:dumpRunSpec` without
