@@ -3,6 +3,8 @@
 package org.terasology.engine.world.block.loader;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Maps;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializationContext;
@@ -19,6 +21,8 @@ import com.google.gson.stream.JsonToken;
 import com.google.gson.stream.JsonWriter;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terasology.engine.world.block.DefaultColorSource;
 import org.terasology.gestalt.assets.Asset;
 import org.terasology.gestalt.assets.ResourceUrn;
@@ -40,6 +44,7 @@ import org.terasology.engine.world.block.tiles.BlockTile;
 import org.terasology.gestalt.assets.format.AbstractAssetFileFormat;
 import org.terasology.gestalt.assets.format.AssetDataFile;
 import org.terasology.gestalt.assets.management.AssetManager;
+import org.terasology.gestalt.naming.Name;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -48,6 +53,7 @@ import java.lang.reflect.Type;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -57,7 +63,40 @@ import java.util.function.Supplier;
  */
 public class BlockFamilyDefinitionFormat extends AbstractAssetFileFormat<BlockFamilyDefinitionData> {
 
+    private static final Logger logger = LoggerFactory.getLogger(BlockFamilyDefinitionFormat.class);
+
     private static final ResourceUrn DEFAULT_SOUNDS = new ResourceUrn("engine", "default");
+
+    /**
+     * Suffixes appended to a block definition's own resource name to discover a tile for particular faces.
+     * A definition {@code CoreAssets:Chest} picks up {@code ChestFront} for the front, {@code ChestSides}
+     * for the four horizontal sides and {@code ChestTopBottom} for top and bottom, with no {@code tiles}
+     * object in the .block file.
+     * <p>
+     * Iteration order IS the precedence: the first suffix to resolve claims its parts, and later, coarser
+     * entries only fill parts that are still unclaimed. This mirrors {@link #readBlockPartMap}, where the
+     * per-face keys are read after {@code sides}/{@code topBottom} and therefore win.
+     * <p>
+     * RESERVED: "Normal", "Height" and "Gloss" name the supplementary maps consumed by
+     * {@link org.terasology.engine.world.block.tiles.WorldAtlasImpl}, and must never appear here - a
+     * normal map bound as a colour face would be a silent corruption.
+     */
+    private static final List<Map.Entry<String, List<BlockPart>>> TILE_NAME_SUFFIXES = ImmutableList.of(
+            Maps.immutableEntry("Top", ImmutableList.of(BlockPart.TOP)),
+            Maps.immutableEntry("Bottom", ImmutableList.of(BlockPart.BOTTOM)),
+            Maps.immutableEntry("Front", ImmutableList.of(BlockPart.FRONT)),
+            Maps.immutableEntry("Back", ImmutableList.of(BlockPart.BACK)),
+            Maps.immutableEntry("Left", ImmutableList.of(BlockPart.LEFT)),
+            Maps.immutableEntry("Right", ImmutableList.of(BlockPart.RIGHT)),
+            Maps.immutableEntry("Sides", BlockPart.allHorizontalParts()),
+            Maps.immutableEntry("TopBottom", ImmutableList.of(BlockPart.TOP, BlockPart.BOTTOM)));
+
+    /**
+     * Accepted only to warn about it. "Sides" is the spelling used by the {@code tiles} object and by
+     * {@link #TILE_NAME_SUFFIXES}; art imported from elsewhere often uses the singular, and losing its
+     * side faces in silence is worse than one line of log.
+     */
+    private static final String REJECTED_SIDE_SUFFIX = "Side";
 
     private final AssetManager assetManager;
     private final Gson gson;
@@ -95,8 +134,8 @@ public class BlockFamilyDefinitionFormat extends AbstractAssetFileFormat<BlockFa
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(input.get(0).openStream(), Charsets.UTF_8))) {
             BlockFamilyDefinitionData data = gson.fromJson(reader, BlockFamilyDefinitionData.class);
 
-            applyDefaults(resourceUrn, data.getBaseSection());
-            data.getSections().values().stream().forEach(section -> applyDefaults(resourceUrn, section));
+            applyDefaults(resourceUrn, data, data.getBaseSection());
+            data.getSections().values().forEach(section -> applyDefaults(resourceUrn, data, section));
             if (!data.isTemplate()) {
                 if (data.getBlockFamily() == null && data.getBaseSection().getShape() != null) {
                     if (data.getBaseSection().getShape().isCollisionYawSymmetric()) {
@@ -113,7 +152,69 @@ public class BlockFamilyDefinitionFormat extends AbstractAssetFileFormat<BlockFa
         }
     }
 
-    private void applyDefaults(ResourceUrn resourceUrn, SectionDefinitionData section) {
+    /**
+     * Fills any block part that has no tile yet from a tile named after this definition plus a face
+     * suffix - see {@link #TILE_NAME_SUFFIXES}.
+     * <p>
+     * Probing outwards from the definition's own name, rather than parsing tile names to guess which
+     * block they belong to, is what makes this safe: a tile family with no .block of its own is never
+     * looked at. {@code DoorTop} and {@code DoorBottom} are the two halves of a door - two separate
+     * blocks, not two faces - and are left alone precisely because no {@code Door} definition exists.
+     * <p>
+     * Only ever fills holes, so a tile set explicitly by the .block file, or inherited through
+     * {@code basedOn}, always wins. Probing for a tile that does not exist is a lookup in the asset
+     * file index; it decodes no image.
+     */
+    private void applyTileNameConventions(ResourceUrn resourceUrn, SectionDefinitionData section) {
+        if (!resourceUrn.getFragmentName().isEmpty()) {
+            return;
+        }
+        EnumMap<BlockPart, BlockTile> tiles = section.getBlockTiles();
+        if (BlockPart.allParts().stream().noneMatch(part -> tiles.get(part) == null)) {
+            // Every face already has a tile - a 'tile' or 'all' entry, or an inherited map. Nothing
+            // to infer, and nothing to warn about: probe not at all.
+            return;
+        }
+        for (Map.Entry<String, List<BlockPart>> candidate : TILE_NAME_SUFFIXES) {
+            if (candidate.getValue().stream().noneMatch(part -> tiles.get(part) == null)) {
+                continue;
+            }
+            Optional<BlockTile> tile = findSuffixedTile(resourceUrn, candidate.getKey());
+            if (tile.isPresent()) {
+                for (BlockPart part : candidate.getValue()) {
+                    tiles.putIfAbsent(part, tile.get());
+                }
+            }
+        }
+        warnOnSingularSideSuffix(resourceUrn);
+    }
+
+    private Optional<BlockTile> findSuffixedTile(ResourceUrn resourceUrn, String suffix) {
+        ResourceUrn tileUrn = new ResourceUrn(resourceUrn.getModuleName(),
+                new Name(resourceUrn.getResourceName().toString() + suffix));
+        return assetManager.getAsset(tileUrn, BlockTile.class);
+    }
+
+    private void warnOnSingularSideSuffix(ResourceUrn resourceUrn) {
+        if (findSuffixedTile(resourceUrn, "Sides").isEmpty()
+                && findSuffixedTile(resourceUrn, REJECTED_SIDE_SUFFIX).isPresent()) {
+            logger.warn("Tile {}{} is ignored: the face suffix for the four horizontal sides is "
+                            + "'Sides', not '{}'. Rename the tile, or name it in a 'tiles' object.",
+                    resourceUrn.getResourceName(), REJECTED_SIDE_SUFFIX, REJECTED_SIDE_SUFFIX);
+        }
+    }
+
+    private void applyDefaults(ResourceUrn resourceUrn, BlockFamilyDefinitionData data,
+                               SectionDefinitionData section) {
+        // Name-derived per-face tiles come FIRST. Both passes only fill holes, and the generic fill
+        // below covers all seven parts, so running it first would leave nothing for the suffixes to
+        // fill and make the whole table dead code.
+        // Skipped for templates: a template's name is a category noun ("wood", "soil"), and basedOn
+        // copies its already-populated tile map wholesale into every child - a stray woodTop.png
+        // would silently grow a top face on every wood block in the game.
+        if (!data.isTemplate()) {
+            applyTileNameConventions(resourceUrn, section);
+        }
         Optional<BlockTile> defaultTile = assetManager.getAsset(resourceUrn, BlockTile.class);
         if (defaultTile.isPresent()) {
             for (BlockPart part : BlockPart.values()) {

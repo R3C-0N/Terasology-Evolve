@@ -45,14 +45,54 @@ You can specify a different tile to be used with the "tile" property:
 
     "tile" : "engine:grass"
 
-You can also use different texture tiles for the different sides of the block. To do so,
-you have to name the corresponding tiles in a `tiles` section of the block definition, e.g. for the chest block:
+### Faces from tile names
+
+Different tiles for different faces need no declaration: a block also picks up any tile named
+after it plus a **face suffix**, from its own module. A `Chest.block` sitting next to
+`ChestFront.png`, `ChestSides.png` and `ChestTopBottom.png` is textured on all six faces
+without saying anything about them.
+
+| Suffix | Faces |
+| --- | --- |
+| `Top`, `Bottom`, `Front`, `Back`, `Left`, `Right` | the named face |
+| `Sides` | the four horizontal sides |
+| `TopBottom` | top and bottom |
+
+Three rules govern it:
+
+ * **Specific beats coarse.** `XFront.png` claims the front before `XSides.png` reaches it, and
+   `XTop.png` before `XTopBottom.png`.
+ * **The same-named tile is the backstop.** `X.png` fills whatever no suffix supplied - so
+   `Grass.png` still covers the top while `GrassSides.png` and `GrassBottom.png` take the rest.
+ * **Anything you declare wins.** A `tile` or `tiles` entry, or a map inherited through
+   `basedOn`, is never overridden by a name.
+
+`Sides` is the only accepted spelling for the four horizontal faces. A tile named `XSide.png`
+is ignored, with a warning in the log - rename it, or name it in a `tiles` object.
+
+**Reserved:** `Normal`, `Height` and `Gloss` name the supplementary maps described in
+[Textures](Textures.md), and are never face suffixes.
+
+**Limitations.** A definition marked `"template": true` is never probed, so that a stray
+`woodTop.png` cannot grow a top face on every block based on the `wood` template. A definition
+whose `basedOn` names a *concrete* block inherits a tile map with no holes left in it, so
+nothing is inferred for it either. And adding `XTop.png` without touching `X.block` does not
+take effect until the definition is reloaded.
+
+### Declaring tiles explicitly
+
+The `tiles` object remains for what a name cannot express - a tile belonging to another block,
+or a tile whose name does not derive from the block's:
 
     "tiles" : {
         "sides"     : "core:ChestSides",
         "front"     : "core:ChestFront",
         "topBottom" : "core:ChestTopBottom"
     }
+
+The example above is just the explicit spelling of what the three tile names already achieve.
+In `CoreAssets` the one remaining genuine use is `Snow.block`, whose underside borrows `Dirt`'s
+tile.
 
 Possible block parts are
  * **all** to change every tile (same as using the "tile" property)
@@ -63,8 +103,8 @@ Possible block parts are
 
 | Option            |     Value(s)      |                            Default                             | Description                                                                                                                                                                                                                                                                                                                       |
 | ----------------- | :---------------: | :------------------------------------------------------------: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **tile**          | _a blockTile uri_ | A block tile with the same module and name as block definition | Specifies what blockTile to use to texture this block                                                                                                                                                                                                                                                                             |
-| **tiles**         |                   |                                                                | Allows the blockTile used by different parts/sides of the block to be overridden.                                                                                                                                                                                                                                                 |
+| **tile**          | _a blockTile uri_ | A block tile with the same module and name as block definition, per face a tile with that name plus a face suffix | Specifies what blockTile to use to texture this block                                                                                                                                                                                                                       |
+| **tiles**         |                   |                                                                | Allows the blockTile used by different parts/sides of the block to be overridden. Only needed for what a face suffix cannot name.                                                                                                                                                                                                  |
 | **doubleSided**   |   _true, false_   |                             false                              | Whether this block should be rendered double sided. This done for billboard plants to render both sides of polygons.                                                                                                                                                                                                              |
 | **invisible**     |   _true, false_   |                             false                              | If set to `true` the block is not rendered at all.                                                                                                                                                                                                                                                                                |
 | **translucent**   |   _true, false_   |                             false                              | Determines whether the block is transparent/translucent or not. Blocks with this option enabled can use textures with transparency (but not translucency, see _ice_). Moreover, translucent blocks do not prevent occluded blocks behind them from beeing rendered (blocks behind a translucent glass block are still displayed). |

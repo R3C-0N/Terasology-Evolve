@@ -11,7 +11,22 @@ A very basic use of textures are the _blockTiles_, the textures for single block
 At the moment the size of block textures is restricted to **16x16 pixels**. They are stored as **.png** files and can
  contain transparency, e.g. for colored Glass.
 
-Block textures need to have the same name as the corresponding JSON block definition to be auto loaded.
+Block textures need to have the same name as the corresponding JSON block definition to be auto loaded,
+optionally followed by a **face suffix** - `Top`, `Bottom`, `Front`, `Back`, `Left`, `Right`, `Sides` or
+`TopBottom` - to texture only those faces. See
+[Faces from tile names](Block-Definitions.md#faces-from-tile-names).
+
+Three suffixes are reserved for supplementary maps, and are picked up on any tile that has them without
+being declared anywhere. They are optional: a tile without them simply renders flat.
+
+| Tile | What it carries |
+| --- | --- |
+| `XNormal.png` | a normal map, sampled when normal mapping is on |
+| `XHeight.png` | a height map, sampled when parallax mapping is on |
+| `XGloss.png` | specular gloss, stored in the alpha of the normal atlas |
+
+A supplementary map must have the same number of animation frames as the tile it belongs to, or it is
+dropped with an error in the log.
 
 # Textures (subfolder)
 Any textures that are no block tiles are located in `src/main/resources/assets/textures` or the corresponding mod
