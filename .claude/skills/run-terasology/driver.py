@@ -396,7 +396,11 @@ def cmd_launch(a):
     # inside an argfile the JVM treats them as escapes.
     argfile.write_text('-cp "' + cp.replace("\\", "\\\\") + '"\n')
     java = str(Path(JDK17) / "bin" / "java.exe")
-    args = [java, "-Xmx768M", "-XX:MaxDirectMemorySize=512M", "@" + str(argfile),
+    # 768M starved the heap: with a world loaded the game sat at 707/768 MB and
+    # ran at 2 FPS, full GC on every frame. The official launcher gives it 3 GB;
+    # this machine has 8 GB, so 2560M leaves room for the OS. TERA_XMX overrides.
+    xmx = os.environ.get("TERA_XMX", "2560M")
+    args = [java, "-Xmx" + xmx, "-XX:MaxDirectMemorySize=512M", "@" + str(argfile),
             MAIN_CLASS, "--homedir=.", "--no-splash", "--no-crash-report"]
     if a.load_last_game:
         args.append("--load-last-game")
@@ -552,11 +556,20 @@ def cmd_console(a):
     time.sleep(0.05)
     send(key_input(scan, up=True, extended=ext))
     time.sleep(a.open_wait)
+    # The text field consumes characters on the frame it is polled, so at a low
+    # frame rate a 12 ms gap between them loses and reorders letters - the log
+    # filled up with 'Unknown command nshowPositio'. Clear whatever a previous
+    # mangled try left in the field, then type at the pace of a frame.
+    for _ in range(40):
+        send(key_input(SCAN["backspace"]))
+        send(key_input(SCAN["backspace"], up=True))
+        time.sleep(0.004)
+    time.sleep(a.char_delay)
     for ch in " ".join(a.command):
         send(char_input(ch))
         send(char_input(ch, up=True))
-        time.sleep(0.012)
-    time.sleep(0.15)
+        time.sleep(a.char_delay)
+    time.sleep(0.3)
     send(key_input(SCAN["enter"]))
     time.sleep(0.05)
     send(key_input(SCAN["enter"], up=True))
@@ -580,7 +593,8 @@ def newest_log():
     return files[-1] if files else None
 
 
-def console_output(command, keyname="f1", wait=1.0):
+def console_output(command, keyname="f1", wait=1.0, open_wait=2.5,
+                   char_delay=0.06):
     """Run a console command and return the lines it wrote to the log.
 
     ConsoleImpl mirrors every console message into logs/<run>/Terasology-<world>.log,
@@ -590,7 +604,8 @@ def console_output(command, keyname="f1", wait=1.0):
     log = newest_log()
     offset = log.stat().st_size if log else 0
     cmd_console(argparse.Namespace(command=[command], key=keyname,
-                                   open_wait=0.6, run_wait=wait, keep_open=False))
+                                   open_wait=open_wait, run_wait=wait,
+                                   char_delay=char_delay, keep_open=False))
     time.sleep(0.4)
     log = newest_log()
     if log is None:
@@ -601,13 +616,24 @@ def console_output(command, keyname="f1", wait=1.0):
 
 
 def cmd_where(a):
-    """Ask the game where the player is, and read the answer out of the log."""
-    lines = [ln for ln in console_output("showPosition") if "Position" in ln]
-    if not lines:
-        print("no answer - is a world actually loaded?")
-        return 1
-    print(lines[-1].split("[CONSOLE] ")[-1])
-    return 0
+    """Ask the game where the player is, and read the answer out of the log.
+
+    The console screen needs a few painted frames before it takes keystrokes,
+    and while chunks are still generating a frame can cost 200 ms. A single
+    short wait therefore types into nothing; retry, waiting longer each round.
+    """
+    wait = a.open_wait
+    for attempt in range(a.retries):
+        lines = [ln for ln in console_output("showPosition", wait=a.run_wait,
+                                             open_wait=wait)
+                 if "Position" in ln and "[CONSOLE]" in ln]
+        if lines:
+            print(lines[-1].split("[CONSOLE] ")[-1])
+            return 0
+        wait *= 1.8
+    print("no answer after %d tries - world still loading, or none loaded?"
+          % a.retries)
+    return 1
 
 
 def cmd_log(a):
@@ -786,11 +812,18 @@ def main():
     co.add_argument("--key", default="f1", help="console binding (f1 or grave)")
     co.add_argument("--open-wait", type=float, default=0.6)
     co.add_argument("--run-wait", type=float, default=0.8)
+    co.add_argument("--char-delay", type=float, default=0.06,
+                    help="seconds between characters; raise when the game is slow")
     co.add_argument("--keep-open", action="store_true")
     co.set_defaults(func=cmd_console)
 
-    sub.add_parser("where", help="player position, via console showPosition"
-                   ).set_defaults(func=cmd_where)
+    wh = sub.add_parser("where", help="player position, via console showPosition")
+    wh.add_argument("--open-wait", type=float, default=2.5,
+                    help="seconds to let the console paint before typing")
+    wh.add_argument("--run-wait", type=float, default=1.2)
+    wh.add_argument("--retries", type=int, default=4,
+                    help="tries, each waiting 1.8x longer than the last")
+    wh.set_defaults(func=cmd_where)
 
     lg = sub.add_parser("log", help="tail the newest run's log")
     lg.add_argument("--file", default=None, help="pick one file instead of the newest")
