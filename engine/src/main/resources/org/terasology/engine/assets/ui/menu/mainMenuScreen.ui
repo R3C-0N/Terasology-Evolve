@@ -7,84 +7,76 @@
             {
                 "type": "UIImage",
                 "id": "title",
-                "image": "engine:terasology",
+                "image": "engine:titleMark",
                 "layoutInfo": {
-                    "width": 512,
-                    "height": 128,
+                    "width": 566,
+                    "height": 120,
                     "position-horizontal-center": {},
                     "position-top": {
                         "target": "TOP",
-                        "offset": 48
+                        "offset": 64
                     }
                 }
             },
             {
                 "type": "UILabel",
                 "id": "version",
-                "family": "title",
+                "family": "chapter-center",
                 "layoutInfo": {
-                    "height": 48,
+                    "width": 620,
+                    "height": 30,
                     "position-horizontal-center": {},
                     "position-top": {
                         "target": "BOTTOM",
-                        "widget": "title"
+                        "widget": "title",
+                        "offset": 4
                     }
                 }
             },
             {
-                "type": "ColumnLayout",
+                "type": "UIBox",
+                "id": "menuPanel",
                 "layoutInfo": {
-                    "use-content-width": true,
-                    "use-content-height": true,
+                    "width": 560,
+                    "height": 348,
                     "position-horizontal-center": {},
                     "position-top": {
                         "target": "BOTTOM",
-                        "offset": 16,
-                        "widget": "version"
-                    },
-                    "position-bottom": {
+                        "widget": "version",
                         "offset": 32
                     }
                 },
-                "columns": 1,
-                "verticalSpacing": 8,
-                "family": "menu-options",
-                "contents": [
-                    {
-                        "type": "UIButton",
-                        "id": "singleplayer",
-                        "text": "${engine:menu#start-singleplayer-game}"
-                    },
-                    {
-                        "type": "UIButton",
-                        "id": "multiplayer",
-                        "text": "${engine:menu#host-multiplayer-game}"
-                    },
-                    {
-                        "type": "UIButton",
-                        "id": "join",
-                        "text": "${engine:menu#join-game-online}"
-                    },
-                    {
-                        "type": "UIButton",
-                        "id": "settings",
-                        "text": "${engine:menu#game-settings}"
-                    },
-                    {
-                        "type": "UIButton",
-                        "id": "extras",
-                        "text": "${engine:menu#extras-label}"
-                    },
-                    {
-                        "type" : "UISpace",
-                        "size" : [1, 64]
-                    },
-                    {
-                        "type": "UIButton",
-                        "id": "exit",
-                        "text": "${engine:menu#exit-game}"
-                    }
-                ]
+                "content": {
+                    "type": "ColumnLayout",
+                    "columns": 1,
+                    "verticalSpacing": 8,
+                    "contents": [
+                        {
+                            "type": "UIButton",
+                            "id": "singleplayer",
+                            "family": "btn-menu",
+                            "text": "${engine:menu#start-singleplayer-game}"
+                        },
+                        {
+                            "type": "UIButton",
+                            "id": "multiplayer",
+                            "family": "btn-menu-off",
+                            "text": "${engine:menu#multiplayer-label}"
+                        },
+                        {
+                            "type": "UIButton",
+                            "id": "settings",
+                            "family": "btn-menu-off",
+                            "text": "${engine:menu#game-settings}"
+                        },
+                        {
+                            "type": "UIButton",
+                            "id": "exit",
+                            "family": "btn-menu-danger",
+                            "text": "${engine:menu#exit-game}"
+                        }
+                    ]
+                }
             },
             {
                 "type": "UILabel",

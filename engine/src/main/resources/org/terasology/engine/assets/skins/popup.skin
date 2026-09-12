@@ -4,14 +4,14 @@
         "UIButton": {
             "modes": {
                 "disabled": {
-                    "text-color": "AAAAAAFF"
+                    "text-color": "B49E7CFF"
                 }
             }
         }
     },
     "families": {
         "title": {
-            "font": "NotoSans-Regular-Medium"
+            "font": "Uncial-Display"
         }
     }
 }

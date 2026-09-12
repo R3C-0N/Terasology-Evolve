@@ -6,11 +6,11 @@
             "background": "reddenedBackground"
         },
         "UIButton": {
-            "min-width": 128,
-            "min-height": 32
+            "min-width": 280,
+            "min-height": 44
         },
         "UILabel": {
-            "font": "NotoSans-Regular-Title"
+            "font": "Uncial-Title"
         }
     }
 }

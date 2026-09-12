@@ -1,6 +1,6 @@
 {
     "type": "joinGameScreen",
-    "skin": "engine:mainMenu",
+    "skin": "engine:mainMenuDim",
     "contents": {
         "type": "relativeLayout",
         "contents": [
@@ -8,357 +8,512 @@
                 "type": "UILabel",
                 "id": "title",
                 "family": "title",
-                "text": "${engine:menu#join-server-title}",
+                "text": "${engine:menu#multiplayer-label}",
                 "layoutInfo": {
-                    "height": 48,
-                    "position-horizontal-center": {},
+                    "width": 500,
+                    "height": 52,
+                    "position-left": {
+                        "offset": 70
+                    },
                     "position-top": {
                         "target": "TOP",
-                        "offset": 48
+                        "offset": 32
+                    }
+                }
+            },
+            {
+                "type": "RowLayout",
+                "id": "tabs",
+                "horizontalSpacing": 4,
+                "contents": [
+                    {
+                        "type": "UIButton",
+                        "id": "findTab",
+                        "family": "tab-active",
+                        "text": "${engine:menu#find-server}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.28
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "hostTab",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#create-local-server}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.28
+                        }
+                    },
+                    {
+                        "type": "UISpace",
+                        "layoutInfo": {
+                            "relativeWidth": 0.44
+                        }
+                    }
+                ],
+                "layoutInfo": {
+                    "height": 42,
+                    "width": 900,
+                    "position-left": {
+                        "offset": 70
+                    },
+                    "position-top": {
+                        "target": "BOTTOM",
+                        "widget": "title",
+                        "offset": 8
                     }
                 }
             },
             {
                 "type": "UIBox",
-                "id": "container",
+                "id": "panel",
                 "layoutInfo": {
-                    "width": 600,
-                    "position-horizontal-center": {},
+                    "position-left": {
+                        "offset": 70
+                    },
+                    "position-right": {
+                        "offset": 70
+                    },
                     "position-top": {
                         "target": "BOTTOM",
-                        "offset": 16,
-                        "widget": "title"
+                        "widget": "tabs"
                     },
                     "position-bottom": {
-                        "target": "TOP",
-                        "widget": "close",
-                        "offset": 16
-                    }
-                }
-            },
-            {
-                "type": "ColumnLayout",
-                "columns": 2,
-                "column-widths": [
-                    0.4,
-                    0.6
-                ],
-                "verticalSpacing": 16,
-                "horizontalSpacing": 8,
-                "layoutInfo": {
-                    "width": 584,
-                    "position-horizontal-center": {},
-                    "position-top": {
-                        "target": "TOP",
-                        "widget": "container",
-                        "offset": 8
-                    },
-                    "position-bottom": {
-                        "target": "TOP",
-                        "widget": "close",
-                        "offset": 24
+                        "offset": 36
                     }
                 },
-                "contents": [
-                    {
-                        "type": "RelativeLayout",
-                        "contents": [
-                            {
-                                "type": "RowLayout",
-                                "id": "serverTypeRow",
-                                "contents": [
-                                    {
-                                        "type": "UIButton",
-                                        "id": "onlineButton",
-                                        "text": "${engine:menu#listed-servers}",
-                                        "layoutInfo": {
-                                            "relativeWidth": 0.5
-                                        }
-                                    },
-                                    {
-                                        "type": "UIButton",
-                                        "id": "customButton",
-                                        "text": "${engine:menu#custom-servers}"
-                                    }
-                                ],
-                                "layoutInfo": {
-                                    "use-content-height": true,
-                                    "position-top": {
-                                        "target": "TOP"
-                                    }
-                                }
-                            },
-                            {
-                                "type": "CardLayout",
-                                "id": "cards",
-                                "currentlyDisplayedCard": "onlineServerListScrollArea",
-                                "contents": [
-                                    {
-                                        "type": "RelativeLayout",
-                                        "id": "customServerListScrollArea",
-                                        "contents": [
-                                            {
-                                                "type": "ScrollableArea",
-                                                "content": {
-                                                    "type": "UIList",
-                                                    "id": "customServerList",
-                                                    "family": "module-list"
-                                                },
-                                                "layoutInfo": {
-                                                    "position-top": {
-                                                        "target": "TOP"
-                                                    },
-                                                    "position-bottom": {
-                                                        "target": "TOP",
-                                                        "widget": "edit",
-                                                        "offset": 8
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "type": "UIButton",
-                                                "id": "edit",
-                                                "text": "${engine:menu#edit-server}",
-                                                "layoutInfo": {
-                                                    "use-content-height": true,
-                                                    "width": 135,
-                                                    "position-bottom": {
-                                                        "target": "TOP",
-                                                        "widget": "add",
-                                                        "offset": 8
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "type": "UIButton",
-                                                "id": "remove",
-                                                "text": "${engine:menu#remove-server}",
-                                                "layoutInfo": {
-                                                    "use-content-height": true,
-                                                    "position-left": {
-                                                        "target": "RIGHT",
-                                                        "widget": "edit",
-                                                        "offset": 8
-                                                    },
-                                                    "position-bottom": {
-                                                        "target": "TOP",
-                                                        "widget": "add",
-                                                        "offset": 8
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "type": "UIButton",
-                                                "id": "add",
-                                                "text": "${engine:menu#add-server}",
-                                                "layoutInfo": {
-                                                    "use-content-height": true,
-                                                    "position-bottom": {
-                                                        "target": "BOTTOM"
-                                                    }
-                                                }
-                                            }
-                                        ]
-                                    },
-                                    {
-                                        "type": "RelativeLayout",
-                                        "id": "onlineServerListScrollArea",
-                                        "contents": [
-                                            {
-                                                "type": "ScrollableArea",
-                                                "content": {
-                                                    "type": "UIList",
-                                                    "id": "onlineServerList",
-                                                    "family": "module-list"
-                                                },
-                                                "layoutInfo": {
-                                                    "position-top": {
-                                                        "target": "TOP"
-                                                    },
-                                                    "position-bottom": {
-                                                        "target": "TOP",
-                                                        "widget": "download",
-                                                        "offset": 4
-                                                    }
-                                                }
-                                            },
-                                            {
-                                                "type": "UILabel",
-                                                "id": "download",
-                                                "text": "\u003cdownload info text\u003e",
-                                                "layoutInfo": {
-                                                    "use-content-height": true,
-                                                    "position-bottom": {
-                                                        "target": "BOTTOM",
-                                                        "offset": 4
-                                                    }
-                                                }
-                                            }
-                                        ]
-                                    }
-                                ],
-                                "layoutInfo": {
-                                    "position-top": {
-                                        "target": "BOTTOM",
-                                        "widget": "serverTypeRow"
-                                    },
-                                    "position-bottom": {
-                                        "target": "BOTTOM"
-                                    }
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "type": "RelativeLayout",
-                        "family": "description",
-                        "contents": [
-                            {
-                                "type": "ColumnLayout",
-                                "id": "simpleItems",
-                                "columns": 2,
-                                "column-widths": [
-                                    0.25,
-                                    0.75
-                                ],
-                                "extendLast": true,
-                                "verticalSpacing": 8,
-                                "contents": [
-                                    {
-                                        "type": "UILabel",
-                                        "text": "${engine:menu#server-name}: "
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "id": "name",
-                                        "text": "Server Name Goes Here"
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "text": "${engine:menu#server-owner}: "
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "id": "owner",
-                                        "text": "Server Owner Goes Here"
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "text": "${engine:menu#server-address}: "
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "id": "address",
-                                        "text": "Server Address Goes Here"
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "text": "${engine:menu#server-port}: "
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "id": "port",
-                                        "text": "Server Port Goes Here"
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "text": "${engine:menu#ping}:"
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "id": "ping",
-                                        "text": ""
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "text": "${engine:menu#online-players}:"
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "id": "onlinePlayers",
-                                        "text": ""
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "text": "${engine:menu#game-worlds}: "
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "id": "worlds",
-                                        "text": "World Info Goes Here"
-                                    },
-                                    {
-                                        "type": "UILabel",
-                                        "text": "${engine:menu#module-list}: "
-                                    },
-                                    {
-                                        "type": "ScrollableArea",
-                                        "content": {
+                "content": {
+                    "type": "CardLayout",
+                    "id": "cards",
+                    "contents": [
+                        {
+                            "type": "relativeLayout",
+                            "id": "findCard",
+                            "contents": [
+                                {
+                                    "type": "RowLayout",
+                                    "id": "serverToolbar",
+                                    "horizontalSpacing": 12,
+                                    "contents": [
+                                        {
                                             "type": "UILabel",
-                                            "id": "modules",
-                                            "text": "Module Info Goes Here"
-                                        }
-                                    }
-                                ],
-                                "layoutInfo": {
-                                    "position-horizontal-center": {},
-                                    "position-top": {
-                                        "target": "TOP",
-                                        "offset": 8
-                                    },
-                                    "position-bottom": {
-                                        "target": "TOP",
-                                        "widget": "buttonRow",
-                                        "offset": 8
-                                    }
-                                }
-                            },
-                            {
-                                "type": "RowLayout",
-                                "id": "buttonRow",
-                                "horizontalSpacing": 4,
-                                "contents": [
-                                    {
-                                        "type": "UIButton",
-                                        "text": "${engine:menu#join-server-refresh}",
-                                        "id": "refresh"
-                                    },
-                                    {
-                                        "type": "UIButton",
-                                        "id": "join",
-                                        "text": "${engine:menu#join-server-action}",
-                                        "family": "highlight",
-                                        "layoutInfo": {
-                                            "height": 40,
-                                            "position-bottom": {
-                                                "target": "BOTTOM"
+                                            "family": "caps",
+                                            "text": "${engine:menu#search-server}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.16
+                                            }
+                                        },
+                                        {
+                                            "type": "UIText",
+                                            "id": "serverSearch",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.42
+                                            }
+                                        },
+                                        {
+                                            "type": "UIButton",
+                                            "id": "refresh",
+                                            "family": "btn-secondary",
+                                            "text": "${engine:menu#join-server-refresh}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.18
+                                            }
+                                        },
+                                        {
+                                            "type": "UIButton",
+                                            "id": "addServer",
+                                            "family": "btn-secondary",
+                                            "text": "${engine:menu#add-by-address}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.24
                                             }
                                         }
+                                    ],
+                                    "layoutInfo": {
+                                        "height": 42,
+                                        "position-left": {
+                                            "offset": 16
+                                        },
+                                        "position-right": {
+                                            "offset": 16
+                                        },
+                                        "position-top": {
+                                            "offset": 26
+                                        }
                                     }
-                                ],
-                                "layoutInfo": {
-                                    "position-bottom": {
-                                        "target": "BOTTOM"
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "id": "serverHeader",
+                                    "horizontalSpacing": 0,
+                                    "contents": [
+                                        {
+                                            "type": "UILabel",
+                                            "family": "caps",
+                                            "text": "${engine:menu#server-column}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.46
+                                            }
+                                        },
+                                        {
+                                            "type": "UILabel",
+                                            "family": "caps",
+                                            "text": "${engine:menu#address-column}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.27
+                                            }
+                                        },
+                                        {
+                                            "type": "UILabel",
+                                            "family": "caps",
+                                            "text": "${engine:menu#players-column}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.14
+                                            }
+                                        },
+                                        {
+                                            "type": "UILabel",
+                                            "family": "caps-right",
+                                            "text": "${engine:menu#latency}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.13
+                                            }
+                                        }
+                                    ],
+                                    "layoutInfo": {
+                                        "height": 22,
+                                        "position-left": {
+                                            "offset": 22
+                                        },
+                                        "position-right": {
+                                            "offset": 26
+                                        },
+                                        "position-top": {
+                                            "target": "BOTTOM",
+                                            "widget": "serverToolbar",
+                                            "offset": 12
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "id": "serverActions",
+                                    "horizontalSpacing": 12,
+                                    "contents": [
+                                        {
+                                            "type": "UIButton",
+                                            "id": "editServer",
+                                            "family": "btn-secondary",
+                                            "text": "${engine:menu#edit-server}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.18
+                                            }
+                                        },
+                                        {
+                                            "type": "UIButton",
+                                            "id": "removeServer",
+                                            "family": "btn-danger",
+                                            "text": "${engine:menu#remove-server}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.18
+                                            }
+                                        },
+                                        {
+                                            "type": "UISpace",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.24
+                                            }
+                                        },
+                                        {
+                                            "type": "UIButton",
+                                            "id": "close",
+                                            "family": "btn-secondary",
+                                            "text": "${engine:menu#back}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.18
+                                            }
+                                        },
+                                        {
+                                            "type": "UIButton",
+                                            "id": "join",
+                                            "text": "${engine:menu#join-server-action}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.22
+                                            }
+                                        }
+                                    ],
+                                    "layoutInfo": {
+                                        "height": 46,
+                                        "position-left": {},
+                                        "position-right": {},
+                                        "position-bottom": {}
+                                    }
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "id": "serverStatus",
+                                    "horizontalSpacing": 12,
+                                    "contents": [
+                                        {
+                                            "type": "UILabel",
+                                            "id": "selectedServer",
+                                            "family": "secondary",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.7
+                                            }
+                                        },
+                                        {
+                                            "type": "UILabel",
+                                            "id": "download",
+                                            "family": "muted-right",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.3
+                                            }
+                                        }
+                                    ],
+                                    "layoutInfo": {
+                                        "height": 24,
+                                        "position-left": {},
+                                        "position-right": {},
+                                        "position-bottom": {
+                                            "target": "TOP",
+                                            "widget": "serverActions",
+                                            "offset": 12
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "ScrollableArea",
+                                    "id": "serverListArea",
+                                    "content": {
+                                        "type": "UIList",
+                                        "id": "serverList"
                                     },
-                                    "height": 40
+                                    "layoutInfo": {
+                                        "position-left": {},
+                                        "position-right": {},
+                                        "position-top": {
+                                            "target": "BOTTOM",
+                                            "widget": "serverHeader",
+                                            "offset": 4
+                                        },
+                                        "position-bottom": {
+                                            "target": "TOP",
+                                            "widget": "serverStatus",
+                                            "offset": 12
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "UILabel",
+                                    "id": "emptyTitle",
+                                    "family": "panel-title",
+                                    "text": "${engine:menu#no-servers-found}",
+                                    "visible": false,
+                                    "layoutInfo": {
+                                        "height": 40,
+                                        "position-horizontal-center": {},
+                                        "position-vertical-center": {
+                                            "target": "CENTER",
+                                            "widget": "serverListArea",
+                                            "offset": -30
+                                        },
+                                        "width": 600
+                                    }
+                                },
+                                {
+                                    "type": "UILabel",
+                                    "id": "emptyHint",
+                                    "family": "description",
+                                    "text": "${engine:menu#no-servers-found-hint}",
+                                    "visible": false,
+                                    "layoutInfo": {
+                                        "width": 560,
+                                        "height": 70,
+                                        "position-horizontal-center": {},
+                                        "position-top": {
+                                            "target": "BOTTOM",
+                                            "widget": "emptyTitle",
+                                            "offset": 8
+                                        }
+                                    }
                                 }
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "type": "UIButton",
-                "text": "${engine:menu#back}",
-                "id": "close",
-                "layoutInfo": {
-                    "width": 128,
-                    "height": 32,
-                    "position-horizontal-center": {},
-                    "position-bottom": {
-                        "target": "BOTTOM",
-                        "offset": 48
-                    }
+                            ]
+                        },
+                        {
+                            "type": "relativeLayout",
+                            "id": "hostCard",
+                            "contents": [
+                                {
+                                    "type": "UILabel",
+                                    "id": "hostListCaption",
+                                    "family": "caps",
+                                    "text": "${engine:menu#game-to-host}",
+                                    "layoutInfo": {
+                                        "width": 420,
+                                        "height": 22,
+                                        "position-left": {
+                                            "offset": 16
+                                        },
+                                        "position-top": {
+                                            "offset": 26
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "ScrollableArea",
+                                    "id": "hostGameListArea",
+                                    "content": {
+                                        "type": "UIList",
+                                        "id": "hostGameList"
+                                    },
+                                    "layoutInfo": {
+                                        "width": 420,
+                                        "position-left": {},
+                                        "position-top": {
+                                            "target": "BOTTOM",
+                                            "widget": "hostListCaption",
+                                            "offset": 4
+                                        },
+                                        "position-bottom": {}
+                                    }
+                                },
+                                {
+                                    "type": "UILabel",
+                                    "id": "motdCaption",
+                                    "family": "caps",
+                                    "text": "${engine:menu#display-name}",
+                                    "layoutInfo": {
+                                        "height": 22,
+                                        "position-left": {
+                                            "target": "RIGHT",
+                                            "widget": "hostGameListArea",
+                                            "offset": 32
+                                        },
+                                        "position-right": {},
+                                        "position-top": {
+                                            "offset": 26
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "UIText",
+                                    "id": "motd",
+                                    "layoutInfo": {
+                                        "height": 40,
+                                        "position-left": {
+                                            "target": "RIGHT",
+                                            "widget": "hostGameListArea",
+                                            "offset": 32
+                                        },
+                                        "position-right": {},
+                                        "position-top": {
+                                            "target": "BOTTOM",
+                                            "widget": "motdCaption",
+                                            "offset": 4
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "UILabel",
+                                    "id": "portCaption",
+                                    "family": "caps",
+                                    "text": "${engine:menu#server-port-label}",
+                                    "layoutInfo": {
+                                        "width": 220,
+                                        "height": 22,
+                                        "position-left": {
+                                            "target": "RIGHT",
+                                            "widget": "hostGameListArea",
+                                            "offset": 32
+                                        },
+                                        "position-top": {
+                                            "target": "BOTTOM",
+                                            "widget": "motd",
+                                            "offset": 16
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "UIText",
+                                    "id": "serverPort",
+                                    "layoutInfo": {
+                                        "width": 220,
+                                        "height": 40,
+                                        "position-left": {
+                                            "target": "RIGHT",
+                                            "widget": "hostGameListArea",
+                                            "offset": 32
+                                        },
+                                        "position-top": {
+                                            "target": "BOTTOM",
+                                            "widget": "portCaption",
+                                            "offset": 4
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "UILabel",
+                                    "id": "hostHint",
+                                    "family": "note",
+                                    "layoutInfo": {
+                                        "height": 110,
+                                        "position-left": {
+                                            "target": "RIGHT",
+                                            "widget": "hostGameListArea",
+                                            "offset": 32
+                                        },
+                                        "position-right": {},
+                                        "position-top": {
+                                            "target": "BOTTOM",
+                                            "widget": "serverPort",
+                                            "offset": 20
+                                        }
+                                    }
+                                },
+                                {
+                                    "type": "RowLayout",
+                                    "id": "hostActions",
+                                    "horizontalSpacing": 12,
+                                    "contents": [
+                                        {
+                                            "type": "UIButton",
+                                            "id": "closeHost",
+                                            "family": "btn-secondary",
+                                            "text": "${engine:menu#back}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.3
+                                            }
+                                        },
+                                        {
+                                            "type": "UISpace",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.2
+                                            }
+                                        },
+                                        {
+                                            "type": "UIButton",
+                                            "id": "startServer",
+                                            "text": "${engine:menu#start-server}",
+                                            "layoutInfo": {
+                                                "relativeWidth": 0.5
+                                            }
+                                        }
+                                    ],
+                                    "layoutInfo": {
+                                        "height": 46,
+                                        "position-left": {
+                                            "target": "RIGHT",
+                                            "widget": "hostGameListArea",
+                                            "offset": 32
+                                        },
+                                        "position-right": {},
+                                        "position-bottom": {}
+                                    }
+                                }
+                            ]
+                        }
+                    ]
                 }
             }
         ]

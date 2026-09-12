@@ -41,12 +41,19 @@ public class HibernationSubsystem implements EngineSubsystem {
 
     @Override
     public void postUpdate(GameState currentState, float delta) {
+        // L'etat de jeu a son mot a dire : `GameState.isHibernationAllowed()`
+        // existait deja mais n'etait lu par personne, si bien que les menus
+        // tombaient a une dizaine d'images par seconde des que la fenetre
+        // perdait le focus — un gel bien reel, et sans rapport avec le jeu.
+        boolean allowed = hibernationManager.isHibernationAllowed()
+                && (currentState == null || currentState.isHibernationAllowed());
+
         if (hibernationManager.isHibernating()) {
-            if (!hibernationManager.isHibernationAllowed() || displayDevice.hasFocus()) {
+            if (!allowed || displayDevice.hasFocus()) {
                 hibernationManager.setHibernating(false);
             }
         } else {
-            if (hibernationManager.isHibernationAllowed() && !displayDevice.hasFocus()) {
+            if (allowed && !displayDevice.hasFocus()) {
                 hibernationManager.setHibernating(true);
             }
         }

@@ -4,11 +4,12 @@
         "ScrollableArea": {
             "background": "engine:area",
             "background-border": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
-            }
+                "top": 12,
+                "bottom": 12,
+                "left": 12,
+                "right": 12
+            },
+            "background-scale-mode": "tiled"
         },
         "UILabel": {
             "text-align-horizontal": "LEFT",

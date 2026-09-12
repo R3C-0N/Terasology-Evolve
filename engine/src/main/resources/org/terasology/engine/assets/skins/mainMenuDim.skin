@@ -1,0 +1,9 @@
+{
+    "inherit": "mainMenu",
+    "elements": {
+        "UIScreenLayer": {
+            "background-scale-mode": "scale_fill",
+            "background": "engine:menuBackdropDim"
+        }
+    }
+}

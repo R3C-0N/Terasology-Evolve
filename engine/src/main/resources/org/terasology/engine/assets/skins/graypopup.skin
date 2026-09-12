@@ -1,8 +1,21 @@
 {
-	"inherit": "popup",
-	"elements": {
-		"UIBox": {
-			"background": "engine:box"
-		}
-	}
+    "inherit": "popup",
+    "elements": {
+        "UIBox": {
+            "background": "engine:panelSlim",
+            "background-scale-mode": "tiled",
+            "background-border": {
+                "top": 60,
+                "bottom": 60,
+                "left": 60,
+                "right": 60
+            },
+            "margin": {
+                "top": 44,
+                "bottom": 44,
+                "left": 44,
+                "right": 44
+            }
+        }
+    }
 }

@@ -7,13 +7,18 @@ import org.terasology.engine.rendering.animation.AnimationListener;
 import org.terasology.engine.rendering.animation.TimeModifiers;
 import org.terasology.joml.geom.Rectanglei;
 
+import java.util.function.LongSupplier;
+
 /**
  * Controls animations to and from different screens.
  */
 public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
 
-    // TODO: Convert away from a faked time interval to handling UI updates to non-game objects in a non-gametime loop?
-    private static final float PAUSED_ANIMATION_FRAME_TICK_TIME = 0.035f;
+    /**
+     * Plafond d'un pas, en secondes : sous une charge lourde une image peut
+     * couvrir un temps arbitraire, et l'animation sauterait d'un bloc.
+     */
+    private static final float MAX_STEP = 0.1f;
 
     public enum Direction {
         LEFT_TO_RIGHT(1, 0),
@@ -43,6 +48,28 @@ public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
     private final Animation flyIn;
     private final Animation flyOut;
 
+    /**
+     * Source de temps REEL, en nanosecondes.
+     *
+     * <p>Les menus tournent sur une horloge de jeu qui n'avance pas : le menu
+     * principal n'a pas de monde, et le menu de pause a mis le temps en pause.
+     * Le {@code delta} recu vaut alors zero. L'ancienne version compensait par
+     * un tic constant de 35 ms A CHAQUE IMAGE, si bien que la vitesse de
+     * l'animation suivait la cadence d'affichage au lieu de suivre le temps.
+     * On prend donc le temps reel, qui est ce qu'on voulait mesurer.
+     */
+    private final LongSupplier clock;
+
+    private long lastNanos;
+    private boolean clockPrimed;
+
+    /**
+     * Ce que {@code CoreScreenLayer} veut voir arriver a la fin de la
+     * transition — pousser ou depiler un ecran. Garde ici pour pouvoir le
+     * detacher pendant une annulation, puis le remettre.
+     */
+    private Runnable endListener = () -> { };
+
     private float scale;
 
     /**
@@ -59,6 +86,16 @@ public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
      * @param direction the swipe direction
      */
     public SwipeMenuAnimationSystem(float duration, Direction direction) {
+        this(duration, direction, System::nanoTime);
+    }
+
+    /**
+     * Creates default animations
+     * @param duration the duration of the animation in seconds
+     * @param direction the swipe direction
+     * @param clock source of real time, in nanoseconds
+     */
+    public SwipeMenuAnimationSystem(float duration, Direction direction, LongSupplier clock) {
         // down from 1 (fast) to 0 (slow)
         flyIn = Animation.once(v -> scale = v, duration, TimeModifiers.inverse().andThen(TimeModifiers.square()));
 
@@ -66,6 +103,7 @@ public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
         flyOut = Animation.once(v -> scale = -v, duration, TimeModifiers.square());
 
         this.direction = direction;
+        this.clock = clock;
     }
 
     /**
@@ -73,7 +111,11 @@ public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
      */
     @Override
     public void triggerFromPrev() {
-        if (flyOut.isStopped()) {
+        primeClock();
+        // Le declenchement ne doit jamais etre avale : sans cette annulation,
+        // un clic tombe pendant la transition inverse ne pousserait aucun ecran.
+        cancelSilently(flyOut);
+        if (flyIn.isStopped()) {
             flyIn.setForwardMode();
             flyIn.start();
         }
@@ -84,7 +126,11 @@ public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
      */
     @Override
     public void triggerToPrev() {
-        if (flyOut.isStopped()) {
+        primeClock();
+        // Le declenchement ne doit jamais etre avale : sans cette annulation,
+        // un clic tombe pendant la transition inverse ne pousserait aucun ecran.
+        cancelSilently(flyOut);
+        if (flyIn.isStopped()) {
             flyIn.setReverseMode();
             flyIn.start();
         }
@@ -95,7 +141,11 @@ public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
      */
     @Override
     public void triggerFromNext() {
-        if (flyIn.isStopped()) {
+        primeClock();
+        // Le declenchement ne doit jamais etre avale : sans cette annulation,
+        // un clic tombe pendant la transition inverse ne pousserait aucun ecran.
+        cancelSilently(flyIn);
+        if (flyOut.isStopped()) {
             flyOut.setReverseMode();
             flyOut.start();
         }
@@ -106,7 +156,11 @@ public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
      */
     @Override
     public void triggerToNext() {
-        if (flyIn.isStopped()) {
+        primeClock();
+        // Le declenchement ne doit jamais etre avale : sans cette annulation,
+        // un clic tombe pendant la transition inverse ne pousserait aucun ecran.
+        cancelSilently(flyIn);
+        if (flyOut.isStopped()) {
             flyOut.setForwardMode();
             flyOut.start();
         }
@@ -138,12 +192,17 @@ public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
      */
     @Override
     public void onEnd(Runnable listener) {
+        this.endListener = listener;
+        attachEndListener();
+    }
+
+    private void attachEndListener() {
         flyOut.removeAllListeners();
         flyOut.addListener(new AnimationListener() {
             @Override
             public void onEnd() {
                 if (!flyOut.isReverse()) {
-                    listener.run();
+                    endListener.run();
                 }
             }
         });
@@ -153,10 +212,26 @@ public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
             @Override
             public void onEnd() {
                 if (flyIn.isReverse()) {
-                    listener.run();
+                    endListener.run();
                 }
             }
         });
+    }
+
+    /**
+     * Arrete une animation en vol SANS declencher son auditeur.
+     *
+     * <p>{@code Animation.stop()} notifie ses auditeurs. Or le meme auditeur
+     * sert a l'aller et au retour : annuler un retour en cours le ferait partir,
+     * puis la nouvelle animation le ferait partir une seconde fois — deux
+     * navigations pour un clic. On le detache donc le temps de l'arret.
+     */
+    private void cancelSilently(Animation anim) {
+        if (anim.isRunning()) {
+            anim.removeAllListeners();
+            anim.stop();
+            attachEndListener();
+        }
     }
 
     /**
@@ -164,20 +239,44 @@ public class SwipeMenuAnimationSystem implements MenuAnimationSystem {
      */
     @Override
     public void update(float delta) {
-        float animDelta = delta;
+        float animDelta;
 
-        if (animDelta > 0.1f) {
-            // avoid skipping over fast animations on heavy load
-            animDelta = 0.1f;
-        }
-        if (animDelta < 0.0001f) {
-            // when we are inGameState and get to pauseMenu the time is paused
-            // so we need to fake the time is still running at a set rate
-            animDelta = PAUSED_ANIMATION_FRAME_TICK_TIME;
+        if (delta < 0.0001f) {
+            // L'horloge de jeu est a l'arret — menu principal, ou jeu en pause.
+            // On se rabat sur le temps reel plutot que sur un tic par image.
+            animDelta = realDelta();
+        } else {
+            animDelta = Math.min(delta, MAX_STEP);
+            // le temps de jeu avance : l'horloge reelle reste alignee sur lui,
+            // sinon le prochain retour au temps reel vaudrait un saut
+            primeClock();
         }
 
         flyIn.update(animDelta);
         flyOut.update(animDelta);
+    }
+
+    /**
+     * Temps reel ecoule depuis le dernier appel, en secondes.
+     *
+     * @return 0 au tout premier appel : on ne connait pas encore d'origine, et
+     *         inventer un pas ferait sauter l'animation des son ouverture.
+     */
+    private float realDelta() {
+        long now = clock.getAsLong();
+        if (!clockPrimed) {
+            lastNanos = now;
+            clockPrimed = true;
+            return 0f;
+        }
+        float seconds = (now - lastNanos) / 1_000_000_000f;
+        lastNanos = now;
+        return Math.min(Math.max(seconds, 0f), MAX_STEP);
+    }
+
+    private void primeClock() {
+        lastNanos = clock.getAsLong();
+        clockPrimed = true;
     }
 
     @Override

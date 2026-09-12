@@ -71,9 +71,16 @@ public abstract class SelectionScreen extends CoreScreenLayer {
 
     void updateDescription(final GameInfo gameInfo) {
         if (gameInfo == null) {
-            worldGenerator.setText("");
-            moduleNames.setText("");
+            setTextIfPresent(worldGenerator, "");
+            setTextIfPresent(moduleNames, "");
             loadPreviewImages(null);
+            return;
+        }
+
+        if (worldGenerator == null && moduleNames == null) {
+            // L'ecran des parties a renonce au detail technique (generateur, modules) :
+            // il ne reste que l'apercu. Record et Replay, eux, les affichent encore.
+            loadPreviewImages(gameInfo);
             return;
         }
 
@@ -88,8 +95,8 @@ public abstract class SelectionScreen extends CoreScreenLayer {
                 .sorted(String::compareToIgnoreCase)
                 .collect(Collectors.joining(", "));
 
-        worldGenerator.setText(mainWorldGenerator);
-        moduleNames.setText(commaSeparatedModules.length() > MODULES_LINE_LIMIT
+        setTextIfPresent(worldGenerator, mainWorldGenerator);
+        setTextIfPresent(moduleNames, commaSeparatedModules.length() > MODULES_LINE_LIMIT
                 ? commaSeparatedModules.substring(0, MODULES_LINE_LIMIT) + "..."
                 : commaSeparatedModules);
 
@@ -163,14 +170,25 @@ public abstract class SelectionScreen extends CoreScreenLayer {
         }
     }
 
+    private static void setTextIfPresent(UILabel label, String text) {
+        if (label != null) {
+            label.setText(text);
+        }
+    }
+
     void initSaveGamePathWidget(final Path savePath) {
+        if (saveGamePath == null) {
+            return;
+        }
         saveGamePath.setText(
                 translationSystem.translate("${engine:menu#save-game-path} ") +
                         savePath.toAbsolutePath().toString());
     }
 
     protected boolean isValidScreen() {
-        if (Stream.of(worldGenerator, moduleNames, gameInfos, previewSlideshow, saveGamePath)
+        // Seuls la liste et l'apercu sont indispensables : les trois libelles techniques
+        // n'existent plus sur l'ecran des parties, ils survivent sur Record et Replay.
+        if (Stream.of(gameInfos, previewSlideshow)
                 .anyMatch(Objects::isNull)) {
             logger.error("Can't initialize screen correctly. At least one widget was missed!");
             return false;

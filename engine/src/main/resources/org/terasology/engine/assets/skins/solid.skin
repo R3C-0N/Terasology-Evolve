@@ -2,27 +2,35 @@
     "inherit": "default",
     "elements": {
         "UIBox": {
-            "background": "engine:box"
+            "background": "engine:box",
+            "background-border": {
+                "top": 12,
+                "bottom": 12,
+                "left": 12,
+                "right": 12
+            },
+            "background-scale-mode": "tiled"
         },
         "UITabBox": {
             "background": "engine:box",
             "background-border": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 12,
+                "bottom": 12,
+                "left": 12,
+                "right": 12
             },
             "margin": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
-            }
+                "top": 6,
+                "bottom": 6,
+                "left": 6,
+                "right": 6
+            },
+            "background-scale-mode": "tiled"
         }
     },
     "families": {
         "subheading": {
-            "font": "NotoSans-Regular-Medium",
+            "font": "Uncial-Item",
             "text-align-horizontal": "center",
             "margin": {
                 "bottom": 4,

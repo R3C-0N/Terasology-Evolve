@@ -20,6 +20,7 @@ import org.terasology.engine.rendering.nui.CoreScreenLayer;
 import org.terasology.engine.rendering.nui.animation.MenuAnimationSystems;
 import org.terasology.engine.rendering.nui.layers.mainMenu.advancedGameSetupScreen.AdvancedGameSetupScreen;
 import org.terasology.engine.rendering.nui.layers.mainMenu.savedGames.GameProvider;
+import org.terasology.engine.utilities.random.FastRandom;
 import org.terasology.engine.world.generator.internal.WorldGeneratorInfo;
 import org.terasology.engine.world.generator.internal.WorldGeneratorManager;
 import org.terasology.gestalt.assets.ResourceUrn;
@@ -27,27 +28,35 @@ import org.terasology.gestalt.module.Module;
 import org.terasology.gestalt.module.dependencyresolution.DependencyResolver;
 import org.terasology.gestalt.naming.Name;
 import org.terasology.input.Keyboard;
-import org.terasology.nui.Canvas;
 import org.terasology.nui.Color;
 import org.terasology.nui.WidgetUtil;
-import org.terasology.nui.databinding.Binding;
-import org.terasology.nui.databinding.ReadOnlyBinding;
 import org.terasology.nui.events.NUIKeyEvent;
-import org.terasology.nui.itemRendering.StringTextRenderer;
-import org.terasology.nui.widgets.UIDropdown;
-import org.terasology.nui.widgets.UIDropdownScrollable;
-import org.terasology.nui.widgets.UILabel;
+import org.terasology.nui.widgets.UIList;
 import org.terasology.nui.widgets.UIText;
 
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Creer une partie : un nom, un mode, une graine. Rien d'autre au premier plan.
+ *
+ * <p>Le choix des modules et celui du generateur de monde restent accessibles, mais replies
+ * derriere deux tiroirs « Options avancees » : ils poussent les ecrans existants
+ * ({@link AdvancedGameSetupScreen}, {@link UniverseSetupScreen}) au lieu de trainer dans le
+ * chemin du joueur ordinaire.
+ *
+ * <p>La graine remonte ici depuis l'ecran avance : elle alimente
+ * {@link UniverseWrapper#setSeed}, que {@link GameManifestProvider} lit quand aucun generateur
+ * n'a ete choisi a la main.
+ */
 public class NewGameScreen extends CoreScreenLayer {
 
     public static final ResourceUrn ASSET_URI = new ResourceUrn("engine:newGameScreen");
 
     private static final Logger logger = LoggerFactory.getLogger(NewGameScreen.class);
     private static final String DEFAULT_GAME_TEMPLATE_NAME = "JoshariasSurvival";
+    private static final Color INVALID_MODULE_COLOR = new Color(0xC13B27FF);
+    private static final int DESCRIPTION_LIMIT = 96;
 
     @In
     private ModuleManager moduleManager;
@@ -65,119 +74,120 @@ public class NewGameScreen extends CoreScreenLayer {
     private TranslationSystem translationSystem;
 
     private UniverseWrapper universeWrapper;
+    private UIList<Module> gameplay;
+    private UIText gameName;
+    private UIText seed;
 
     @Override
     public void initialise() {
 
         setAnimationSystem(MenuAnimationSystems.createDefaultSwipeAnimation());
 
-        UILabel gameTypeTitle = find("gameTypeTitle", UILabel.class);
-        if (gameTypeTitle != null) {
-            gameTypeTitle.bindText(new ReadOnlyBinding<String>() {
-                @Override
-                public String get() {
-                    if (isLoadingAsServer()) {
-                        return translationSystem.translate("${engine:menu#select-multiplayer-game-sub-title}");
-                    } else {
-                        return translationSystem.translate("${engine:menu#select-singleplayer-game-sub-title}");
-                    }
-                }
-            });
-        }
-        final UIText gameName = find("gameName", UIText.class);
+        gameName = find("gameName", UIText.class);
         setGameName(gameName);
 
-        final UIDropdownScrollable<Module> gameplay = find("gameplay", UIDropdownScrollable.class);
-        gameplay.setOptions(getGameplayModules());
-        gameplay.setVisibleOptions(5);
-        gameplay.bindSelection(new Binding<Module>() {
-            Module selected;
+        seed = find("worldSeed", UIText.class);
 
+        gameplay = find("gameplay", UIList.class);
+        gameplay.setList(getGameplayModules());
+        gameplay.setItemRenderer(new TwoLineItemRenderer<Module>() {
             @Override
-            public Module get() {
-                return selected;
-            }
-
-            @Override
-            public void set(Module value) {
-                setSelectedGameplayModule(value);
-                selected = value;
-            }
-        });
-        gameplay.setOptionRenderer(new StringTextRenderer<Module>() {
-            @Override
-            public String getString(Module value) {
+            public String getTitle(Module value) {
                 return value.getMetadata().getDisplayName().value();
             }
 
             @Override
-            public void draw(Module value, Canvas canvas) {
-                canvas.getCurrentStyle().setTextColor(validateModuleDependencies(value.getId()) ? Color.WHITE : Color.RED);
-                super.draw(value, canvas);
-                canvas.getCurrentStyle().setTextColor(Color.WHITE);
+            public String getSubtitle(Module value) {
+                String description = value.getMetadata().getDescription().value();
+                return description.length() > DESCRIPTION_LIMIT
+                        ? description.substring(0, DESCRIPTION_LIMIT) + "…"
+                        : description;
             }
-        });
 
-        UILabel gameplayDescription = find("gameplayDescription", UILabel.class);
-        gameplayDescription.bindText(new ReadOnlyBinding<String>() {
             @Override
-            public String get() {
-                Module selectedModule = gameplay.getSelection();
-                if (selectedModule != null) {
-                    return selectedModule.getMetadata().getDescription().value();
-                } else {
-                    return "";
-                }
+            public Color getTitleColor(Module value) {
+                return validateModuleDependencies(value.getId()) ? super.getTitleColor(value) : INVALID_MODULE_COLOR;
+            }
+        });
+        gameplay.subscribeSelection((widget, module) -> {
+            if (module != null) {
+                setSelectedGameplayModule(module);
             }
         });
 
-        AdvancedGameSetupScreen advancedSetupGameScreen = getManager().createScreen(AdvancedGameSetupScreen.ASSET_URI, AdvancedGameSetupScreen.class);
-        WidgetUtil.trySubscribe(this, "advancedSetup", button -> {
-            universeWrapper.setGameName(gameName.getText());
+        WidgetUtil.trySubscribe(this, "rollSeed", button -> seed.setText(createRandomSeed()));
+
+        AdvancedGameSetupScreen advancedSetupGameScreen =
+                getManager().createScreen(AdvancedGameSetupScreen.ASSET_URI, AdvancedGameSetupScreen.class);
+        WidgetUtil.trySubscribe(this, "advancedModules", button -> {
+            captureFields();
             advancedSetupGameScreen.setEnvironment(universeWrapper);
             triggerForwardAnimation(advancedSetupGameScreen);
         });
 
+        WidgetUtil.trySubscribe(this, "advancedUniverse", button -> {
+            captureFields();
+            UniverseSetupScreen universeSetupScreen =
+                    getManager().createScreen(UniverseSetupScreen.ASSET_URI, UniverseSetupScreen.class);
+            universeSetupScreen.setEnvironment(universeWrapper);
+            triggerForwardAnimation(universeSetupScreen);
+        });
+
         WidgetUtil.trySubscribe(this, "play", button -> {
-            if (gameName.getText().isEmpty()) {
-                universeWrapper.setGameName(GameProvider.getNextGameName());
-            }
-            universeWrapper.setGameName(GameProvider.getNextGameName(gameName.getText()));
-            if (gameplay.getOptions().isEmpty()) {
+            captureFields();
+            if (gameplay.getList().isEmpty()) {
                 logger.error("No gameplay modules present");
-                MessagePopup errorPopup = getManager().pushScreen(MessagePopup.ASSET_URI, MessagePopup.class);
-                errorPopup.setMessage("Error", "Can't create new game without modules!");
+                getManager().pushScreen(MessagePopup.ASSET_URI, MessagePopup.class)
+                        .setMessage("Error", "Can't create new game without modules!");
+                return;
             }
             GameManifest gameManifest = GameManifestProvider.createGameManifest(universeWrapper, moduleManager, config);
             if (gameManifest != null) {
-                gameEngine.changeState(new StateLoading(gameManifest, (isLoadingAsServer()) ? NetworkMode.DEDICATED_SERVER : NetworkMode.NONE));
+                gameEngine.changeState(new StateLoading(gameManifest,
+                        isLoadingAsServer() ? NetworkMode.DEDICATED_SERVER : NetworkMode.NONE));
             } else {
-                MessagePopup errorPopup = getManager().createScreen(MessagePopup.ASSET_URI, MessagePopup.class);
-                errorPopup.setMessage("Error", "Can't create new game!");
+                getManager().createScreen(MessagePopup.ASSET_URI, MessagePopup.class)
+                        .setMessage("Error", "Can't create new game!");
             }
         });
 
-        WidgetUtil.trySubscribe(this, "close", button -> {
-            if (GameProvider.isSavesFolderEmpty()) {
-                // skip selectGameScreen and get back directly to main screen
-                getManager().pushScreen("engine:mainMenuScreen");
-            } else {
-                triggerBackAnimation();
-            }
-        });
+        WidgetUtil.trySubscribe(this, "close", button -> back());
+    }
 
-        WidgetUtil.trySubscribe(this, "mainMenu", button -> {
+    /**
+     * Une graine vide donne un monde de graine vide, pas un monde aleatoire : on tire ici ce que
+     * le joueur n'a pas saisi, plutot que de le laisser partir avec une chaine vide.
+     */
+    private void captureFields() {
+        universeWrapper.setGameName(GameProvider.getNextGameName(gameName.getText()));
+        String typed = seed.getText();
+        if (typed == null || typed.trim().isEmpty()) {
+            typed = createRandomSeed();
+            seed.setText(typed);
+        }
+        universeWrapper.setSeed(typed);
+    }
+
+    private void back() {
+        if (GameProvider.isSavesFolderEmpty()) {
+            // La liste des parties a ete sautee a l'aller : on ne peut pas y retomber au retour.
             getManager().pushScreen("engine:mainMenuScreen");
-        });
+        } else {
+            triggerBackAnimation();
+        }
+    }
+
+    private static String createRandomSeed() {
+        return new FastRandom().nextString(32);
     }
 
     /**
      * Sets the game names based on the game number of the last saved game
-     * @param gameName The {@link UIText} in which the name will be displayed.
+     * @param nameField The {@link UIText} in which the name will be displayed.
      */
-    private void setGameName(UIText gameName) {
-        if (gameName != null) {
-            gameName.setText(GameProvider.getNextGameName());
+    private void setGameName(UIText nameField) {
+        if (nameField != null) {
+            nameField.setText(GameProvider.getNextGameName());
         }
     }
 
@@ -218,7 +228,6 @@ public class NewGameScreen extends CoreScreenLayer {
 
     // Sets the default generator of the passed in gameplay module. Make sure it's already selected.
     private void setDefaultGeneratorOfGameplayModule(Module module) {
-        // Set the default generator of the selected gameplay module
         SimpleUri defaultWorldGenerator = StandardModuleExtension.getDefaultWorldGenerator(module);
         if (defaultWorldGenerator != null) {
             for (WorldGeneratorInfo worldGenInfo : worldGeneratorManager.getWorldGenerators()) {
@@ -231,48 +240,38 @@ public class NewGameScreen extends CoreScreenLayer {
         config.save();
     }
 
-
     @Override
     public void onOpened() {
         super.onOpened();
 
-        final UIText gameName = find("gameName", UIText.class);
         setGameName(gameName);
-
-        final UIDropdown<Module> gameplay = find("gameplay", UIDropdown.class);
+        if (seed != null && seed.getText().isEmpty()) {
+            seed.setText(universeWrapper != null && !universeWrapper.getSeed().isEmpty()
+                    ? universeWrapper.getSeed() : "");
+        }
 
         String configDefaultModuleName = config.getDefaultModSelection().getDefaultGameplayModuleName();
-        String useThisModuleName = "";
+        String useThisModuleName;
 
-        // Get the default gameplay module from the config if it exists. This is likely to have a user triggered selection.
-        // Otherwise, default to DEFAULT_GAME_TEMPLATE_NAME.
+        // Get the default gameplay module from the config if it exists. This is likely to have a user triggered
+        // selection. Otherwise, default to DEFAULT_GAME_TEMPLATE_NAME.
         if ("".equalsIgnoreCase(configDefaultModuleName) || DEFAULT_GAME_TEMPLATE_NAME.equalsIgnoreCase(configDefaultModuleName)) {
             useThisModuleName = DEFAULT_GAME_TEMPLATE_NAME;
         } else {
             useThisModuleName = configDefaultModuleName;
         }
 
-        Name defaultGameplayModuleName = new Name(useThisModuleName);
-        Module defaultGameplayModule = moduleManager.getRegistry().getLatestModuleVersion(defaultGameplayModuleName);
-
-        if (defaultGameplayModule != null) {
+        Module defaultGameplayModule = moduleManager.getRegistry().getLatestModuleVersion(new Name(useThisModuleName));
+        if (defaultGameplayModule != null && gameplay.getList().contains(defaultGameplayModule)) {
             gameplay.setSelection(defaultGameplayModule);
-
             setDefaultGeneratorOfGameplayModule(defaultGameplayModule);
-        } else {
-            // Find the first gameplay module that is available.
-            for (Module module : moduleManager.getRegistry()) {
-                // Module is null if it is no longer present.
-                if (module != null && StandardModuleExtension.isGameplayModule(module)) {
-                    gameplay.setSelection(module);
-                    break;
-                }
-            }
+        } else if (!gameplay.getList().isEmpty()) {
+            gameplay.select(0);
         }
     }
 
     public boolean isLoadingAsServer() {
-        return universeWrapper.getLoadingAsServer();
+        return universeWrapper != null && universeWrapper.getLoadingAsServer();
     }
 
     public void setUniverseWrapper(UniverseWrapper wrapper) {
@@ -294,4 +293,3 @@ public class NewGameScreen extends CoreScreenLayer {
         return false;
     }
 }
-

@@ -14,13 +14,23 @@ import java.util.function.Supplier;
  */
 public final class MenuAnimationSystems {
 
+    /**
+     * Duree d'un temps de transition, en secondes.
+     *
+     * <p>Une transition avant en compte DEUX — le sortant part, puis l'entrant
+     * arrive — donc le total est le double. A 50 images par seconde cela laisse
+     * six images par temps : assez pour se lire comme un glissement, sans faire
+     * attendre a chaque aller-retour dans les reglages.
+     */
+    private static final float SWIPE_DURATION = 0.12f;
+
     private MenuAnimationSystems() {
         // no instances
     }
 
     public static MenuAnimationSystem createDefaultSwipeAnimation() {
         RenderingConfig config = CoreRegistry.get(Config.class).getRendering();
-        MenuAnimationSystem swipe = new SwipeMenuAnimationSystem(0.25f, SwipeMenuAnimationSystem.Direction.LEFT_TO_RIGHT);
+        MenuAnimationSystem swipe = new SwipeMenuAnimationSystem(SWIPE_DURATION, SwipeMenuAnimationSystem.Direction.LEFT_TO_RIGHT);
         MenuAnimationSystem instant = new MenuAnimationSystemStub();
         Supplier<MenuAnimationSystem> provider = () -> config.isAnimatedMenu() ? swipe : instant;
         return new DeferredMenuAnimationSystem(provider);

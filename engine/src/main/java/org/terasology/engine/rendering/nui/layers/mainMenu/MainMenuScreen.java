@@ -8,15 +8,22 @@ import org.terasology.engine.core.NonNativeJVMDetector;
 import org.terasology.engine.i18n.TranslationSystem;
 import org.terasology.engine.identity.storageServiceClient.StorageServiceWorker;
 import org.terasology.engine.identity.storageServiceClient.StorageServiceWorkerStatus;
-import org.terasology.engine.rendering.nui.animation.MenuAnimationSystems;
-import org.terasology.engine.rendering.nui.layers.mainMenu.settings.PlayerSettingsScreen;
-import org.terasology.engine.rendering.nui.layers.mainMenu.settings.SettingsMenuScreen;
-import org.terasology.nui.WidgetUtil;
-import org.terasology.nui.widgets.UILabel;
 import org.terasology.engine.registry.In;
 import org.terasology.engine.rendering.nui.CoreScreenLayer;
+import org.terasology.engine.rendering.nui.animation.MenuAnimationSystems;
+import org.terasology.engine.rendering.nui.layers.mainMenu.settings.SettingsMenuScreen;
 import org.terasology.engine.version.TerasologyVersion;
+import org.terasology.nui.WidgetUtil;
+import org.terasology.nui.widgets.UILabel;
 
+/**
+ * Le menu principal : quatre entrees, et rien d'autre.
+ *
+ * <p>« Extras » a quitte ce menu — ses ecrans restent joignables en jeu, par le menu de pause.
+ * « Heberger » et « Rejoindre » ont fusionne en un « Multijoueur » a deux onglets, si bien que
+ * l'hebergement ne passe plus par la liste des parties : ce menu ne pose donc plus
+ * {@code loadingAsServer}.
+ */
 public class MainMenuScreen extends CoreScreenLayer {
 
     @In
@@ -40,7 +47,6 @@ public class MainMenuScreen extends CoreScreenLayer {
         jvmWarningLabel.setVisible(NonNativeJVMDetector.JVM_ARCH_IS_NONNATIVE);
 
         SelectGameScreen selectScreen = getManager().createScreen(SelectGameScreen.ASSET_URI, SelectGameScreen.class);
-
         UniverseWrapper universeWrapper = new UniverseWrapper();
 
         WidgetUtil.trySubscribe(this, "singleplayer", button -> {
@@ -48,26 +54,24 @@ public class MainMenuScreen extends CoreScreenLayer {
             selectScreen.setUniverseWrapper(universeWrapper);
             triggerForwardAnimation(selectScreen);
         });
-        WidgetUtil.trySubscribe(this, "multiplayer", button -> {
-            universeWrapper.setLoadingAsServer(true);
-            selectScreen.setUniverseWrapper(universeWrapper);
-            triggerForwardAnimation(selectScreen);
-        });
-        WidgetUtil.trySubscribe(this, "join", button -> {
-            if (storageService.getStatus() == StorageServiceWorkerStatus.WORKING) {
-                ConfirmPopup confirmPopup = getManager().pushScreen(ConfirmPopup.ASSET_URI, ConfirmPopup.class);
-                confirmPopup.setMessage(translationSystem.translate("${engine:menu#warning}"),
-                        translationSystem.translate("${engine:menu#storage-service-working}"));
-                confirmPopup.setOkHandler(() -> triggerForwardAnimation(JoinGameScreen.ASSET_URI));
-            } else {
-                triggerForwardAnimation(JoinGameScreen.ASSET_URI);
-            }
-        });
+        WidgetUtil.trySubscribe(this, "multiplayer", button -> openMultiplayer());
         WidgetUtil.trySubscribe(this, "settings", button -> triggerForwardAnimation(SettingsMenuScreen.ASSET_URI));
-        WidgetUtil.trySubscribe(this, "extras", button -> triggerForwardAnimation(ExtrasMenuScreen.ASSET_URI));
         WidgetUtil.trySubscribe(this, "exit", button -> engine.shutdown());
-        WidgetUtil.trySubscribe(this, "storageServiceAction",
-                widget -> triggerForwardAnimation(PlayerSettingsScreen.ASSET_URI));
+    }
+
+    /**
+     * Le service de stockage d'identites peut etre en train d'ecrire quand on rejoint un serveur :
+     * on previent avant d'y aller, comme le faisait l'ancien bouton « Rejoindre ».
+     */
+    private void openMultiplayer() {
+        if (storageService.getStatus() == StorageServiceWorkerStatus.WORKING) {
+            ConfirmPopup confirmPopup = getManager().pushScreen(ConfirmPopup.ASSET_URI, ConfirmPopup.class);
+            confirmPopup.setMessage(translationSystem.translate("${engine:menu#warning}"),
+                    translationSystem.translate("${engine:menu#storage-service-working}"));
+            confirmPopup.setOkHandler(() -> triggerForwardAnimation(JoinGameScreen.ASSET_URI));
+        } else {
+            triggerForwardAnimation(JoinGameScreen.ASSET_URI);
+        }
     }
 
     @Override
@@ -86,5 +90,3 @@ public class MainMenuScreen extends CoreScreenLayer {
         return false;
     }
 }
-
-

@@ -4,22 +4,23 @@
         "UIBox": {
             "background": "engine:box",
             "background-border": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 12,
+                "bottom": 12,
+                "left": 12,
+                "right": 12
             },
             "margin": {
                 "top": 12,
                 "bottom": 12,
                 "left": 12,
                 "right": 12
-            }
+            },
+            "background-scale-mode": "tiled"
         }
     },
     "families": {
         "title": {
-            "font": "NotoSans-Regular-Medium"
+            "font": "Uncial-Display"
         }
     }
 }

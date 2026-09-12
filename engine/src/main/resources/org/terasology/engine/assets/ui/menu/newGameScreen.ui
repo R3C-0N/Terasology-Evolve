@@ -1,155 +1,272 @@
 {
-  "type": "NewGameScreen",
-  "skin": "engine:mainMenu",
-  "contents": {
-    "type": "relativeLayout",
-    "contents": [
-      {
-        "type": "UILabel",
-        "id": "title",
-        "family": "title",
-        "text": "${engine:menu#new-game-title}",
-        "layoutInfo": {
-          "height": 48,
-          "position-horizontal-center": {},
-          "position-top": {
-            "target": "TOP",
-            "offset": 48
-          }
-        }
-      },
-      {
-        "type": "UILabel",
-        "id": "gameTypeTitle",
-        "family": "subtitle",
-        "text": "${engine:menu#select-singleplayer-game-sub-title}",
-        "layoutInfo": {
-          "height": 30,
-          "position-horizontal-center": {},
-          "position-top": {
-            "target": "BOTTOM",
-            "widget": "title"
-          }
-        }
-      },
-      {
-        "type": "UIBox",
-        "id":"mainBox",
-        "content": {
-          "type": "ColumnLayout",
-          "columns": 1,
-          "verticalSpacing": 4,
-          "horizontalSpacing": 4,
-          "contents": [
-            {
-              "type": "UILabel",
-              "text": "${engine:menu#game-name}"
-            },
-            {
-              "type": "UIText",
-              "id": "gameName"
-            },
-            {
-              "type": "UISpace",
-              "size": [
-                1,
-                16
-              ]
-            },
-            {
-              "type": "UILabel",
-              "text": "${engine:menu#gameplay}"
-            },
-            {
-              "type": "UIDropdownScrollable",
-              "id": "gameplay",
-              "layoutInfo": {
-                "relativeWidth": 0.7
-              }
-            },
-            {
-              "type": "UISpace",
-              "size": [
-                1,
-                16
-              ]
-            },
-            {
-              "type": "UILabel",
-              "id": "gameplayDescription"
-            }
-          ]
-        },
-        "layoutInfo": {
-          "width": 500,
-          "use-content-height": true,
-          "position-horizontal-center": {},
-          "position-vertical-center": {}
-        }
-      },
-      {
-        "type": "RowLayout",
-        "id": "actionsRow",
-        "horizontalSpacing": 32,
+    "type": "NewGameScreen",
+    "skin": "engine:mainMenuDim",
+    "contents": {
+        "type": "relativeLayout",
         "contents": [
-          {
-            "type": "UIButton",
-            "text": "${engine:menu#return-main-menu}",
-            "id": "mainMenu"
-          },
-          {
-            "type": "UIButton",
-            "text": "${engine:menu#start-playing}",
-            "id": "play"
-          }
-        ],
-        "layoutInfo": {
-          "width": 272,
-          "height": 80,
-          "position-horizontal-center": {},
-          "position-top": {
-            "target": "BOTTOM",
-            "widget": "mainBox",
-            "offset": 16
-          }
-        }
-      },
-      {
-        "type": "UIButton",
-        "text": "${engine:menu#back}",
-        "id": "close",
-        "layoutInfo": {
-          "width": 120,
-          "height": 80,
-          "position-vertical-center": {
-            "target": "CENTER",
-            "widget": "mainBox"
-          },
-          "position-right": {
-            "target": "LEFT",
-            "widget": "mainBox",
-            "offset": 16
-          }
-        }
-      },
-      {
-        "type": "UIButton",
-        "text": "${engine:menu#advanced}",
-        "id": "advancedSetup",
-        "layoutInfo": {
-          "width": 120,
-          "height": 80,
-          "position-vertical-center": {
-            "target": "CENTER",
-            "widget": "mainBox"
-          },
-          "position-left": {
-            "target": "RIGHT",
-            "widget": "mainBox",
-            "offset": 16
-          }
-        }
-      }
-    ]
-  }
+            {
+                "type": "UILabel",
+                "id": "title",
+                "family": "title",
+                "text": "${engine:menu#new-game-title}",
+                "layoutInfo": {
+                    "width": 600,
+                    "height": 56,
+                    "position-horizontal-center": {},
+                    "position-top": {
+                        "target": "TOP",
+                        "offset": 36
+                    }
+                }
+            },
+            {
+                "type": "UIBox",
+                "id": "mainBox",
+                "layoutInfo": {
+                    "width": 880,
+                    "height": 660,
+                    "position-horizontal-center": {},
+                    "position-top": {
+                        "target": "BOTTOM",
+                        "widget": "title",
+                        "offset": 12
+                    }
+                },
+                "content": {
+                    "type": "relativeLayout",
+                    "contents": [
+                        {
+                            "type": "UILabel",
+                            "id": "nameCaption",
+                            "family": "caps",
+                            "text": "${engine:menu#game-name}",
+                            "layoutInfo": {
+                                "height": 20,
+                                "position-left": {},
+                                "position-right": {},
+                                "position-top": {
+                                    "offset": 8
+                                }
+                            }
+                        },
+                        {
+                            "type": "UIText",
+                            "id": "gameName",
+                            "layoutInfo": {
+                                "height": 44,
+                                "position-left": {},
+                                "position-right": {},
+                                "position-top": {
+                                    "target": "BOTTOM",
+                                    "widget": "nameCaption",
+                                    "offset": 4
+                                }
+                            }
+                        },
+                        {
+                            "type": "UILabel",
+                            "id": "modeCaption",
+                            "family": "caps",
+                            "text": "${engine:menu#game-mode}",
+                            "layoutInfo": {
+                                "height": 20,
+                                "position-left": {},
+                                "position-right": {},
+                                "position-top": {
+                                    "target": "BOTTOM",
+                                    "widget": "gameName",
+                                    "offset": 16
+                                }
+                            }
+                        },
+                        {
+                            "type": "ScrollableArea",
+                            "id": "gameplayArea",
+                            "content": {
+                                "type": "UIList",
+                                "id": "gameplay"
+                            },
+                            "layoutInfo": {
+                                "height": 130,
+                                "position-left": {},
+                                "position-right": {},
+                                "position-top": {
+                                    "target": "BOTTOM",
+                                    "widget": "modeCaption",
+                                    "offset": 4
+                                }
+                            }
+                        },
+                        {
+                            "type": "UILabel",
+                            "id": "seedCaption",
+                            "family": "caps",
+                            "text": "${engine:menu#world-seed-caption}",
+                            "layoutInfo": {
+                                "height": 20,
+                                "position-left": {},
+                                "position-right": {},
+                                "position-top": {
+                                    "target": "BOTTOM",
+                                    "widget": "gameplayArea",
+                                    "offset": 16
+                                }
+                            }
+                        },
+                        {
+                            "type": "UIButton",
+                            "id": "rollSeed",
+                            "family": "btn-secondary",
+                            "text": "${engine:menu#roll-seed}",
+                            "layoutInfo": {
+                                "width": 190,
+                                "height": 42,
+                                "position-right": {},
+                                "position-top": {
+                                    "target": "BOTTOM",
+                                    "widget": "seedCaption",
+                                    "offset": 4
+                                }
+                            }
+                        },
+                        {
+                            "type": "UIText",
+                            "id": "worldSeed",
+                            "layoutInfo": {
+                                "height": 44,
+                                "position-left": {},
+                                "position-right": {
+                                    "target": "LEFT",
+                                    "widget": "rollSeed",
+                                    "offset": 12
+                                },
+                                "position-top": {
+                                    "target": "BOTTOM",
+                                    "widget": "seedCaption",
+                                    "offset": 4
+                                }
+                            }
+                        },
+                        {
+                            "type": "RowLayout",
+                            "id": "advancedUniverseRow",
+                            "horizontalSpacing": 12,
+                            "contents": [
+                                {
+                                    "type": "ColumnLayout",
+                                    "columns": 1,
+                                    "verticalSpacing": 2,
+                                    "contents": [
+                                        {
+                                            "type": "UILabel",
+                                            "family": "secondary",
+                                            "text": "${engine:menu#advanced-universe}"
+                                        },
+                                        {
+                                            "type": "UILabel",
+                                            "family": "muted",
+                                            "text": "${engine:menu#advanced-universe-hint}"
+                                        }
+                                    ],
+                                    "layoutInfo": {
+                                        "relativeWidth": 0.76
+                                    }
+                                },
+                                {
+                                    "type": "UIButton",
+                                    "id": "advancedUniverse",
+                                    "family": "btn-secondary",
+                                    "text": "${engine:menu#expand}",
+                                    "layoutInfo": {
+                                        "relativeWidth": 0.24
+                                    }
+                                }
+                            ],
+                            "layoutInfo": {
+                                "height": 64,
+                                "position-left": {},
+                                "position-right": {},
+                                "position-top": {
+                                    "target": "BOTTOM",
+                                    "widget": "worldSeed",
+                                    "offset": 20
+                                }
+                            },
+                            "family": "sunken"
+                        },
+                        {
+                            "type": "RowLayout",
+                            "id": "advancedModulesRow",
+                            "horizontalSpacing": 12,
+                            "contents": [
+                                {
+                                    "type": "ColumnLayout",
+                                    "columns": 1,
+                                    "verticalSpacing": 2,
+                                    "contents": [
+                                        {
+                                            "type": "UILabel",
+                                            "family": "secondary",
+                                            "text": "${engine:menu#advanced-modules}"
+                                        },
+                                        {
+                                            "type": "UILabel",
+                                            "family": "muted",
+                                            "text": "${engine:menu#advanced-modules-hint}"
+                                        }
+                                    ],
+                                    "layoutInfo": {
+                                        "relativeWidth": 0.76
+                                    }
+                                },
+                                {
+                                    "type": "UIButton",
+                                    "id": "advancedModules",
+                                    "family": "btn-secondary",
+                                    "text": "${engine:menu#expand}",
+                                    "layoutInfo": {
+                                        "relativeWidth": 0.24
+                                    }
+                                }
+                            ],
+                            "layoutInfo": {
+                                "height": 64,
+                                "position-left": {},
+                                "position-right": {},
+                                "position-top": {
+                                    "target": "BOTTOM",
+                                    "widget": "advancedUniverseRow",
+                                    "offset": 10
+                                }
+                            },
+                            "family": "sunken"
+                        },
+                        {
+                            "type": "UIButton",
+                            "id": "close",
+                            "family": "btn-secondary",
+                            "text": "${engine:menu#back}",
+                            "layoutInfo": {
+                                "width": 180,
+                                "height": 46,
+                                "position-left": {},
+                                "position-bottom": {}
+                            }
+                        },
+                        {
+                            "type": "UIButton",
+                            "id": "play",
+                            "text": "${engine:menu#start-playing}",
+                            "layoutInfo": {
+                                "width": 260,
+                                "height": 46,
+                                "position-right": {},
+                                "position-bottom": {}
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
 }

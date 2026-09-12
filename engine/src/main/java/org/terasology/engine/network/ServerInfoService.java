@@ -17,6 +17,7 @@ import org.terasology.engine.network.internal.pipelineFactory.InfoRequestPipelin
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.terasology.engine.registry.InjectionHelper.createWithConstructorInjection;
 
@@ -24,6 +25,13 @@ import static org.terasology.engine.registry.InjectionHelper.createWithConstruct
  * Performs temporary connections to one or more game servers.
  */
 public class ServerInfoService implements AutoCloseable {
+
+    /**
+     * Delai maximal laisse aux boucles pour se terminer, en millisecondes.
+     * La « periode calme » qui precede, elle, est mise a zero : elle n'a de sens
+     * que pour un service qu'on compte reutiliser.
+     */
+    private static final long SHUTDOWN_TIMEOUT_MS = 2000;
 
     private final Bootstrap bootstrap;
     private final EventLoopGroup eventLoopGroup;
@@ -71,6 +79,12 @@ public class ServerInfoService implements AutoCloseable {
 
     @Override
     public void close() {
-        eventLoopGroup.shutdownGracefully().syncUninterruptibly();
+        // Ne JAMAIS attendre ici : `close()` est appele depuis `onClosed()`,
+        // donc sur le fil principal. `shutdownGracefully()` sans argument
+        // observe une periode calme de deux secondes, et `syncUninterruptibly()`
+        // faisait dormir le jeu d'autant en quittant l'ecran multijoueur.
+        // Le service est jete avec l'ecran : il n'y a plus de resultat a lire,
+        // et rien qui justifie de retenir l'affichage.
+        eventLoopGroup.shutdownGracefully(0, SHUTDOWN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
     }
 }

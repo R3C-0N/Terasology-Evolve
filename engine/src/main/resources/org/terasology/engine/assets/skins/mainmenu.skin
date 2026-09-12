@@ -3,25 +3,56 @@
     "elements": {
         "UIScreenLayer": {
             "background-scale-mode": "scale_fill",
-            "background": "menuBackground"
-        },
-        "UIButton": {
-            "modes": {
-                "disabled": {
-                    "text-color": "AAAAAAFF"
-                }
-            }
+            "background": "engine:menuBackdrop"
         },
         "UIButtonWebBrowser": {
-            "text-color": "8B85FFFF"
+            "text-color": "FFE08CFF"
         }
     },
     "families": {
         "menu-options": {
             "elements": {
                 "UIButton": {
-                    "min-width": 192,
-                    "min-height": 32
+                    "min-width": 320,
+                    "fixed-height": 48
+                }
+            }
+        },
+        "btn-menu": {
+            "elements": {
+                "UIButton": {
+                    "background": "engine:buttonMenu",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 9,
+                        "bottom": 18,
+                        "left": 36,
+                        "right": 9
+                    },
+                    "margin": {
+                        "top": 6,
+                        "bottom": 18,
+                        "left": 48,
+                        "right": 18
+                    },
+                    "fixed-height": 48,
+                    "min-width": 320,
+                    "text-align-horizontal": "left",
+                    "modes": {
+                        "hover": {
+                            "background": "engine:buttonMenuOver"
+                        },
+                        "down": {
+                            "background": "engine:buttonMenuDown",
+                            "text-color": "FFE08CFF",
+                            "margin": {
+                                "top": 12,
+                                "bottom": 12,
+                                "left": 48,
+                                "right": 18
+                            }
+                        }
+                    }
                 }
             }
         },
@@ -34,25 +65,294 @@
             }
         },
         "title": {
-            "font": "NotoSans-Regular-Large",
-            "text-color": "F0F0F0FF"
+            "font": "Uncial-Title",
+            "text-color": "FFF3DCFF"
         },
         "subtitle": {
-            "font": "NotoSans-Regular-Medium",
-            "text-color": "F0F0F0FF"
+            "font": "Uncial-Display",
+            "text-color": "F2E2C0FF"
+        },
+        "panel-title": {
+            "font": "Uncial-Display",
+            "text-color": "23282BFF",
+            "text-align-horizontal": "center",
+            "elements": {
+                "UILabel": {
+                    "font": "Uncial-Display",
+                    "text-color": "23282BFF",
+                    "text-align-horizontal": "center",
+                    "text-align-vertical": "middle",
+                    "background": "engine:plaque",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 15,
+                        "bottom": 15,
+                        "left": 63,
+                        "right": 63
+                    },
+                    "margin": {
+                        "top": 6,
+                        "bottom": 6,
+                        "left": 66,
+                        "right": 66
+                    },
+                    "fixed-height": 60,
+                    "text-shadowed": false
+                }
+            }
+        },
+        "item-name": {
+            "font": "Uncial-Item",
+            "text-color": "FFF3DCFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Uncial-Item",
+                    "text-color": "FFF3DCFF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "middle"
+                }
+            }
+        },
+        "caps": {
+            "font": "Grenze-Caps",
+            "text-color": "B49E7CFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Caps",
+                    "text-color": "B49E7CFF",
+                    "text-align-horizontal": "left"
+                }
+            }
+        },
+        "chapter-center": {
+            "font": "Grenze-Small",
+            "text-color": "FFF3DCFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Small",
+                    "text-color": "FFF3DCFF",
+                    "text-align-horizontal": "center",
+                    "text-align-vertical": "top"
+                }
+            }
+        },
+        "chapter": {
+            "font": "Grenze-Small",
+            "text-color": "B49E7CFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Small",
+                    "text-color": "B49E7CFF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "top"
+                }
+            }
+        },
+        "muted-right": {
+            "text-color": "B49E7CFF",
+            "elements": {
+                "UILabel": {
+                    "text-color": "B49E7CFF",
+                    "text-align-horizontal": "right",
+                    "text-align-vertical": "middle"
+                }
+            }
+        },
+        "muted": {
+            "text-color": "B49E7CFF",
+            "elements": {
+                "UILabel": {
+                    "text-color": "B49E7CFF",
+                    "text-align-horizontal": "left"
+                }
+            }
+        },
+        "secondary": {
+            "text-color": "F2E2C0FF",
+            "elements": {
+                "UILabel": {
+                    "text-color": "F2E2C0FF",
+                    "text-align-horizontal": "left"
+                }
+            }
+        },
+        "numeric": {
+            "font": "Grenze-Strong",
+            "text-color": "FFF3DCFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Strong",
+                    "text-color": "FFF3DCFF",
+                    "text-align-horizontal": "left"
+                }
+            }
+        },
+        "btn-secondary": {
+            "elements": {
+                "UIButton": {
+                    "background": "engine:buttonSecondary",
+                    "modes": {
+                        "hover": {
+                            "background": "engine:buttonSecondaryOver"
+                        },
+                        "down": {
+                            "background": "engine:buttonSecondaryDown",
+                            "text-color": "FFE08CFF"
+                        }
+                    }
+                }
+            }
+        },
+        "btn-danger": {
+            "elements": {
+                "UIButton": {
+                    "background": "engine:buttonDanger",
+                    "modes": {
+                        "hover": {
+                            "background": "engine:buttonDangerOver"
+                        },
+                        "down": {
+                            "background": "engine:buttonDangerDown",
+                            "text-color": "FFE08CFF"
+                        }
+                    }
+                }
+            }
+        },
+        "tab-bar": {
+            "elements": {
+                "UIButton": {
+                    "background": "engine:tab",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 18,
+                        "bottom": 6,
+                        "left": 12,
+                        "right": 12
+                    },
+                    "margin": {
+                        "top": 22,
+                        "bottom": 8,
+                        "left": 18,
+                        "right": 18
+                    },
+                    "min-height": 44,
+                    "text-color": "B49E7CFF",
+                    "modes": {
+                        "hover": {
+                            "background": "engine:tab",
+                            "text-color": "F2E2C0FF"
+                        },
+                        "down": {
+                            "background": "engine:tabActive",
+                            "text-color": "FFF3DCFF"
+                        }
+                    }
+                }
+            }
+        },
+        "tab-active": {
+            "elements": {
+                "UIButton": {
+                    "background": "engine:tabActive",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 18,
+                        "bottom": 6,
+                        "left": 12,
+                        "right": 12
+                    },
+                    "margin": {
+                        "top": 22,
+                        "bottom": 8,
+                        "left": 18,
+                        "right": 18
+                    },
+                    "min-height": 44,
+                    "text-color": "FFF3DCFF",
+                    "modes": {
+                        "hover": {
+                            "background": "engine:tabActive"
+                        },
+                        "down": {
+                            "background": "engine:tabActive",
+                            "text-color": "FFE08CFF"
+                        }
+                    }
+                }
+            }
+        },
+        "stat-box": {
+            "elements": {
+                "ColumnLayout": {
+                    "background": "engine:area",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12
+                    },
+                    "margin": {
+                        "top": 10,
+                        "bottom": 10,
+                        "left": 14,
+                        "right": 14
+                    }
+                }
+            }
+        },
+        "sunken": {
+            "elements": {
+                "ColumnLayout": {
+                    "background": "engine:panelSunken",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12
+                    },
+                    "margin": {
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 14,
+                        "right": 14
+                    }
+                },
+                "RowLayout": {
+                    "background": "engine:panelSunken",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12
+                    },
+                    "margin": {
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 14,
+                        "right": 14
+                    }
+                },
+                "UIImage": {
+                    "texture-scale-mode": "scale fit"
+                }
+            }
         },
         "error": {
-            "text-color": "FF4444FF"
+            "text-color": "C13B27FF"
         },
         "warning": {
-            "text-color": "FF4500FF"
+            "text-color": "E8862AFF"
         },
         "highlight": {
-            "text-color": "FFFF00FF",
-            "font": "NotoSans-Bold"
+            "text-color": "FFE08CFF",
+            "font": "Grenze-Strong"
         },
         "subheading": {
-            "font": "NotoSans-Regular-Medium",
+            "font": "Uncial-Item",
             "text-align-horizontal": "left",
             "margin": {
                 "bottom": 4,
@@ -74,28 +374,28 @@
                         "item": {
                             "modes": {
                                 "gameplay": {
-                                    "text-color": "8B85FFFF"
+                                    "text-color": "5FA2DDFF"
                                 },
                                 "enabled": {
-                                    "text-color": "00FF00FF"
+                                    "text-color": "7CC452FF"
                                 },
                                 "dependency": {
-                                    "text-color": "FFFF00FF"
+                                    "text-color": "FFE08CFF"
                                 },
                                 "available": {
-                                    "text-color": "FFFFFFFF"
+                                    "text-color": "F2E2C0FF"
                                 },
                                 "disabled": {
-                                    "text-color": "AAAAAAFF"
+                                    "text-color": "B49E7CFF"
                                 },
                                 "invalid": {
-                                    "text-color": "FF0000FF"
+                                    "text-color": "C13B27FF"
                                 },
                                 "latest": {
-                                    "text-color": "FFFF00FF"
+                                    "text-color": "FFE08CFF"
                                 },
                                 "strict": {
-                                    "text-color": "FFFFFFFF"
+                                    "text-color": "F2E2C0FF"
                                 }
                             }
                         }
@@ -110,10 +410,10 @@
                         "item": {
                             "modes": {
                                 "internal": {
-                                    "text-color": "FFFFFFFF"
+                                    "text-color": "F2E2C0FF"
                                 },
                                 "external": {
-                                    "text-color": "8B85FFFF"
+                                    "text-color": "5FA2DDFF"
                                 }
                             }
                         }
@@ -132,8 +432,119 @@
         "button-text-field-height": {
             "elements": {
                 "UIButton": {
-                    "min-height": 28,
-                    "max-height": 28
+                    "min-height": 34,
+                    "max-height": 34
+                }
+            }
+        },
+        "btn-menu-off": {
+            "elements": {
+                "UIButton": {
+                    "background": "engine:buttonMenuOff",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 9,
+                        "bottom": 18,
+                        "left": 36,
+                        "right": 9
+                    },
+                    "margin": {
+                        "top": 6,
+                        "bottom": 18,
+                        "left": 48,
+                        "right": 18
+                    },
+                    "fixed-height": 48,
+                    "min-width": 320,
+                    "text-align-horizontal": "left",
+                    "modes": {
+                        "hover": {
+                            "background": "engine:buttonMenuOffOver"
+                        },
+                        "down": {
+                            "background": "engine:buttonMenuOffDown",
+                            "text-color": "FFE08CFF",
+                            "margin": {
+                                "top": 12,
+                                "bottom": 12,
+                                "left": 48,
+                                "right": 18
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "btn-menu-danger": {
+            "elements": {
+                "UIButton": {
+                    "background": "engine:buttonMenuDanger",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 9,
+                        "bottom": 18,
+                        "left": 36,
+                        "right": 9
+                    },
+                    "margin": {
+                        "top": 6,
+                        "bottom": 18,
+                        "left": 48,
+                        "right": 18
+                    },
+                    "fixed-height": 48,
+                    "min-width": 320,
+                    "text-align-horizontal": "left",
+                    "modes": {
+                        "hover": {
+                            "background": "engine:buttonMenuDangerOver"
+                        },
+                        "down": {
+                            "background": "engine:buttonMenuDangerDown",
+                            "text-color": "FFE08CFF",
+                            "margin": {
+                                "top": 12,
+                                "bottom": 12,
+                                "left": 48,
+                                "right": 18
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "caps-right": {
+            "font": "Grenze-Caps",
+            "text-color": "B49E7CFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Caps",
+                    "text-color": "B49E7CFF",
+                    "text-align-horizontal": "right"
+                }
+            }
+        },
+        "note": {
+            "text-color": "F2E2C0FF",
+            "elements": {
+                "UILabel": {
+                    "text-color": "F2E2C0FF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "top",
+                    "background": "engine:panelSunken",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12
+                    },
+                    "margin": {
+                        "top": 14,
+                        "bottom": 14,
+                        "left": 18,
+                        "right": 18
+                    }
                 }
             }
         }

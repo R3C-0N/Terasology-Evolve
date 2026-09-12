@@ -1,13 +1,20 @@
 {
-	"inherit": "mainmenu",
-	"elements": {
-		"ScrollableArea": {
-			"background": "engine:area"
-		}
-	},
-	"families": {
-		"subheading": {
-			"text-align-horizontal": "center"
-		}
-	}
+    "inherit": "mainmenu",
+    "elements": {
+        "ScrollableArea": {
+            "background": "engine:area",
+            "background-scale-mode": "tiled",
+            "background-border": {
+                "top": 12,
+                "bottom": 12,
+                "left": 12,
+                "right": 12
+            }
+        }
+    },
+    "families": {
+        "subheading": {
+            "text-align-horizontal": "center"
+        }
+    }
 }

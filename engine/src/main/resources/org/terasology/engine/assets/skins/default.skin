@@ -1,78 +1,88 @@
 {
+    "font": "Grenze-Body",
+    "text-color": "FFF3DCFF",
     "text-shadowed": true,
-    "font": "NotoSans-Regular",
+    "text-shadow-color": "17100CFF",
     "elements": {
         "UILabel": {
             "text-align-vertical": "top",
             "modes": {
                 "enabled": {
-                    "text-color": "FFFFFFFF"
+                    "text-color": "FFF3DCFF"
                 },
                 "disabled": {
-                    "text-color": "888888FF"
+                    "text-color": "B49E7CFF"
                 }
             }
         },
         "UITooltip": {
             "background": "engine:area",
+            "background-scale-mode": "tiled",
             "background-border": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 9,
+                "bottom": 9,
+                "left": 9,
+                "right": 9
             },
             "margin": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 10,
+                "bottom": 10,
+                "left": 16,
+                "right": 16
             },
-            "align-horizontal": "left",
-            "align-vertical": "bottom",
-            "text-align-horizontal": "left"
+            "text-align-horizontal": "left",
+            "text-align-vertical": "bottom",
+            "text-color": "F2E2C0FF"
         },
         "UIText": {
             "text-align-horizontal": "left",
             "text-align-vertical": "top",
-            "hint-text-color": "C0C0C0FF",
+            "text-color": "FFF3DCFF",
+            "hint-text-color": "B49E7CFF",
             "background": "engine:box",
+            "background-scale-mode": "tiled",
             "background-border": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 12,
+                "bottom": 12,
+                "left": 12,
+                "right": 12
             },
             "margin": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 6,
+                "bottom": 6,
+                "left": 14,
+                "right": 14
             },
             "modes": {
                 "disabled": {
-                    "text-color": "888888FF",
-                    "background": "engine:boxDisabled"
+                    "background": "engine:boxDisabled",
+                    "text-color": "B49E7CFF"
                 }
             }
         },
         "ResettableUIText": {
+            "text-align-horizontal": "left",
+            "text-align-vertical": "top",
+            "text-color": "FFF3DCFF",
+            "hint-text-color": "B49E7CFF",
             "background": "engine:resetBox",
+            "background-scale-mode": "tiled",
             "background-border": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 29
+                "top": 12,
+                "bottom": 12,
+                "left": 12,
+                "right": 42
             },
             "margin": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 31
+                "top": 8,
+                "bottom": 8,
+                "left": 16,
+                "right": 48
             },
             "modes": {
                 "disabled": {
-                    "text-color": "888888FF",
-                    "background": "engine:resetBoxDisabled"
+                    "background": "engine:resetBoxDisabled",
+                    "text-color": "B49E7CFF"
                 }
             }
         },
@@ -82,86 +92,90 @@
         "UIImageSlideshow": {
             "texture-scale-mode": "scale fit"
         },
-        "RowLayout": {
-        },
+        "RowLayout": {},
         "UIBox": {
-            "background": "engine:area",
+            "background": "engine:panel",
+            "background-scale-mode": "tiled",
             "background-border": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 90,
+                "bottom": 90,
+                "left": 90,
+                "right": 90
             },
             "margin": {
-                "top": 12,
-                "bottom": 12,
-                "left": 12,
-                "right": 12
+                "top": 52,
+                "bottom": 52,
+                "left": 52,
+                "right": 52
             }
         },
         "UITabBox": {
-            "background": "engine:area",
+            "background": "engine:panel",
+            "background-scale-mode": "tiled",
             "background-border": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 90,
+                "bottom": 90,
+                "left": 90,
+                "right": 90
             },
             "margin": {
+                "top": 52,
+                "bottom": 52,
+                "left": 52,
+                "right": 52
+            }
+        },
+        "UILoadBar": {
+            "background": "engine:box",
+            "background-scale-mode": "tiled",
+            "background-border": {
                 "top": 12,
                 "bottom": 12,
                 "left": 12,
                 "right": 12
-            }
-        },
-        "UILoadBar": {
-            "background": "engine:area",
-            "background-border": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
             },
             "margin": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 6,
+                "bottom": 6,
+                "left": 6,
+                "right": 6
             },
             "min-width": 256,
             "max-width": 512,
-            "fixed-height": 20
+            "fixed-height": 26
         },
         "UIList": {
             "parts": {
                 "item": {
-                    "text-align-horizontal": "center",
+                    "text-align-horizontal": "left",
                     "text-align-vertical": "middle",
-                    "background": "button",
+                    "text-color": "F2E2C0FF",
+                    "background": "engine:listItem",
+                    "background-scale-mode": "tiled",
                     "background-border": {
-                        "top": 2,
-                        "bottom": 2,
-                        "left": 2,
-                        "right": 2
+                        "top": 6,
+                        "bottom": 6,
+                        "left": 18,
+                        "right": 6
                     },
                     "margin": {
-                        "top": 4,
-                        "bottom": 4,
-                        "left": 2,
-                        "right": 2
+                        "top": 8,
+                        "bottom": 8,
+                        "left": 24,
+                        "right": 12
                     },
-                    "texture-scale-mode": "scale fit",
                     "modes": {
                         "hover": {
-                            "background": "buttonOver"
+                            "background": "engine:listItemHover",
+                            "text-color": "FFF3DCFF"
                         },
                         "active": {
-                            "background": "buttonDown",
-                            "text-color": "FFFF00FF"
+                            "background": "engine:listItemSelected",
+                            "text-color": "FFF3DCFF"
                         },
                         "disabled": {
-                            "background": "button",
-                            "text-color": "BBBBBBFF"
+                            "background": "engine:listItem",
+                            "text-color": "B49E7CFF"
                         }
                     }
                 }
@@ -169,58 +183,67 @@
         },
         "UIDropdown": {
             "text-align-horizontal": "left",
-            "fixed-height": 32,
+            "fixed-height": 36,
             "parts": {
                 "base": {
-                    "background": "dropdown",
+                    "background": "engine:dropdown",
+                    "background-scale-mode": "tiled",
                     "background-border": {
-                        "top": 3,
-                        "bottom": 3,
-                        "left": 3,
-                        "right": 29
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 42
                     },
                     "margin": {
-                        "top": 3,
-                        "bottom": 3,
-                        "left": 5,
-                        "right": 31
+                        "top": 6,
+                        "bottom": 6,
+                        "left": 18,
+                        "right": 48
                     },
                     "modes": {
                         "active": {
-                            "background": "dropdownActive"
+                            "background": "engine:dropdownActive"
                         },
                         "disabled": {
-                            "text-color": "888888FF",
-                            "background": "dropdownDisabled"
+                            "background": "engine:dropdownDisabled",
+                            "text-color": "B49E7CFF"
                         }
                     }
                 },
                 "list": {
-                    "background": "dropdownList",
+                    "background": "engine:dropdownList",
+                    "background-scale-mode": "tiled",
                     "background-border": {
                         "top": 0,
-                        "bottom": 3,
-                        "left": 3,
-                        "right": 3
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12
                     },
                     "margin": {
-                        "top": 3,
-                        "bottom": 3,
-                        "left": 5,
-                        "right": 5
+                        "top": 4,
+                        "bottom": 8,
+                        "left": 10,
+                        "right": 10
                     }
                 },
                 "list-item": {
                     "margin": {
-                        "top": 3,
-                        "bottom": 3,
-                        "left": 5,
-                        "right": 5
+                        "top": 6,
+                        "bottom": 6,
+                        "left": 12,
+                        "right": 12
                     },
                     "modes": {
                         "hover": {
-                            "text-color": "FFFF00FF",
-                            "background": "dropdownListItemActive"
+                            "background": "engine:dropdownListItemActive",
+                            "background-scale-mode": "tiled",
+                            "background-border": {
+                                "top": 6,
+                                "bottom": 6,
+                                "left": 18,
+                                "right": 6
+                            },
+                            "text-color": "FFF3DCFF"
                         }
                     }
                 }
@@ -228,58 +251,67 @@
         },
         "UIDropdownScrollable": {
             "text-align-horizontal": "left",
-            "fixed-height": 32,
+            "fixed-height": 36,
             "parts": {
                 "base": {
-                    "background": "dropdown",
+                    "background": "engine:dropdown",
+                    "background-scale-mode": "tiled",
                     "background-border": {
-                        "top": 3,
-                        "bottom": 3,
-                        "left": 3,
-                        "right": 29
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 42
                     },
                     "margin": {
-                        "top": 3,
-                        "bottom": 3,
-                        "left": 5,
-                        "right": 31
+                        "top": 6,
+                        "bottom": 6,
+                        "left": 18,
+                        "right": 48
                     },
                     "modes": {
                         "active": {
-                            "background": "dropdownActive"
+                            "background": "engine:dropdownActive"
                         },
                         "disabled": {
-                            "text-color": "888888FF",
-                            "background": "dropdownDisabled"
+                            "background": "engine:dropdownDisabled",
+                            "text-color": "B49E7CFF"
                         }
                     }
                 },
                 "list": {
-                    "background": "dropdownList",
+                    "background": "engine:dropdownList",
+                    "background-scale-mode": "tiled",
                     "background-border": {
                         "top": 0,
-                        "bottom": 3,
-                        "left": 3,
-                        "right": 3
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12
                     },
                     "margin": {
-                        "top": 3,
-                        "bottom": 3,
-                        "left": 5,
-                        "right": 5
+                        "top": 4,
+                        "bottom": 8,
+                        "left": 10,
+                        "right": 10
                     }
                 },
                 "list-item": {
                     "margin": {
-                        "top": 3,
-                        "bottom": 3,
-                        "left": 5,
-                        "right": 5
+                        "top": 6,
+                        "bottom": 6,
+                        "left": 12,
+                        "right": 12
                     },
                     "modes": {
                         "hover": {
-                            "text-color": "FFFF00FF",
-                            "background": "dropdownListItemActive"
+                            "background": "engine:dropdownListItemActive",
+                            "background-scale-mode": "tiled",
+                            "background-border": {
+                                "top": 6,
+                                "bottom": 6,
+                                "left": 18,
+                                "right": 6
+                            },
+                            "text-color": "FFF3DCFF"
                         }
                     }
                 }
@@ -288,60 +320,76 @@
         "UIButton": {
             "text-align-horizontal": "center",
             "text-align-vertical": "middle",
-            "background": "button",
+            "text-color": "FFF3DCFF",
+            "background": "engine:button",
+            "background-scale-mode": "tiled",
             "background-border": {
-                "top": 2,
-                "bottom": 2,
-                "left": 2,
-                "right": 2
+                "top": 9,
+                "bottom": 18,
+                "left": 9,
+                "right": 9
             },
             "margin": {
-                "top": 2,
-                "bottom": 2,
-                "left": 10,
-                "right": 10
+                "top": 6,
+                "bottom": 18,
+                "left": 18,
+                "right": 18
             },
-            "texture-scale-mode": "scale fit",
+            "min-height": 44,
             "modes": {
                 "hover": {
-                    "background": "buttonOver"
+                    "background": "engine:buttonOver"
                 },
                 "down": {
-                    "background": "buttonDown",
-                    "text-color": "FFFF00FF"
+                    "background": "engine:buttonDown",
+                    "text-color": "FFE08CFF",
+                    "margin": {
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 18,
+                        "right": 18
+                    }
                 },
                 "disabled": {
-                    "background": "button",
-                    "text-color": "BBBBBBFF"
+                    "background": "engine:buttonDisabled",
+                    "text-color": "B49E7CFF"
                 }
             }
         },
         "UIInputBind": {
             "text-align-horizontal": "center",
             "text-align-vertical": "middle",
-            "background": "button",
+            "text-color": "FFF3DCFF",
+            "background": "engine:button",
+            "background-scale-mode": "tiled",
             "background-border": {
-                "top": 2,
-                "bottom": 2,
-                "left": 2,
-                "right": 2
+                "top": 9,
+                "bottom": 18,
+                "left": 9,
+                "right": 9
             },
-            "texture-scale-mode": "scale fit",
+            "margin": {
+                "top": 6,
+                "bottom": 18,
+                "left": 14,
+                "right": 14
+            },
+            "min-height": 44,
             "modes": {
                 "hover": {
-                    "background": "buttonOver"
+                    "background": "engine:buttonOver"
                 },
                 "active": {
-                    "background": "buttonDown",
-                    "text-color": "FFFF00FF"
+                    "background": "engine:buttonDown",
+                    "text-color": "FFE08CFF"
                 }
             }
         },
         "UICheckbox": {
             "background": "engine:checkbox",
-            "fixed-width": 24,
-            "fixed-height": 24,
-            "align-horizontal": "left",
+            "fixed-width": 36,
+            "fixed-height": 36,
+            "text-align-horizontal": "left",
             "modes": {
                 "hover": {
                     "background": "engine:checkboxHover"
@@ -361,18 +409,19 @@
             }
         },
         "ScrollableArea": {
-            "background": "engine:box",
+            "background": "engine:area",
+            "background-scale-mode": "tiled",
             "background-border": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 9,
+                "bottom": 9,
+                "left": 9,
+                "right": 9
             },
             "margin": {
-                "top": 4,
-                "bottom": 4,
-                "left": 4,
-                "right": 4
+                "top": 10,
+                "bottom": 10,
+                "left": 10,
+                "right": 10
             }
         },
         "ColumnLayout": {
@@ -382,69 +431,73 @@
             "parts": {
                 "sliderVertical": {
                     "background": "engine:sliderTrack",
-                    "fixed-width": 8,
+                    "background-scale-mode": "tiled",
+                    "fixed-width": 18,
                     "background-border": {
-                        "top": 3,
-                        "bottom": 3,
+                        "top": 9,
+                        "bottom": 9,
                         "left": 0,
                         "right": 0
                     }
                 },
                 "sliderHorizontal": {
                     "background": "engine:sliderTrack",
-                    "fixed-height": 8,
+                    "background-scale-mode": "tiled",
+                    "fixed-height": 18,
                     "background-border": {
                         "top": 0,
                         "bottom": 0,
-                        "left": 3,
-                        "right": 3
+                        "left": 9,
+                        "right": 9
                     }
                 },
                 "handle": {
                     "background": "engine:handle",
-                    "fixed-width": 16,
-                    "fixed-height": 16
+                    "fixed-width": 18,
+                    "fixed-height": 18
                 }
             }
         },
         "UISlider": {
             "text-align-horizontal": "center",
             "text-align-vertical": "middle",
-            "fixed-height": 32,
+            "fixed-height": 36,
             "parts": {
                 "slider": {
                     "background": "engine:sliderTrack",
-                    "fixed-height": 8,
-                    "min-width": 8,
+                    "background-scale-mode": "tiled",
+                    "fixed-height": 12,
+                    "min-width": 12,
                     "background-border": {
                         "top": 0,
                         "bottom": 0,
-                        "left": 3,
-                        "right": 3
+                        "left": 9,
+                        "right": 9
                     }
                 },
                 "ticker": {
                     "background": "engine:box",
-                    "fixed-height": 32,
+                    "background-scale-mode": "tiled",
+                    "fixed-height": 36,
                     "background-border": {
-                        "top": 4,
-                        "bottom": 4,
-                        "left": 4,
-                        "right": 4
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12
                     },
                     "margin": {
                         "top": 4,
                         "bottom": 4,
-                        "left": 5,
-                        "right": 5
+                        "left": 10,
+                        "right": 10
                     },
                     "modes": {
                         "active": {
                             "background": "engine:boxActive"
                         },
                         "disabled": {
-                            "text-color": "888888FF",
-                            "background": "engine:boxDisabled"
+                            "background": "engine:boxDisabled",
+                            "text-color": "B49E7CFF"
                         }
                     }
                 }
@@ -453,69 +506,72 @@
         "UIDoubleSlider": {
             "text-align-horizontal": "center",
             "text-align-vertical": "middle",
-            "fixed-height": 32,
+            "fixed-height": 36,
             "parts": {
                 "slider": {
                     "background": "engine:sliderTrack",
-                    "fixed-height": 8,
-                    "min-width": 8,
+                    "background-scale-mode": "tiled",
+                    "fixed-height": 12,
+                    "min-width": 12,
                     "background-border": {
                         "top": 0,
                         "bottom": 0,
-                        "left": 3,
-                        "right": 3
+                        "left": 9,
+                        "right": 9
                     }
                 },
                 "tickerLeft": {
                     "background": "engine:box",
-                    "fixed-height": 32,
+                    "background-scale-mode": "tiled",
+                    "fixed-height": 36,
                     "background-border": {
-                        "top": 4,
-                        "bottom": 4,
-                        "left": 4,
-                        "right": 4
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12
                     },
                     "margin": {
                         "top": 4,
                         "bottom": 4,
-                        "left": 5,
-                        "right": 5
+                        "left": 10,
+                        "right": 10
                     },
                     "modes": {
                         "active": {
                             "background": "engine:boxActive"
                         },
                         "disabled": {
-                            "text-color": "888888FF",
-                            "background": "engine:boxDisabled"
+                            "background": "engine:boxDisabled",
+                            "text-color": "B49E7CFF"
                         }
                     }
                 },
                 "tickerRight": {
                     "background": "engine:box",
-                    "fixed-height": 32,
+                    "background-scale-mode": "tiled",
+                    "fixed-height": 36,
                     "background-border": {
-                        "top": 4,
-                        "bottom": 4,
-                        "left": 4,
-                        "right": 4
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12
                     },
                     "margin": {
                         "top": 4,
                         "bottom": 4,
-                        "left": 5,
-                        "right": 5
+                        "left": 10,
+                        "right": 10
                     },
                     "modes": {
+                        "enabled": {
+                            "text-color": "FFF3DCFF"
+                        },
                         "active": {
                             "background": "engine:boxActive"
                         },
-                        "enabled": {
-                            "text-color": "FFFFFFFF"
-                        },
                         "disabled": {
-                            "text-color": "888888FF",
-                            "background": "engine:boxDisabled"
+                            "background": "engine:boxDisabled",
+                            "text-color": "B49E7CFF"
                         }
                     }
                 }
@@ -524,61 +580,46 @@
         "UITreeView": {
             "parts": {
                 "expand-button": {
-                    "background": "button",
+                    "background": "engine:button",
+                    "background-scale-mode": "tiled",
                     "background-border": {
-                        "top": 2,
-                        "bottom": 2,
-                        "left": 2,
-                        "right": 2
-                    },
-                    "texture-scale-mode": "scale fit",
-                    "modes": {
-                        "contract": {
-                            "background": "contract"
-                        },
-                        "contract-hover": {
-                            "background": "contractOver"
-                        },
-                        "expand": {
-                            "background": "expand"
-                        },
-                        "expand-hover": {
-                            "background": "expandOver"
-                        }
+                        "top": 9,
+                        "bottom": 18,
+                        "left": 9,
+                        "right": 9
                     }
                 },
                 "tree-node": {
-                    "text-align-horizontal": "left",
-                    "text-align-vertical": "middle",
-                    "background": "button",
+                    "background": "engine:listItem",
+                    "background-scale-mode": "tiled",
                     "background-border": {
-                        "top": 2,
-                        "bottom": 2,
-                        "left": 2,
-                        "right": 2
+                        "top": 6,
+                        "bottom": 6,
+                        "left": 18,
+                        "right": 6
                     },
                     "margin": {
-                        "top": 4,
-                        "bottom": 4,
-                        "left": 2,
-                        "right": 2
+                        "top": 6,
+                        "bottom": 6,
+                        "left": 14,
+                        "right": 10
                     },
-                    "texture-scale-mode": "scale fit",
                     "modes": {
                         "hover": {
-                            "background": "buttonOver"
+                            "background": "engine:listItemHover",
+                            "text-color": "FFF3DCFF"
                         },
                         "active": {
-                            "background": "buttonDown",
-                            "text-color": "FFFF00FF"
+                            "background": "engine:listItemSelected",
+                            "text-color": "FFF3DCFF"
                         },
                         "disabled": {
-                            "background": "button",
-                            "text-color": "888888FF"
+                            "background": "engine:listItem",
+                            "text-color": "B49E7CFF"
                         },
                         "hover-disabled": {
-                            "background": "buttonOver",
-                            "text-color": "888888FF"
+                            "background": "engine:listItem",
+                            "text-color": "B49E7CFF"
                         }
                     }
                 }

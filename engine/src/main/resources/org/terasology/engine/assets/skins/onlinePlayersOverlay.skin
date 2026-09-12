@@ -9,7 +9,7 @@
             "text-align-horizontal": "center"
         },
         "UILabel": {
-            "font": "NotoSans-Regular-Medium"
+            "font": "Uncial-Item"
         }
     }
 }
