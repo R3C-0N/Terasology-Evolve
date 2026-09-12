@@ -113,3 +113,7 @@ denylist.json
 terasology.jfr
 local.properties
 *.hprof
+
+# Python (outils de generation, pilote d agent)
+__pycache__/
+*.pyc
