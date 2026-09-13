@@ -96,6 +96,11 @@ public interface ChunkMesh {
 
         public static final int COLOR_INDEX = 8; // vec4
 
+        // How much water there is under a water surface vertex, as a byte holding zero to a hundred and twenty
+        // seven over WaterDepthField.RANGE blocks. The swell is faded out with it, because a wave carries the
+        // column beneath it. Zero on every vertex that is not a water surface, which never reads it.
+        public static final int WATER_DEPTH_INDEX = 9; // float
+
         public final VertexResource buffer;
         public final IndexResource indices = new IndexResource();
 
@@ -107,6 +112,8 @@ public interface ChunkMesh {
 
         public final VertexByteAttributeBinding flags;
         public final VertexByteAttributeBinding frames;
+
+        public final VertexByteAttributeBinding waterDepth;
 
         public final VertexFloatAttributeBinding sunlight;         // this could be changed to a single byte
         public final VertexFloatAttributeBinding blockLight;       // this could be changed to a single byte
@@ -122,6 +129,8 @@ public interface ChunkMesh {
 
             flags = builder.add(FLAGS_INDEX, GLAttributes.BYTE_1_VERTEX_ATTRIBUTE);
             frames = builder.add(FRAME_INDEX, GLAttributes.BYTE_1_VERTEX_ATTRIBUTE);
+
+            waterDepth = builder.add(WATER_DEPTH_INDEX, GLAttributes.BYTE_1_VERTEX_ATTRIBUTE);
 
             sunlight = builder.add(SUNLIGHT_INDEX, GLAttributes.FLOAT_1_VERTEX_ATTRIBUTE);
             blockLight = builder.add(BLOCK_INDEX, GLAttributes.FLOAT_1_VERTEX_ATTRIBUTE);

@@ -9,6 +9,7 @@ import org.terasology.engine.math.Direction;
 import org.terasology.engine.monitoring.PerformanceMonitor;
 import org.terasology.engine.rendering.primitives.ChunkMesh;
 import org.terasology.engine.rendering.primitives.ChunkVertexFlag;
+import org.terasology.engine.rendering.primitives.WaterDepthField;
 import org.terasology.engine.world.ChunkView;
 import org.terasology.engine.world.block.Block;
 import org.terasology.math.TeraMath;
@@ -90,12 +91,23 @@ public class BlockMeshPart {
         int nextIndex = elements.vertexCount;
         elements.buffer.reserveElements(nextIndex + vertices.length);
         Vector3f pos = new Vector3f();
+        // Only the water surface carries the depth; nothing else reads the byte.
+        boolean surfaceOfWater = flags == ChunkVertexFlag.WATER_SURFACE;
         for (int vIdx = 0; vIdx < vertices.length; ++vIdx) {
             elements.color.put(colorOffset);
             elements.position.put(pos.set(vertices[vIdx]).add(offsetX, offsetY, offsetZ));
             elements.normals.put(normals[vIdx]);
             elements.flags.put((byte) (flags.getValue()));
             elements.frames.put((byte) (texFrames - 1));
+            if (surfaceOfWater) {
+                // The field lives on column centres, the vertex sits on a corner, hence the half block shift.
+                float depth = WaterDepthField.sample(chunkView, offsetY,
+                        vertices[vIdx].x + offsetX - 0.5f, vertices[vIdx].z + offsetZ - 0.5f);
+                float scaled = Math.min(1.0f, depth / WaterDepthField.RANGE);
+                elements.waterDepth.put((byte) Math.round(scaled * 127.0f));
+            } else {
+                elements.waterDepth.put((byte) 0);
+            }
             float[] lightingData = calcLightingValuesForVertexPos(chunkView, vertices[vIdx].add(offsetX, offsetY, offsetZ,
                     new Vector3f()), normals[vIdx]);
             elements.sunlight.put(lightingData[0]);
