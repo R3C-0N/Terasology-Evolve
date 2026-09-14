@@ -227,13 +227,14 @@ public class FirstPersonClientSystem extends BaseComponentSystem implements Upda
             // half way through the animation will be the maximum extent of rotation and translation
             animateAmount = 1f - Math.abs(((float) timeElapsedSinceLastUsed / (float) USEANIMATIONLENGTH) - 0.5f);
         }
-        float addPitch = 15f * animateAmount;
-        float addYaw = 10f * animateAmount;
+        FirstPersonHeldItemAnimationEvent animation = localPlayer.getCharacterEntity().send(
+                new FirstPersonHeldItemAnimationEvent(timeElapsedSinceLastUsed, 15f * animateAmount, 10f * animateAmount,
+                        new Vector3f(0.25f * animateAmount, -0.12f * animateAmount, 0f)));
         locationComponent.setLocalRotation(new Quaternionf().rotationYXZ(
-                TeraMath.DEG_TO_RAD * (mountPointComponent.rotateDegrees.y + addYaw),
-                TeraMath.DEG_TO_RAD * (mountPointComponent.rotateDegrees.x + addPitch),
+                TeraMath.DEG_TO_RAD * (mountPointComponent.rotateDegrees.y + animation.getYaw()),
+                TeraMath.DEG_TO_RAD * (mountPointComponent.rotateDegrees.x + animation.getPitch()),
                 TeraMath.DEG_TO_RAD * mountPointComponent.rotateDegrees.z));
-        Vector3f offset = new Vector3f(0.25f * animateAmount, -0.12f * animateAmount, 0f);
+        Vector3f offset = new Vector3f(animation.getOffset());
         offset.add(mountPointComponent.translate);
         locationComponent.setLocalPosition(offset);
 
