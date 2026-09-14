@@ -479,6 +479,59 @@ def title_mark():
     return im
 
 
+# --- globe de ressource ---------------------------------------------------
+
+
+def orb(n):
+    """Globe de `ResourceOrb.jsx` : cerclage de fer rivete, cuvette en paroi, reflet en deux blocs.
+
+    `voxel.js` n'a pas de generateur de globe ; celui-ci est trace avec ses
+    valeurs. Trois couches, parce que le liquide monte et descend entre elles :
+    la cuvette dessous, le disque blanc que le code rogne et teint, le cerclage
+    et le reflet dessus. `n` est le diametre interieur du cerclage en texels ;
+    la toile prend 3 texels de plus de chaque cote pour les rivets.
+    """
+    import math
+
+    pad = 3
+    size = n + 2 * pad
+    c = (size - 1) / 2
+    r_in = n / 2 - 2          # le liquide
+    r_ring = n / 2            # 2 texels de fer
+    r_edge = n / 2 + 1        # arete sombre d'un texel
+    track, fill, ring = canvas(size, size), canvas(size, size), canvas(size, size)
+    wall = tiled_layer(size, size, WALL_TILE)
+    for y in range(size):
+        for x in range(size):
+            d = math.hypot(x - c, y - c)
+            if d <= r_in:
+                track.putpixel((x, y), wall.getpixel((x, y)))
+                fill.putpixel((x, y), (255, 255, 255, 255))
+                if d > r_in - 1 and y < c:
+                    rect(track, [x, y, x, y], SUNK_TOP)
+            elif d <= r_ring:
+                ring.putpixel((x, y), solid(IRON[2] if y < c else IRON[1]))
+            elif d <= r_edge:
+                ring.putpixel((x, y), solid(HAIRLINE))
+    k = max(2, round(n * 4 / 32))
+    k2 = max(1, round(n * 2 / 32))
+    x0, y0 = round(pad + n * .22), round(pad + n * .16)
+    rect(ring, [x0, y0, x0 + k - 1, y0 + k - 1], (255, 240, 210, 87))
+    x1, y1 = round(pad + n * .34), round(pad + n * .26)
+    rect(ring, [x1, y1, x1 + k2 - 1, y1 + k2 - 1], (255, 240, 210, 56))
+    # six rivets de 2 texels, pose sur le cerclage : un `iron_stud` entier le
+    # couvrirait et ferait du cerclage un pignon
+    rivet = canvas(2, 2)
+    for (px_, py_), col in (((0, 0), IRON[3]), ((1, 0), IRON[2]), ((0, 1), IRON[2]), ((1, 1), IRON[0])):
+        rect(rivet, [px_, py_, px_, py_], solid(col))
+    for a in range(0, 360, 60):
+        t = math.radians(a - 90)
+        rx = round(c + math.cos(t) * (r_ring - 1) - .5)
+        ry = round(c + math.sin(t) * (r_ring - 1) - .5)
+        ring.alpha_composite(rivet, (rx, ry))
+    return track, fill, ring
+
+
 # --- assemblage -----------------------------------------------------------
 
 
@@ -570,6 +623,31 @@ def main():
     frame(bar, [0, 0, 43, 5], solid(HAIRLINE))
     bevel_sunken(bar, [1, 1, 42, 4])
     save(bar, "statusBar.png")
+
+    # casiers de l'artboard 2g, redessines a 16 texels : a 20, trois panneaux ne
+    # tiennent pas dans 1280 pixels. `slot_tex` retrace la geometrie, il n'agrandit rien.
+    slot = as_img(v.slot_tex(IRON, 16))
+    save(slot, "slot.png")
+    chosen = slot.copy()
+    frame(chosen, [0, 0, 15, 15], solid(ACCENT))
+    frame(chosen, [1, 1, 14, 14], solid(ACCENT_STRONG))
+    save(chosen, "slotSelected.png")
+    # l'arete de rarete : blanche, le code la teint. La rarete ne teinte jamais le fond.
+    edge = canvas(16, 16)
+    frame(edge, [0, 0, 15, 15], solid("#ffffff"))
+    save(edge, "slotEdge.png")
+
+    # globes de ressource, deux calibres
+    for suffix, n in (("", 18), ("Small", 12)):
+        track, fill, ring = orb(n)
+        save(track, "orbTrack" + suffix + ".png")
+        save(fill, "orbFill" + suffix + ".png")
+        save(ring, "orbRing" + suffix + ".png")
+
+    # voile pose sur le monde quand un ecran de jeu est ouvert (--scrim, palier 0)
+    veil = canvas(4, 4)
+    rect(veil, [0, 0, 3, 3], (32, 18, 10, 219))
+    save(veil, "scrim.png")
 
     # decor
     save(backdrop(False), "menuBackdrop.png")
