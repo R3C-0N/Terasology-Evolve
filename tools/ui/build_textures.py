@@ -177,10 +177,9 @@ LOG = {s: as_img(v.pine_log(s, P["pine"], s == "t", sd))
        for s, sd in (("t", 41), ("b", 53), ("l", 67), ("r", 79))}
 LOG_SLIM = {s: as_img(v.pine_log(s, P["pine"], s == "t", sd, 8))
             for s, sd in (("t", 41), ("b", 53), ("l", 67), ("r", 79))}
-LOG_SLIM_BARE = {s: as_img(v.pine_log(s, P["pine"], False, sd, 8))
-                 for s, sd in (("t", 41), ("b", 53), ("l", 67), ("r", 79))}
-STRAP_SM_H = as_img(v.iron_strap(IRON, False, 15 / 22))   # 15x7
-STRAP_SM_V = as_img(v.iron_strap(IRON, True, 15 / 22))    # 7x15
+LOG_FINE = {s: as_img(v.pine_log(s, P["pine"], False, sd, 4))
+            for s, sd in (("t", 41), ("b", 53), ("l", 67), ("r", 79))}
+CORNER_FINE = as_img(v.iron_corner(IRON, .4))              # 12x12
 
 
 # --- panneau --------------------------------------------------------------
@@ -229,31 +228,34 @@ def panel(border, thick, logs, corner, keyline, cap, span=192):
 
 # --- cadre de HUD ---------------------------------------------------------
 
-# `Panel frame="slim" fittings="sm"` de l'artboard 2g, en texels.
-HUD_SPILL = 4      # debord des ferrures au-dela du caisson (IRON.sm.off = -4)
-HUD_OFF = 1        # retrait des rondins (FRAME.slim.off)
-HUD_THICK = 8      # FRAME.slim.thick
-HUD_CAP = 3        # FRAME.slim.cap
-HUD_INNER = HUD_SPILL + HUD_OFF + HUD_THICK + 1   # 14 : bord du contenu
+# Calibre tres fin, sous le slim de l'artboard 2g, choisi pour la minicarte :
+# rondins de 4 texels, equerres de 12, pas de sangles. Redessine a sa taille
+# comme les calibres du design system, jamais obtenu en reduisant le slim.
+HUD_SPILL = 2      # debord des equerres au-dela du caisson
+HUD_OFF = 1        # retrait des rondins
+HUD_THICK = 4      # epaisseur des rondins
+HUD_CAP = 2        # retrait des rondins verticaux aux angles
+HUD_INNER = HUD_SPILL + HUD_OFF + HUD_THICK + 1   # 8 : bord du contenu
+HUD_BORDER = 12    # tranche de la decoupe : l'equerre de 12 texels y tient
 
 
 def hud_frame(span=192):
-    """Le caisson slim, SOUS le contenu : fond sombre, rondins sans mousse,
+    """Le caisson, SOUS le contenu : fond sombre, rondins sans mousse,
     cuvette creusee au centre.
 
-    Les ferrures de la maquette debordent du caisson de 4 texels ; une decoupe
-    en neuf tranches ne sort pas du widget, donc tout le caisson est rentre de
-    ces 4 texels et le widget se pose 12 px plus pres du coin. `span` vaut 192
-    pour que les bords tuiles tombent sur la periode de 64 du rondin.
+    Les equerres debordent du caisson de 2 texels ; une decoupe en neuf tranches
+    ne sort pas du widget, donc le caisson est rentre d'autant et le widget se
+    pose 6 px plus pres du coin. `span` vaut 192 pour que les bords tuiles
+    tombent sur la periode de 64 du rondin.
     """
-    n = 20 * 2 + span
+    n = HUD_BORDER * 2 + span
     im = canvas(n, n)
     s = HUD_SPILL
     rect(im, [s, s, n - 1 - s, n - 1 - s], solid(HAIRLINE))
     i = HUD_INNER
     rect(im, [i, i, n - 1 - i, n - 1 - i], solid(SUNKEN))
     lo, t, c = s + HUD_OFF, HUD_THICK, s + HUD_CAP
-    logs = LOG_SLIM_BARE
+    logs = LOG_FINE
     # ordre de `Logs` : haut, bas, puis les verticaux par-dessus
     top = tiled_layer(n, t, logs["t"], 0, 0).crop((lo, 0, n - lo, t))
     bot = tiled_layer(n, t, logs["b"], -19, 0).crop((lo, 0, n - lo, t))
@@ -268,16 +270,16 @@ def hud_frame(span=192):
 
 def hud_frame_over(span=192):
     """La surcouche, SUR le contenu, centre transparent : le biseau creuse de
-    la cuvette et les quatre equerres, qui mordent de 6 texels sur la carte."""
-    n = 20 * 2 + span
+    la cuvette et les quatre equerres."""
+    n = HUD_BORDER * 2 + span
     im = canvas(n, n)
     i = HUD_INNER
     bevel_sunken(im, [i, i, n - 1 - i, n - 1 - i])
-    cw = CORNER_SM.size[0]
-    im.alpha_composite(CORNER_SM, (0, 0))
-    im.alpha_composite(mirror(CORNER_SM, x=True), (n - cw, 0))
-    im.alpha_composite(mirror(CORNER_SM, y=True), (0, n - cw))
-    im.alpha_composite(mirror(CORNER_SM, x=True, y=True), (n - cw, n - cw))
+    cw = CORNER_FINE.size[0]
+    im.alpha_composite(CORNER_FINE, (0, 0))
+    im.alpha_composite(mirror(CORNER_FINE, x=True), (n - cw, 0))
+    im.alpha_composite(mirror(CORNER_FINE, y=True), (0, n - cw))
+    im.alpha_composite(mirror(CORNER_FINE, x=True, y=True), (n - cw, n - cw))
     return im
 
 
@@ -544,11 +546,9 @@ def main():
     save(panel(border=20, thick=8, logs=LOG_SLIM, corner=CORNER_SM, keyline=2, cap=5),
          "panelSlim.png")
 
-    # cadre de HUD : caisson, surcouche, sangles a mi-cote
-    save(hud_frame(), "hudFrameSlim.png")
-    save(hud_frame_over(), "hudFrameSlimOver.png")
-    save(STRAP_SM_H, "strapSmH.png")
-    save(STRAP_SM_V, "strapSmV.png")
+    # cadre de HUD tres fin : caisson et surcouche
+    save(hud_frame(), "hudFrameFine.png")
+    save(hud_frame_over(), "hudFrameFineOver.png")
 
     # boutons : primaire, secondaire, danger, plus la variante du menu a socle
     for name, wood, f in (("button", WOOD_TILE, 1.0),
