@@ -251,10 +251,14 @@ def hud_frame(span=192):
     n = HUD_BORDER * 2 + span
     im = canvas(n, n)
     s = HUD_SPILL
-    rect(im, [s, s, n - 1 - s, n - 1 - s], solid(HAIRLINE))
     i = HUD_INNER
-    rect(im, [i, i, n - 1 - i, n - 1 - i], solid(SUNKEN))
     lo, t, c = s + HUD_OFF, HUD_THICK, s + HUD_CAP
+    # Pas d'aplat sombre sous le caisson : il debordait d'un texel autour des
+    # rondins, et ce filet presque noir alourdissait un cadre aussi fin. Le
+    # contour dechiquete des rondins porte sur le decor, comme sur les panneaux.
+    # Le joint entre rondins et cuvette prend le brun --surface-inset.
+    rect(im, [lo + t - 1, lo + t - 1, n - lo - t, n - lo - t], solid(INSET))
+    rect(im, [i, i, n - 1 - i, n - 1 - i], solid(SUNKEN))
     logs = LOG_FINE
     # ordre de `Logs` : haut, bas, puis les verticaux par-dessus
     top = tiled_layer(n, t, logs["t"], 0, 0).crop((lo, 0, n - lo, t))
