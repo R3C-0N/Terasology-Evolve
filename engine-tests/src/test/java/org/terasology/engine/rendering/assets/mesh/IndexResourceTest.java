@@ -84,4 +84,21 @@ public class IndexResourceTest {
             assertEquals(10, buffer.getInt(2 * Integer.BYTES));
         });
     }
+
+    @Test
+    public void testRelease() {
+        IndexResource in = new IndexResource();
+        in.put(10);
+        in.put(11);
+
+        in.release();
+        assertEquals(0, in.indices());
+        in.writeBuffer(buffer -> assertEquals(0, buffer.limit()));
+
+        // The memory is gone but the resource is not: writing again allocates a new buffer.
+        in.rewind();
+        in.put(7);
+        assertEquals(1, in.indices());
+        in.writeBuffer(buffer -> assertEquals(7, buffer.getInt(0)));
+    }
 }

@@ -5,6 +5,10 @@ package org.terasology.engine.rendering.assets.mesh.resource;
 
 import org.lwjgl.BufferUtils;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 import java.util.function.Consumer;
 
@@ -17,6 +21,15 @@ import java.util.function.Consumer;
  * Used for managing data for vertex and index data
  */
 public abstract class BufferedResource {
+
+    /**
+     * Frees a direct buffer's native memory on the spot, or null where this JVM offers no way to.
+     * <p>
+     * On its own the JDK frees that memory only once a collection finds the buffer unreachable. When the direct memory
+     * limit ({@code -XX:MaxDirectMemorySize}) is reached before that, the next allocation runs a full, stop-the-world
+     * {@code System.gc()} - one per buffer that does not fit, from whichever thread is building a mesh.
+     */
+    private static final MethodHandle INVOKE_CLEANER = findCleaner();
 
     protected int inSize = 0;
     protected ByteBuffer buffer = BufferUtils.createByteBuffer(0);
@@ -157,7 +170,7 @@ public abstract class BufferedResource {
             buffer.limit(this.inSize);
             buffer.position(0);
             newBuffer.put(buffer);
-            this.buffer = newBuffer;
+            swapIn(newBuffer);
         }
         mark();
     }
@@ -186,7 +199,7 @@ public abstract class BufferedResource {
             buffer.limit(this.inSize);
             buffer.position(0);
             newBuffer.put(buffer);
-            this.buffer = newBuffer;
+            swapIn(newBuffer);
         }
         if (size > this.inSize) {
             this.inSize = size;
@@ -216,7 +229,53 @@ public abstract class BufferedResource {
             buffer.limit(this.inSize);
             buffer.position(0);
             newBuffer.put(buffer);
-            this.buffer = newBuffer;
+            swapIn(newBuffer);
+        }
+    }
+
+    /**
+     * Gives the buffer's memory back now and leaves the resource empty.
+     * <p>
+     * For data that has been copied elsewhere and will not be read again - a mesh already uploaded to the GPU - so that
+     * its native memory does not wait for a garbage collection. The resource stays usable: writing to it again allocates
+     * a new buffer.
+     */
+    public void release() {
+        ByteBuffer released = buffer;
+        buffer = BufferUtils.createByteBuffer(0);
+        inSize = 0;
+        mark();
+        free(released);
+    }
+
+    /** Makes the grown or shrunk copy the buffer, and frees the one it was copied from. */
+    private void swapIn(ByteBuffer newBuffer) {
+        ByteBuffer old = this.buffer;
+        this.buffer = newBuffer;
+        free(old);
+    }
+
+    private static void free(ByteBuffer released) {
+        if (INVOKE_CLEANER == null || !released.isDirect() || released.capacity() == 0) {
+            return;
+        }
+        try {
+            INVOKE_CLEANER.invokeExact(released);
+        } catch (Throwable e) {
+            // A slice or a duplicate does not own its memory and cannot be freed this way; the collector will.
+        }
+    }
+
+    private static MethodHandle findCleaner() {
+        try {
+            Class<?> unsafeClass = Class.forName("sun.misc.Unsafe");
+            Field theUnsafe = unsafeClass.getDeclaredField("theUnsafe");
+            theUnsafe.setAccessible(true);
+            return MethodHandles.lookup()
+                    .findVirtual(unsafeClass, "invokeCleaner", MethodType.methodType(void.class, ByteBuffer.class))
+                    .bindTo(theUnsafe.get(null));
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            return null;
         }
     }
 }

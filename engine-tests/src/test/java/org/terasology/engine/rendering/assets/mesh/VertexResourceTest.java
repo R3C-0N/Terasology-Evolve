@@ -6,7 +6,7 @@ package org.terasology.engine.rendering.assets.mesh;
 import com.google.common.primitives.UnsignedBytes;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.lwjgl.BufferUtils;
 import org.terasology.engine.rendering.assets.mesh.resource.GLAttributes;
 import org.terasology.engine.rendering.assets.mesh.resource.VertexAttributeBinding;
@@ -208,6 +208,27 @@ public class VertexResourceTest {
 
             assertEquals(15, buffer.getInt(Integer.BYTES * 0));
             assertEquals(5, buffer.getInt(Integer.BYTES * 1));
+        });
+    }
+
+    @Test
+    public void testRelease() {
+        VertexResourceBuilder builder = new VertexResourceBuilder();
+        VertexIntegerAttributeBinding a1 = builder.add(0, GLAttributes.INT_1_VERTEX_ATTRIBUTE);
+        VertexResource resource = builder.build();
+
+        a1.put(10);
+        a1.put(20);
+        resource.release();
+        assertEquals(0, resource.inSize());
+        resource.writeBuffer(buffer -> assertEquals(0, buffer.limit()));
+
+        // The memory is gone but the resource is not: writing again allocates a new buffer.
+        a1.rewind();
+        a1.put(30);
+        resource.writeBuffer(buffer -> {
+            assertEquals(Integer.BYTES, buffer.limit());
+            assertEquals(30, buffer.getInt(0));
         });
     }
 

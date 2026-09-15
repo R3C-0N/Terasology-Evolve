@@ -108,6 +108,15 @@ public class ChunkMeshImpl implements ChunkMesh {
      */
     @Override
     public void discardData() {
+        if (vertexElements != null) {
+            // The GPU has its own copy since updateMesh. Freed now, a chunk's vertex memory no longer waits for a garbage
+            // collection: while chunks stream in that memory reaches the direct memory limit long before the heap asks
+            // for a collection, and each allocation past the limit stopped the game for a full System.gc().
+            for (VertexElements elements : vertexElements) {
+                elements.buffer.release();
+                elements.indices.release();
+            }
+        }
         vertexElements = null;
     }
 
