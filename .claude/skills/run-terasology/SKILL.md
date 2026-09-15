@@ -39,7 +39,9 @@ python .claude/skills/run-terasology/driver.py build
 
 Compiles the engine, the subsystems, the modules under `modules/`, extracts the
 LWJGL natives into `natives/`, and writes the runtime classpath to
-`build/run-classpath.txt`. Incremental: 8 s here with everything already built,
+`build/run-classpath.txt`. It also rebuilds `engine/build/libs/engine-*.jar`: the
+classpath names that jar, not the engine's classes, so a build that skipped it
+would launch the previous engine. Incremental: 8 s here with everything already built,
 and expect much longer the first time, when Gradle still has to fetch
 dependencies and compile. `--clean` is accepted and forces a full rebuild.
 

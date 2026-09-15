@@ -317,7 +317,9 @@ def gradlew(args, cwd=ROOT):
 
 
 def cmd_build(a):
-    tasks = ["-I", str(INIT_SCRIPT), ":facades:PC:dumpRunSpec", ":extractNatives"]
+    # The classpath names engine/build/libs/engine-*.jar, not the engine's classes: without :engine:jar a build
+    # refreshes everything but the code the game actually runs, and the next launch is the previous engine.
+    tasks = ["-I", str(INIT_SCRIPT), ":engine:jar", ":facades:PC:dumpRunSpec", ":extractNatives"]
     if getattr(a, "clean", False):
         tasks.insert(0, "clean")
     rc = gradlew(tasks)
