@@ -26,7 +26,6 @@ import org.terasology.engine.world.chunks.ChunkProvider;
 import org.terasology.engine.world.chunks.Chunks;
 import org.terasology.engine.world.chunks.LodChunkProvider;
 import org.terasology.engine.world.chunks.RenderableChunk;
-import org.terasology.joml.geom.AABBfc;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -70,6 +69,12 @@ public class RenderableWorldImpl implements RenderableWorld {
     private int statVisibleChunks;
     private int statIgnoredPhases;
 
+    /**
+     * Where the active camera stood when the render queues were last filled. The comparators measure from here, so
+     * sorting a frame's queues reads the camera once rather than once per comparison.
+     */
+    private final Vector3f cameraPosition = new Vector3f();
+
     private final RenderableWorldImpl.ChunkFrontToBackComparator frontToBackComparator;
     private final RenderableWorldImpl.ChunkBackToFrontComparator backToFrontComparator;
 
@@ -87,8 +92,8 @@ public class RenderableWorldImpl implements RenderableWorld {
                                ChunkTessellator chunkTessellator, WorldProvider worldProvider, Config config,
                                Optional<ChunkVisibilityPolicy> visibilityPolicy) {
         this.visibilityPolicy = visibilityPolicy.orElse(FrustumChunkVisibilityPolicy.INSTANCE);
-        frontToBackComparator = new RenderableWorldImpl.ChunkFrontToBackComparator(worldRenderer);
-        backToFrontComparator = new RenderableWorldImpl.ChunkBackToFrontComparator(worldRenderer);
+        frontToBackComparator = new RenderableWorldImpl.ChunkFrontToBackComparator(cameraPosition);
+        backToFrontComparator = new RenderableWorldImpl.ChunkBackToFrontComparator(cameraPosition);
 
         this.worldRenderer = worldRenderer;
         this.worldProvider = worldProvider;
@@ -274,65 +279,20 @@ public class RenderableWorldImpl implements RenderableWorld {
         statVisibleChunks = 0;
         statIgnoredPhases = 0;
 
-        int chunkCounter = 0;
-
         renderQueues.clear();
 
-        ChunkMesh mesh;
-        boolean isDynamicShadows = renderingConfig.isDynamicShadows();
-        int billboardLimit = (int) renderingConfig.getBillboardLimit();
+        Camera activeCamera = worldRenderer.get().getActiveCamera();
+        cameraPosition.set(activeCamera.getPosition());
 
-        List<RenderableChunk> allChunks = new ArrayList<>(chunkWorker.chunks());
-        allChunks.addAll(chunkMeshRenderer.getRenderableChunks());
+        // The three sources are walked in the order they were once copied into a single list, so that the chunk
+        // counter, which caps shadows and billboards, counts the same chunks it always did.
+        int chunkCounter = queueChunks(chunkWorker.chunks(), 0, activeCamera, isFirstRenderingStageForCurrentFrame);
+        chunkCounter = queueChunks(chunkMeshRenderer.getRenderableChunks(), chunkCounter, activeCamera,
+                isFirstRenderingStageForCurrentFrame);
         if (lodChunkProvider != null) {
-            lodChunkProvider.addAllChunks(allChunks);
-        }
-
-        for (RenderableChunk chunk : allChunks) {
-            if (isChunkValidForRender(chunk)) {
-                mesh = chunk.getMesh();
-
-                if (isDynamicShadows
-                        && isFirstRenderingStageForCurrentFrame
-                        && chunkCounter < maxChunksForShadows
-                        && isChunkVisibleFromMainLight(chunk)) {
-                    if (triangleCount(mesh, ChunkMesh.RenderPhase.OPAQUE) > 0) {
-                        renderQueues.chunksOpaqueShadow.add(chunk);
-                    } else {
-                        statIgnoredPhases++;
-                    }
-                }
-
-                if (isChunkVisible(chunk)) {
-                    if (triangleCount(mesh, ChunkMesh.RenderPhase.OPAQUE) > 0) {
-                        renderQueues.chunksOpaque.add(chunk);
-                    } else {
-                        statIgnoredPhases++;
-                    }
-
-                    if (triangleCount(mesh, ChunkMesh.RenderPhase.REFRACTIVE) > 0) {
-                        renderQueues.chunksAlphaBlend.add(chunk);
-                    } else {
-                        statIgnoredPhases++;
-                    }
-
-                    if (triangleCount(mesh, ChunkMesh.RenderPhase.ALPHA_REJECT) > 0
-                            && (billboardLimit == 0 || chunkCounter < billboardLimit)) {
-                        renderQueues.chunksAlphaReject.add(chunk);
-                    } else {
-                        statIgnoredPhases++;
-                    }
-
-                    statVisibleChunks++;
-
-                    chunk.setAnimated(statVisibleChunks < MAX_ANIMATED_CHUNKS);
-                }
-
-                if (isChunkVisibleReflection(chunk)) {
-                    renderQueues.chunksOpaqueReflection.add(chunk);
-                }
-            }
-            chunkCounter++;
+            List<RenderableChunk> lodChunks = new ArrayList<>();
+            lodChunkProvider.addAllChunks(lodChunks);
+            queueChunks(lodChunks, chunkCounter, activeCamera, isFirstRenderingStageForCurrentFrame);
         }
 
         if (isFirstRenderingStageForCurrentFrame) {
@@ -341,6 +301,76 @@ public class RenderableWorldImpl implements RenderableWorld {
 
         PerformanceMonitor.endActivity();
         return chunkWorker.numberChunkMeshProcessing();
+    }
+
+    /**
+     * Puts each chunk in the queues of the passes that will draw it.
+     * <p>
+     * A chunk whose mesh holds no triangles - air above the ground, rock beneath it, or a mesh not generated yet -
+     * is drawn by no pass, so it gets no visibility test either. Most loaded chunks are like that, and the tests are
+     * what this loop spends its time on.
+     *
+     * @return the chunk counter, advanced past every chunk given, drawn or not
+     */
+    private int queueChunks(Iterable<? extends RenderableChunk> chunks, int firstChunkCounter, Camera activeCamera,
+                            boolean isFirstRenderingStageForCurrentFrame) {
+        boolean isDynamicShadows = renderingConfig.isDynamicShadows();
+        int billboardLimit = (int) renderingConfig.getBillboardLimit();
+
+        int chunkCounter = firstChunkCounter;
+        for (RenderableChunk chunk : chunks) {
+            if (isChunkValidForRender(chunk)) {
+                ChunkMesh mesh = chunk.getMesh();
+                int opaqueTriangles = triangleCount(mesh, ChunkMesh.RenderPhase.OPAQUE);
+                int refractiveTriangles = triangleCount(mesh, ChunkMesh.RenderPhase.REFRACTIVE);
+                int alphaRejectTriangles = triangleCount(mesh, ChunkMesh.RenderPhase.ALPHA_REJECT);
+
+                if (opaqueTriangles > 0 || refractiveTriangles > 0 || alphaRejectTriangles > 0) {
+                    if (isDynamicShadows
+                            && isFirstRenderingStageForCurrentFrame
+                            && chunkCounter < maxChunksForShadows
+                            && isChunkVisibleFromMainLight(chunk)) {
+                        if (opaqueTriangles > 0) {
+                            renderQueues.chunksOpaqueShadow.add(chunk);
+                        } else {
+                            statIgnoredPhases++;
+                        }
+                    }
+
+                    if (isChunkVisible(activeCamera, chunk)) {
+                        if (opaqueTriangles > 0) {
+                            renderQueues.chunksOpaque.add(chunk);
+                        } else {
+                            statIgnoredPhases++;
+                        }
+
+                        if (refractiveTriangles > 0) {
+                            renderQueues.chunksAlphaBlend.add(chunk);
+                        } else {
+                            statIgnoredPhases++;
+                        }
+
+                        if (alphaRejectTriangles > 0
+                                && (billboardLimit == 0 || chunkCounter < billboardLimit)) {
+                            renderQueues.chunksAlphaReject.add(chunk);
+                        } else {
+                            statIgnoredPhases++;
+                        }
+
+                        statVisibleChunks++;
+
+                        chunk.setAnimated(statVisibleChunks < MAX_ANIMATED_CHUNKS);
+                    }
+
+                    // The reflection pass draws the opaque phase and nothing else.
+                    if (opaqueTriangles > 0 && visibilityPolicy.isVisibleReflected(activeCamera, chunk)) {
+                        renderQueues.chunksOpaqueReflection.add(chunk);
+                    }
+                }
+            }
+            chunkCounter++;
+        }
+        return chunkCounter;
     }
 
     private int triangleCount(ChunkMesh mesh, ChunkMesh.RenderPhase renderPhase) {
@@ -370,16 +400,8 @@ public class RenderableWorldImpl implements RenderableWorld {
         return isChunkVisible(shadowMapCamera, chunk); //TODO: find an elegant way
     }
 
-    private boolean isChunkVisible(RenderableChunk chunk) {
-        return isChunkVisible(worldRenderer.get().getActiveCamera(), chunk);
-    }
-
     private boolean isChunkVisible(Camera camera, RenderableChunk chunk) {
         return visibilityPolicy.isVisible(camera, chunk);
-    }
-
-    private boolean isChunkVisibleReflection(RenderableChunk chunk) {
-        return visibilityPolicy.isVisibleReflected(worldRenderer.get().getActiveCamera(), chunk);
     }
 
     @Override
@@ -417,32 +439,47 @@ public class RenderableWorldImpl implements RenderableWorld {
         return stringToReturn;
     }
 
-    private static float squaredDistanceToCamera(RenderableChunk chunk, Vector3f cameraPosition) {
-        // For performance reasons, to avoid instantiating too many vectors in a frequently called method,
-        // comments are in use instead of appropriately named vectors.
-        Vector3f result = chunk.getRenderPosition();
-        result.add(CHUNK_CENTER_OFFSET);
-
-        result.sub(cameraPosition); // camera to chunk vector
-
-        return result.lengthSquared();
+    /**
+     * The same value as {@code chunk.getRenderPosition()} moved to the chunk centre, minus the camera, squared - but
+     * without the vector: this runs twice for every comparison of every queue, every frame.
+     */
+    private static float squaredDistanceToCamera(RenderableChunk chunk, Vector3fc cameraPosition) {
+        float x;
+        float y;
+        float z;
+        if (chunk instanceof Chunk) {
+            // A Chunk renders at its world offset: that is what its getRenderPosition returns.
+            Chunk worldChunk = (Chunk) chunk;
+            x = worldChunk.getChunkWorldOffsetX();
+            y = worldChunk.getChunkWorldOffsetY();
+            z = worldChunk.getChunkWorldOffsetZ();
+        } else {
+            Vector3f renderPosition = chunk.getRenderPosition();
+            x = renderPosition.x;
+            y = renderPosition.y;
+            z = renderPosition.z;
+        }
+        x = x + CHUNK_CENTER_OFFSET.x() - cameraPosition.x();
+        y = y + CHUNK_CENTER_OFFSET.y() - cameraPosition.y();
+        z = z + CHUNK_CENTER_OFFSET.z() - cameraPosition.z();
+        return x * x + y * y + z * z;
     }
 
-    // TODO: find the right place to check if the activeCamera has changed,
-    // TODO: so that the comparators can hold an up-to-date reference to it
-    // TODO: and avoid having to find it on a per-comparison basis.
+    /**
+     * Orders chunks nearest first, measured from the camera position the render queues were filled with.
+     */
     public static class ChunkFrontToBackComparator implements Comparator<RenderableChunk> {
 
-        private final Provider<WorldRenderer> worldRenderer;
-        ChunkFrontToBackComparator(Provider<WorldRenderer> worldRenderer) {
-            this.worldRenderer = worldRenderer;
+        private final Vector3fc cameraPosition;
+
+        ChunkFrontToBackComparator(Vector3fc cameraPosition) {
+            this.cameraPosition = cameraPosition;
         }
 
         @Override
         public int compare(RenderableChunk chunk1, RenderableChunk chunk2) {
             Preconditions.checkNotNull(chunk1);
             Preconditions.checkNotNull(chunk2);
-            Vector3f cameraPosition = worldRenderer.get().getActiveCamera().getPosition();
             double distance1 = squaredDistanceToCamera(chunk1, cameraPosition);
             double distance2 = squaredDistanceToCamera(chunk2, cameraPosition);
 
@@ -453,16 +490,20 @@ public class RenderableWorldImpl implements RenderableWorld {
         }
     }
 
+    /**
+     * Orders chunks farthest first, measured from the camera position the render queues were filled with.
+     */
     public static class ChunkBackToFrontComparator implements Comparator<RenderableChunk> {
-        private final Provider<WorldRenderer> worldRenderer;
-        ChunkBackToFrontComparator(Provider<WorldRenderer> worldRenderer) {
-            this.worldRenderer = worldRenderer;
+        private final Vector3fc cameraPosition;
+
+        ChunkBackToFrontComparator(Vector3fc cameraPosition) {
+            this.cameraPosition = cameraPosition;
         }
+
         @Override
         public int compare(RenderableChunk chunk1, RenderableChunk chunk2) {
             Preconditions.checkNotNull(chunk1);
             Preconditions.checkNotNull(chunk2);
-            Vector3f cameraPosition = worldRenderer.get().getActiveCamera().getPosition();
             double distance1 = squaredDistanceToCamera(chunk1, cameraPosition);
             double distance2 = squaredDistanceToCamera(chunk2, cameraPosition);
 
