@@ -91,12 +91,16 @@ public class ChunkViewCoreImpl implements ChunkViewCore {
         return getLight(pos.x, pos.y, pos.z);
     }
 
+    // The mesher reads sixteen light samples per vertex, so like getBlock these two stay on ints and build no vector.
     @Override
     public byte getSunlight(int blockX, int blockY, int blockZ) {
         if (blockRegion.contains(blockX, blockY, blockZ)) {
             Chunk chunk = chunks[relChunkIndex(blockX, blockY, blockZ)];
             if (chunk != null) {
-                return chunk.getSunlight(Chunks.toRelative(blockX, blockY, blockZ, chunkFilterSize, new Vector3i()));
+                return chunk.getSunlight(
+                        Chunks.toRelative(blockX, chunkFilterSize.x),
+                        Chunks.toRelative(blockY, chunkFilterSize.y),
+                        Chunks.toRelative(blockZ, chunkFilterSize.z));
             }
         }
         return 0;
@@ -107,7 +111,10 @@ public class ChunkViewCoreImpl implements ChunkViewCore {
         if (blockRegion.contains(blockX, blockY, blockZ)) {
             Chunk chunk = chunks[relChunkIndex(blockX, blockY, blockZ)];
             if (chunk != null) {
-                return chunk.getLight(Chunks.toRelative(blockX, blockY, blockZ, chunkFilterSize, new Vector3i()));
+                return chunk.getLight(
+                        Chunks.toRelative(blockX, chunkFilterSize.x),
+                        Chunks.toRelative(blockY, chunkFilterSize.y),
+                        Chunks.toRelative(blockZ, chunkFilterSize.z));
             }
         }
         return 0;

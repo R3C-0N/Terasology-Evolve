@@ -14,6 +14,8 @@ import org.terasology.gestalt.assets.ResourceUrn;
 import org.terasology.nui.Color;
 import org.terasology.nui.Colorc;
 
+import java.util.List;
+
 public class BlockMeshGeneratorSingleShape extends BlockMeshShapeGenerator {
     private final Block block;
     private final ResourceUrn baseUrn = new ResourceUrn("engine", "blockmesh");
@@ -41,34 +43,34 @@ public class BlockMeshGeneratorSingleShape extends BlockMeshShapeGenerator {
             return;
         }
 
-        Color colorCache = new Color();
-
-        // Gather adjacent blocks
-        Block[] adjacentBlocks = new Block[Side.allSides().size()];
-        for (Side side : Side.allSides()) {
-            Vector3ic offset = side.direction();
-            Block blockToCheck = view.getBlock(x + offset.x(), y + offset.y(), z + offset.z());
-            adjacentBlocks[side.ordinal()] = blockToCheck;
-        }
-
         final ChunkMesh.RenderType renderType = getRenderType(block);
         final ChunkVertexFlag vertexFlag = getChunkVertexFlag(view, x, y, z, block);
         boolean isRendered = false;
 
-        for (final Side side : Side.allSides()) {
-            if (isSideVisibleForBlockTypes(adjacentBlocks[side.ordinal()], block, side)) {
+        // perf: this runs for every block of every chunk, and most of them are buried. Nothing is allocated until a
+        // face turns out to be visible, and the block above a liquid is read once, when first needed.
+        Color colorCache = null;
+        Block topBlock = null;
+
+        List<Side> sides = Side.allSides();
+        for (int i = 0; i < sides.size(); i++) {
+            final Side side = sides.get(i);
+            Vector3ic sideOffset = side.direction();
+            final Block adjacent = view.getBlock(x + sideOffset.x(), y + sideOffset.y(), z + sideOffset.z());
+            if (isSideVisibleForBlockTypes(adjacent, block, side)) {
                 isRendered = true;
 
                 BlockMeshPart blockMeshPart = blockAppearance.getPart(BlockPart.fromSide(side));
 
                 // If the selfBlock isn't lowered, some more faces may have to be drawn
                 if (block.isLiquid()) {
-                    final Block topBlock = adjacentBlocks[Side.TOP.ordinal()];
+                    if (topBlock == null) {
+                        topBlock = view.getBlock(x, y + 1, z);
+                    }
                     // Draw horizontal sides if visible from below
                     if (topBlock.isLiquid() && Side.horizontalSides().contains(side)) {
                         final Vector3ic offset = side.direction();
                         final Block adjacentAbove = view.getBlock(x + offset.x(), y + 1, z + offset.z());
-                        final Block adjacent = adjacentBlocks[side.ordinal()];
 
                         if (adjacent.isLiquid() && !adjacentAbove.isLiquid()) {
                             blockMeshPart = block.getTopLiquidMesh(side);
@@ -86,6 +88,9 @@ public class BlockMeshGeneratorSingleShape extends BlockMeshShapeGenerator {
                     if (block.isGrass() && side != Side.TOP && side != Side.BOTTOM) {
                         sideVertexFlag = ChunkVertexFlag.COLOR_MASK;
                     }
+                    if (colorCache == null) {
+                        colorCache = new Color();
+                    }
                     Colorc colorOffset = block.getColorOffset(BlockPart.fromSide(side));
                     Colorc colorSource = block.getColorSource(BlockPart.fromSide(side)).calcColor(view, x, y, z);
                     colorCache.setRed(colorSource.rf() * colorOffset.rf())
@@ -98,6 +103,9 @@ public class BlockMeshGeneratorSingleShape extends BlockMeshShapeGenerator {
         }
 
         if (isRendered && blockAppearance.getPart(BlockPart.CENTER) != null) {
+            if (colorCache == null) {
+                colorCache = new Color();
+            }
             Colorc colorOffset = block.getColorOffset(BlockPart.CENTER);
             Colorc colorSource = block.getColorSource(BlockPart.CENTER).calcColor(view, x, y, z);
             colorCache.setRed(colorSource.rf() * colorOffset.rf())

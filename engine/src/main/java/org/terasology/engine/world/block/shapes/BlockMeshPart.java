@@ -6,7 +6,6 @@ import org.joml.Quaternionf;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.terasology.engine.math.Direction;
-import org.terasology.engine.monitoring.PerformanceMonitor;
 import org.terasology.engine.rendering.primitives.ChunkMesh;
 import org.terasology.engine.rendering.primitives.ChunkVertexFlag;
 import org.terasology.engine.rendering.primitives.WaterDepthField;
@@ -24,6 +23,18 @@ import java.util.Arrays;
  */
 public class BlockMeshPart {
     private static final float BORDER = 1f / 128f;
+
+    /**
+     * Where the eight light samples of a vertex are taken, above it then below it. Negative steps are stored
+     * negated, which adds exactly what subtracting did.
+     */
+    private static final float[] LIGHT_SAMPLE_X = {0.1f, 0.1f, -0.1f, -0.1f, 0.1f, 0.1f, -0.1f, -0.1f};
+    private static final float[] LIGHT_SAMPLE_Y = {0.8f, 0.8f, 0.8f, 0.8f, -0.1f, -0.1f, -0.1f, -0.1f};
+    private static final float[] LIGHT_SAMPLE_Z = {0.1f, -0.1f, -0.1f, 0.1f, 0.1f, -0.1f, -0.1f, 0.1f};
+
+    /** 0.4 and 0.8 to the power of the occluding blocks, zero to four of them, taken once instead of per vertex. */
+    private static final double[] OPAQUE_OCCLUSION = occlusionTable(0.40);
+    private static final double[] BILLBOARD_OCCLUSION = occlusionTable(0.80);
 
     private Vector3f[] vertices;
     private Vector3f[] normals;
@@ -108,11 +119,8 @@ public class BlockMeshPart {
             } else {
                 elements.waterDepth.put((byte) 0);
             }
-            float[] lightingData = calcLightingValuesForVertexPos(chunkView, vertices[vIdx].add(offsetX, offsetY, offsetZ,
-                    new Vector3f()), normals[vIdx]);
-            elements.sunlight.put(lightingData[0]);
-            elements.blockLight.put(lightingData[1]);
-            elements.ambientOcclusion.put(lightingData[2]);
+            // The buffer took a copy, so pos is still the vertex in chunk coordinates.
+            appendLighting(elements, chunkView, pos.x, pos.y, pos.z, normals[vIdx]);
         }
         elements.vertexCount += vertices.length;
 
@@ -134,102 +142,80 @@ public class BlockMeshPart {
         return new BlockMeshPart(newVertices, newNormals, texCoords, indices, texFrames);
     }
 
-    private float[] calcLightingValuesForVertexPos(ChunkView chunkView, Vector3f vertexPos, Vector3f normal) {
-        PerformanceMonitor.startActivity("calcLighting");
-        float[] lights = new float[8];
-        float[] blockLights = new float[8];
-        Block[] blocks = new Block[4];
-
-        PerformanceMonitor.startActivity("gatherLightInfo");
-        Direction dir = Direction.inDirection(normal);
-        switch (dir) {
+    /**
+     * Writes the sunlight, block light and ambient occlusion of one vertex into the mesh.
+     * <p>
+     * This runs for every vertex of every chunk mesh, so it allocates nothing: the light samples are summed as they
+     * are read rather than gathered into arrays first, and the result goes straight into the buffers.
+     */
+    private static void appendLighting(ChunkMesh.VertexElements elements, ChunkView chunkView,
+                                       float x, float y, float z, Vector3f normal) {
+        Block b0;
+        Block b1;
+        Block b2;
+        Block b3;
+        switch (Direction.inDirection(normal)) {
             case LEFT:
             case RIGHT:
-                blocks[0] = chunkView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y + 0.1f), (vertexPos.z + 0.1f));
-                blocks[1] = chunkView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y + 0.1f), (vertexPos.z - 0.1f));
-                blocks[2] = chunkView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y - 0.1f), (vertexPos.z - 0.1f));
-                blocks[3] = chunkView.getBlock((vertexPos.x + 0.8f * normal.x), (vertexPos.y - 0.1f), (vertexPos.z + 0.1f));
+                b0 = chunkView.getBlock((x + 0.8f * normal.x), (y + 0.1f), (z + 0.1f));
+                b1 = chunkView.getBlock((x + 0.8f * normal.x), (y + 0.1f), (z - 0.1f));
+                b2 = chunkView.getBlock((x + 0.8f * normal.x), (y - 0.1f), (z - 0.1f));
+                b3 = chunkView.getBlock((x + 0.8f * normal.x), (y - 0.1f), (z + 0.1f));
                 break;
             case FORWARD:
             case BACKWARD:
-                blocks[0] = chunkView.getBlock((vertexPos.x + 0.1f), (vertexPos.y + 0.1f), (vertexPos.z + 0.8f * normal.z));
-                blocks[1] = chunkView.getBlock((vertexPos.x + 0.1f), (vertexPos.y - 0.1f), (vertexPos.z + 0.8f * normal.z));
-                blocks[2] = chunkView.getBlock((vertexPos.x - 0.1f), (vertexPos.y - 0.1f), (vertexPos.z + 0.8f * normal.z));
-                blocks[3] = chunkView.getBlock((vertexPos.x - 0.1f), (vertexPos.y + 0.1f), (vertexPos.z + 0.8f * normal.z));
+                b0 = chunkView.getBlock((x + 0.1f), (y + 0.1f), (z + 0.8f * normal.z));
+                b1 = chunkView.getBlock((x + 0.1f), (y - 0.1f), (z + 0.8f * normal.z));
+                b2 = chunkView.getBlock((x - 0.1f), (y - 0.1f), (z + 0.8f * normal.z));
+                b3 = chunkView.getBlock((x - 0.1f), (y + 0.1f), (z + 0.8f * normal.z));
                 break;
             default:
-                blocks[0] = chunkView.getBlock((vertexPos.x + 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z + 0.1f));
-                blocks[1] = chunkView.getBlock((vertexPos.x + 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z - 0.1f));
-                blocks[2] = chunkView.getBlock((vertexPos.x - 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z - 0.1f));
-                blocks[3] = chunkView.getBlock((vertexPos.x - 0.1f), (vertexPos.y + 0.8f * normal.y), (vertexPos.z + 0.1f));
+                b0 = chunkView.getBlock((x + 0.1f), (y + 0.8f * normal.y), (z + 0.1f));
+                b1 = chunkView.getBlock((x + 0.1f), (y + 0.8f * normal.y), (z - 0.1f));
+                b2 = chunkView.getBlock((x - 0.1f), (y + 0.8f * normal.y), (z - 0.1f));
+                b3 = chunkView.getBlock((x - 0.1f), (y + 0.8f * normal.y), (z + 0.1f));
         }
+        int occluders = opaqueOccluder(b0) + opaqueOccluder(b1) + opaqueOccluder(b2) + opaqueOccluder(b3);
+        int billboardOccluders = billboardOccluder(b0) + billboardOccluder(b1) + billboardOccluder(b2) + billboardOccluder(b3);
 
-        lights[0] = chunkView.getSunlight((vertexPos.x + 0.1f), (vertexPos.y + 0.8f), (vertexPos.z + 0.1f));
-        lights[1] = chunkView.getSunlight((vertexPos.x + 0.1f), (vertexPos.y + 0.8f), (vertexPos.z - 0.1f));
-        lights[2] = chunkView.getSunlight((vertexPos.x - 0.1f), (vertexPos.y + 0.8f), (vertexPos.z - 0.1f));
-        lights[3] = chunkView.getSunlight((vertexPos.x - 0.1f), (vertexPos.y + 0.8f), (vertexPos.z + 0.1f));
-
-        lights[4] = chunkView.getSunlight((vertexPos.x + 0.1f), (vertexPos.y - 0.1f), (vertexPos.z + 0.1f));
-        lights[5] = chunkView.getSunlight((vertexPos.x + 0.1f), (vertexPos.y - 0.1f), (vertexPos.z - 0.1f));
-        lights[6] = chunkView.getSunlight((vertexPos.x - 0.1f), (vertexPos.y - 0.1f), (vertexPos.z - 0.1f));
-        lights[7] = chunkView.getSunlight((vertexPos.x - 0.1f), (vertexPos.y - 0.1f), (vertexPos.z + 0.1f));
-
-        blockLights[0] = chunkView.getLight((vertexPos.x + 0.1f), (vertexPos.y + 0.8f), (vertexPos.z + 0.1f));
-        blockLights[1] = chunkView.getLight((vertexPos.x + 0.1f), (vertexPos.y + 0.8f), (vertexPos.z - 0.1f));
-        blockLights[2] = chunkView.getLight((vertexPos.x - 0.1f), (vertexPos.y + 0.8f), (vertexPos.z - 0.1f));
-        blockLights[3] = chunkView.getLight((vertexPos.x - 0.1f), (vertexPos.y + 0.8f), (vertexPos.z + 0.1f));
-
-        blockLights[4] = chunkView.getLight((vertexPos.x + 0.1f), (vertexPos.y - 0.1f), (vertexPos.z + 0.1f));
-        blockLights[5] = chunkView.getLight((vertexPos.x + 0.1f), (vertexPos.y - 0.1f), (vertexPos.z - 0.1f));
-        blockLights[6] = chunkView.getLight((vertexPos.x - 0.1f), (vertexPos.y - 0.1f), (vertexPos.z - 0.1f));
-        blockLights[7] = chunkView.getLight((vertexPos.x - 0.1f), (vertexPos.y - 0.1f), (vertexPos.z + 0.1f));
-        PerformanceMonitor.endActivity();
-
-        float resultLight = 0;
-        float resultBlockLight = 0;
-        int counterLight = 0;
-        int counterBlockLight = 0;
-
-        int occCounter = 0;
-        int occCounterBillboard = 0;
-        for (int i = 0; i < 8; i++) {
-            if (lights[i] > 0) {
-                resultLight += lights[i];
-                counterLight++;
+        float sunlight = 0;
+        int sunlitSamples = 0;
+        float blockLight = 0;
+        int blockLitSamples = 0;
+        for (int sample = 0; sample < LIGHT_SAMPLE_X.length; sample++) {
+            float sampleX = x + LIGHT_SAMPLE_X[sample];
+            float sampleY = y + LIGHT_SAMPLE_Y[sample];
+            float sampleZ = z + LIGHT_SAMPLE_Z[sample];
+            byte sun = chunkView.getSunlight(sampleX, sampleY, sampleZ);
+            if (sun > 0) {
+                sunlight += sun;
+                sunlitSamples++;
             }
-            if (blockLights[i] > 0) {
-                resultBlockLight += blockLights[i];
-                counterBlockLight++;
-            }
-
-            if (i < 4) {
-                Block b = blocks[i];
-
-                if (b.isShadowCasting() && !b.isTranslucent()) {
-                    occCounter++;
-                } else if (b.isShadowCasting()) {
-                    occCounterBillboard++;
-                }
+            byte light = chunkView.getLight(sampleX, sampleY, sampleZ);
+            if (light > 0) {
+                blockLight += light;
+                blockLitSamples++;
             }
         }
 
-        double resultAmbientOcclusion = (TeraMath.pow(0.40, occCounter) + TeraMath.pow(0.80, occCounterBillboard)) / 2.0;
+        elements.sunlight.put(sunlitSamples == 0 ? 0 : sunlight / sunlitSamples / 15f);
+        elements.blockLight.put(blockLitSamples == 0 ? 0 : blockLight / blockLitSamples / 15f);
+        elements.ambientOcclusion.put((float) ((OPAQUE_OCCLUSION[occluders] + BILLBOARD_OCCLUSION[billboardOccluders]) / 2.0));
+    }
 
-        float[] output = new float[3];
-        if (counterLight == 0) {
-            output[0] = 0;
-        } else {
-            output[0] = resultLight / counterLight / 15f;
+    private static int opaqueOccluder(Block block) {
+        return block.isShadowCasting() && !block.isTranslucent() ? 1 : 0;
+    }
+
+    private static int billboardOccluder(Block block) {
+        return block.isShadowCasting() && block.isTranslucent() ? 1 : 0;
+    }
+
+    private static double[] occlusionTable(double base) {
+        double[] table = new double[5];
+        for (int occluders = 0; occluders < table.length; occluders++) {
+            table[occluders] = TeraMath.pow(base, occluders);
         }
-
-        if (counterBlockLight == 0) {
-            output[1] = 0;
-        } else {
-            output[1] = resultBlockLight / counterBlockLight / 15f;
-        }
-
-        output[2] = (float) resultAmbientOcclusion;
-        PerformanceMonitor.endActivity();
-        return output;
+        return table;
     }
 }
