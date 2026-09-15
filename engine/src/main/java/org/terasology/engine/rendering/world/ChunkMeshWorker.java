@@ -66,7 +66,10 @@ public final class ChunkMeshWorker {
         chunksAndNewMeshes = chunkMeshPublisher.asFlux()
                 .distinct(Chunk::getPosition, () -> chunkMeshProcessing)
                 .parallel().runOn(parallelScheduler)
-                .flatMap(workFunction)
+                // A chunk that yields no mesh, its view gone invalid while it waited, has to leave the set as well:
+                // distinct() would otherwise drop every later request to mesh it, for as long as it stays in view.
+                .flatMap(chunk -> workFunction.apply(chunk)
+                        .switchIfEmpty(Mono.fromRunnable(() -> chunkMeshProcessing.remove(chunk.getPosition()))))
                 .sequential();
 
         completedChunks = chunksAndNewMeshes
