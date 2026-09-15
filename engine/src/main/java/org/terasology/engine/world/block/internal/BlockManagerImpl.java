@@ -25,6 +25,7 @@ import org.terasology.engine.world.block.loader.BlockFamilyDefinition;
 import org.terasology.engine.world.block.shapes.BlockShape;
 import org.terasology.engine.world.block.tiles.WorldAtlas;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -191,6 +192,7 @@ public class BlockManagerImpl extends BlockManager {
         if (block.getId() != UNKNOWN_ID) {
             logger.info("Registered Block {} with id {}", block, block.getId()); //NOPMD
             newState.blocksById.put(block.getId(), block);
+            newState.setBlockAt(block.getId(), block);
             newState.idByUri.put(block.getURI(), block.getId());
         } else {
             logger.info("Failed to register block {} - no id", block);
@@ -316,7 +318,11 @@ public class BlockManagerImpl extends BlockManager {
 
     @Override
     public Block getBlock(short id) {
-        Block result = registeredBlockInfo.get().blocksById.get(id);
+        // Every block read of the engine lands here - generation, lighting, meshing, physics - so it is an array
+        // index rather than a hash lookup, which had become the largest single cost of meshing a chunk.
+        Block[] blocks = registeredBlockInfo.get().blocksByIndex;
+        int index = Short.toUnsignedInt(id);
+        Block result = index < blocks.length ? blocks[index] : null;
         if (result == null) {
             return getAirBlock();
         }
@@ -350,12 +356,18 @@ public class BlockManagerImpl extends BlockManager {
         private final Map<BlockUri, Block> blocksByUri;
         private final TShortObjectMap<Block> blocksById;
         private final TObjectShortMap<BlockUri> idByUri;
+        /**
+         * The same blocks as {@link #blocksById}, at the unsigned value of their id. Ids are handed out from one
+         * upwards, so the array stays as short as the highest id in use.
+         */
+        private Block[] blocksByIndex;
 
         RegisteredState() {
             this.registeredFamilyByUri = Maps.newHashMap();
             this.blocksByUri = Maps.newHashMap();
             this.blocksById = new TShortObjectHashMap<>();
             this.idByUri = new TObjectShortHashMap<>();
+            this.blocksByIndex = new Block[0];
         }
 
         RegisteredState(RegisteredState oldState) {
@@ -363,6 +375,16 @@ public class BlockManagerImpl extends BlockManager {
             this.blocksByUri = Maps.newHashMap(oldState.blocksByUri);
             this.blocksById = new TShortObjectHashMap<>(oldState.blocksById);
             this.idByUri = new TObjectShortHashMap<>(oldState.idByUri);
+            this.blocksByIndex = oldState.blocksByIndex.clone();
+        }
+
+        /** Only ever called on a state that has not been published yet, under the registration lock. */
+        void setBlockAt(short id, Block block) {
+            int index = Short.toUnsignedInt(id);
+            if (index >= blocksByIndex.length) {
+                blocksByIndex = Arrays.copyOf(blocksByIndex, Math.max(index + 1, blocksByIndex.length * 2));
+            }
+            blocksByIndex[index] = block;
         }
     }
 }
