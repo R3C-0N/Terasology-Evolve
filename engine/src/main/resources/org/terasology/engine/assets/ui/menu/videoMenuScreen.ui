@@ -6,459 +6,172 @@
         "contents": [
             {
                 "type": "UILabel",
-                "family": "title",
-                "text": "${engine:menu#video-settings-title}",
                 "id": "title",
+                "family": "title",
+                "text": "${engine:menu#options-title}",
                 "layoutInfo": {
-                    "height": 48,
-                    "position-horizontal-center": {},
+                    "width": 250,
+                    "height": 52,
+                    "position-left": {
+                        "offset": 70
+                    },
                     "position-top": {
                         "target": "TOP",
-                        "offset": 48
+                        "offset": 32
+                    }
+                }
+            },
+            {
+                "type": "UILabel",
+                "id": "tabSummary",
+                "family": "caps",
+                "layoutInfo": {
+                    "width": 260,
+                    "height": 24,
+                    "position-left": {
+                        "target": "RIGHT",
+                        "widget": "title",
+                        "offset": 16
+                    },
+                    "position-bottom": {
+                        "target": "BOTTOM",
+                        "widget": "title",
+                        "offset": 10
+                    }
+                }
+            },
+            {
+                "type": "RowLayout",
+                "id": "tabs",
+                "horizontalSpacing": 4,
+                "contents": [
+                    {
+                        "type": "UIButton",
+                        "id": "tabVideo",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-video}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabAudio",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-audio}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabInput",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-input}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabPlayer",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-player}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabModules",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-modules}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    }
+                ],
+                "layoutInfo": {
+                    "width": 640,
+                    "height": 56,
+                    "position-right": {
+                        "offset": 70
+                    },
+                    "position-bottom": {
+                        "target": "BOTTOM",
+                        "widget": "title"
                     }
                 }
             },
             {
                 "type": "ScrollableArea",
+                "id": "overviewArea",
                 "content": {
                     "type": "ColumnLayout",
+                    "id": "overview",
                     "columns": 1,
-                    "verticalSpacing": 8,
-                    "contents": [
-                        {
-                            "type": "UILabel",
-                            "family": "subheading",
-                            "text": "${engine:menu#video-preset}"
-                        },
-                        {
-                            "type": "UILabel",
-                            "text": "${engine:menu#video-preset-message}"
-                        },
-                        {
-                            "type": "ColumnLayout",
-                            "columns": 1,
-                            "verticalSpacing": 4,
-                            "horizontalSpacing": 4,
-                            "family": "option-grid",
-                            "contents": [
-                                {
-                                    "type": "UIDropdown",
-                                    "id": "graphicsPreset"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "UISpace",
-                            "size": [1, 12]
-                        },
-                        {
-                            "type": "UISpace",
-                            "size": [1, 12]
-                        },
-                        {
-                            "type": "UILabel",
-                            "family": "subheading",
-                            "text": "${engine:menu#video-graphic-settings}"
-                        },
-                        {
-                            "type": "ColumnLayout",
-                            "columns": 4,
-                            "verticalSpacing": 8,
-                            "horizontalSpacing": 8,
-                            "family": "option-grid",
-                            "contents": [
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#screenshot-size}: "
-                                },
-                                {
-                                    "type": "UIDropdown",
-                                    "id": "screenshotSize"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#screenshot-format}: "
-                                },
-                                {
-                                    "type": "UIDropdown",
-                                    "id": "screenshotFormat"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#video-display-mode}: "
-                                },
-                                {
-                                    "type": "UIDropdown",
-                                    "id": "displayModeSetting"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#video-resolution-fullscreen}: "
-                                },
-                                {
-                                    "type": "UIDropdownScrollable",
-                                    "id": "resolution"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#video-vsync}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "vsync"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#menu-animations}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "menu-animations"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "UISpace",
-                            "size": [1, 12]
-                        },
-                        {
-                            "type": "UILabel",
-                            "family": "subheading",
-                            "text": "${engine:menu#camera-details-settings}"
-                        },
-                        {
-                            "type": "ColumnLayout",
-                            "columns": 4,
-                            "verticalSpacing": 8,
-                            "horizontalSpacing": 8,
-                            "family": "option-grid",
-                            "contents": [
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#camera-blur}: "
-                                },
-                                {
-                                    "type": "UIDropdown",
-                                    "id": "blur"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#camera-setting}: "
-                                },
-                                {
-                                    "type": "UIDropdown",
-                                    "id": "camera"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#outline}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "outline"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#cloud-shadows}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "cloudShadow"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#extra-lighting}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "extraLighting"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#parallax-mapping}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "parallax"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#camera-film-grain}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "filmGrain"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#bobbing}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "bobbing"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#fov-amount}: "
-                                },
-                                {
-                                    "type": "UISlider",
-                                    "id": "fov"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#view-distance}: "
-                                },
-                                {
-                                    "type": "UIDropdown",
-                                    "id": "viewDistance"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#chunk-threads}: "
-                                },
-                                {
-                                    "type": "UISlider",
-                                    "id": "chunkThreads"
-                                },
-                                {
-                                    "type": "UISpace",
-                                    "size": [1, 13]
-                                },
-                                {
-                                    "type": "UIButton",
-                                    "text": "${engine:menu#reset-fov-amount}",
-                                    "id": "fovReset"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#chunk-lods}: "
-                                },
-                                {
-                                    "type": "UISlider",
-                                    "id": "chunkLods"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#billboard-limit}: "
-                                },
-                                {
-                                    "type": "UISlider",
-                                    "id": "billboardLimit"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#framerate-limit}: "
-                                },
-                                {
-                                    "type": "UISlider",
-                                    "id": "frameLimit"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#resolution-scale}: "
-                                },
-                                {
-                                    "type": "UISlider",
-                                    "id": "fboScale"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#ui-scale}: "
-                                },
-
-                                {
-                                    "type": "RowLayout",
-                                    "contents": [
-                                        {
-                                            "type": "UIButton",
-                                            "text": "-",
-                                            "id": "uiScaleSmaller"
-                                        },
-                                        {
-                                            "type": "UILabel",
-                                            "id": "uiScaleLabel",
-                                            "text": " 100%"
-                                        },
-                                        {
-                                            "type": "UIButton",
-                                            "text": "+",
-                                            "id": "uiScaleLarger"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#animate-grass}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "animateGrass"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#animate-water}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "animateWater"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#particle-effect-limit}: "
-                                },
-                                {
-                                    "type": "UISlider",
-                                    "id": "particleEffectLimit"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#fog}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "inscattering"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "UISpace",
-                            "size": [1, 12]
-                        },
-                        {
-                            "type": "UILabel",
-                            "family": "subheading",
-                            "text": "${engine:menu#video-high-end-settings}"
-                        },
-                        {
-                            "type": "ColumnLayout",
-                            "columns": 4,
-                            "verticalSpacing": 8,
-                            "horizontalSpacing": 8,
-                            "family": "option-grid",
-                            "contents": [
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#eye-adaption}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "eyeAdaptation"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#motion-blur}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "motionBlur"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#water-reflections}: "
-                                },
-                                {
-                                    "type": "UIDropdown",
-                                    "id": "reflections"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#shadows}: "
-                                },
-                                {
-                                    "type": "UIDropdown",
-                                    "id": "shadows"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#ssao}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "ssao"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#clamp-lighting}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "clampLighting"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#bloom-effect}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "bloom"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#light-shafts}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "lightShafts"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#vignette}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "vignette"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#flickering-lights}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "flickeringLight"
-                                },
-                                {
-                                    "type": "UILabel",
-                                    "text": "${engine:menu#volumetric-fog}: "
-                                },
-                                {
-                                    "type": "UICheckbox",
-                                    "id": "volumetricFog"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "UISpace",
-                            "size": [1, 12]
-                        }
-                    ]
+                    "fillVerticalSpace": false,
+                    "verticalSpacing": 14
                 },
                 "layoutInfo": {
-                    "width": 1024,
-                    "position-horizontal-center": {},
+                    "width": 400,
+                    "position-left": {
+                        "offset": 70
+                    },
                     "position-top": {
                         "target": "BOTTOM",
-                        "offset": 16,
-                        "widget": "title"
+                        "widget": "title",
+                        "offset": 20
+                    },
+                    "position-bottom": {
+                        "offset": 28
+                    }
+                }
+            },
+            {
+                "type": "ScrollableArea",
+                "id": "sectionArea",
+                "content": {
+                    "type": "ColumnLayout",
+                    "id": "sections",
+                    "columns": 1,
+                    "fillVerticalSpace": false,
+                    "verticalSpacing": 16
+                },
+                "layoutInfo": {
+                    "position-left": {
+                        "target": "RIGHT",
+                        "widget": "overviewArea",
+                        "offset": 28
+                    },
+                    "position-right": {
+                        "offset": 70
+                    },
+                    "position-top": {
+                        "target": "BOTTOM",
+                        "widget": "title",
+                        "offset": 20
                     },
                     "position-bottom": {
                         "target": "TOP",
-                        "offset": 32,
-                        "widget": "close"
+                        "widget": "close",
+                        "offset": 16
                     }
                 }
             },
             {
                 "type": "UIButton",
-                "text": "${engine:menu#back}",
                 "id": "close",
+                "family": "btn-secondary",
+                "text": "${engine:menu#back}",
                 "layoutInfo": {
-                    "height": 32,
                     "width": 200,
-                    "position-horizontal-center": {},
+                    "height": 46,
+                    "position-right": {
+                        "offset": 70
+                    },
                     "position-bottom": {
-                        "target": "BOTTOM",
-                        "offset": 48
+                        "offset": 28
                     }
                 }
             }

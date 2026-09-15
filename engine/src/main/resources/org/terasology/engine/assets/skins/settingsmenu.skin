@@ -1,20 +1,519 @@
 {
-    "inherit": "mainmenu",
+    "inherit": "mainMenuDim",
     "elements": {
         "ScrollableArea": {
-            "background": "engine:area",
-            "background-scale-mode": "tiled",
+            "background": "engine:clear",
             "background-border": {
-                "top": 12,
-                "bottom": 12,
-                "left": 12,
-                "right": 12
+                "top": 0,
+                "bottom": 0,
+                "left": 0,
+                "right": 0
+            },
+            "margin": {
+                "top": 0,
+                "bottom": 0,
+                "left": 0,
+                "right": 10
             }
         }
     },
     "families": {
-        "subheading": {
-            "text-align-horizontal": "center"
+        "panel-slim": {
+            "elements": {
+                "UIBox": {
+                    "background": "engine:panelSlim",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 60,
+                        "bottom": 60,
+                        "left": 60,
+                        "right": 60
+                    },
+                    "margin": {
+                        "top": 34,
+                        "bottom": 38,
+                        "left": 40,
+                        "right": 40
+                    }
+                }
+            }
+        },
+        "legend": {
+            "elements": {
+                "UIBox": {
+                    "background": "engine:area",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 9,
+                        "bottom": 9,
+                        "left": 9,
+                        "right": 9
+                    },
+                    "margin": {
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 18,
+                        "right": 18
+                    }
+                }
+            }
+        },
+        "panel-title-small": {
+            "font": "Uncial-Item",
+            "text-color": "23282BFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Uncial-Item",
+                    "text-color": "23282BFF",
+                    "text-align-horizontal": "center",
+                    "text-align-vertical": "middle",
+                    "background": "engine:plaque",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 15,
+                        "bottom": 15,
+                        "left": 63,
+                        "right": 63
+                    },
+                    "margin": {
+                        "top": 6,
+                        "bottom": 6,
+                        "left": 66,
+                        "right": 66
+                    },
+                    "fixed-height": 52,
+                    "text-shadowed": false
+                }
+            }
+        },
+        "setting-row": {
+            "elements": {
+                "RowLayout": {
+                    "margin": {
+                        "top": 10,
+                        "bottom": 10,
+                        "left": 6,
+                        "right": 6
+                    }
+                }
+            }
+        },
+        "choice-row": {
+            "elements": {
+                "RowLayout": {}
+            }
+        },
+        "profile-slot": {
+            "elements": {
+                "ColumnLayout": {
+                    "background": "engine:box",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 12,
+                        "bottom": 12,
+                        "left": 12,
+                        "right": 12
+                    },
+                    "margin": {
+                        "top": 6,
+                        "bottom": 6,
+                        "left": 10,
+                        "right": 10
+                    }
+                }
+            }
+        },
+        "setting-label": {
+            "font": "Grenze-Strong",
+            "text-color": "FFF3DCFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Strong",
+                    "text-color": "FFF3DCFF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "top"
+                }
+            }
+        },
+        "setting-help": {
+            "font": "Grenze-Small",
+            "text-color": "B49E7CFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Small",
+                    "text-color": "B49E7CFF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "top"
+                }
+            }
+        },
+        "setting-state": {
+            "text-color": "F2E2C0FF",
+            "elements": {
+                "UILabel": {
+                    "text-color": "F2E2C0FF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "middle"
+                }
+            }
+        },
+        "setting-gain": {
+            "font": "Grenze-Small",
+            "text-color": "F2E2C0FF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Small",
+                    "text-color": "F2E2C0FF",
+                    "text-align-horizontal": "right",
+                    "text-align-vertical": "top"
+                }
+            }
+        },
+        "section-note": {
+            "font": "Grenze-Small",
+            "text-color": "B49E7CFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Small",
+                    "text-color": "B49E7CFF",
+                    "text-align-horizontal": "center",
+                    "text-align-vertical": "top"
+                }
+            }
+        },
+        "section-note-left": {
+            "font": "Grenze-Small",
+            "text-color": "F2E2C0FF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Small",
+                    "text-color": "F2E2C0FF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "top"
+                }
+            }
+        },
+        "impact-0": {
+            "font": "Grenze-Caps",
+            "text-color": "F2E2C0FF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Caps",
+                    "text-color": "F2E2C0FF",
+                    "text-align-horizontal": "right",
+                    "text-align-vertical": "bottom"
+                }
+            }
+        },
+        "impact-1": {
+            "font": "Grenze-Caps",
+            "text-color": "7CC452FF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Caps",
+                    "text-color": "7CC452FF",
+                    "text-align-horizontal": "right",
+                    "text-align-vertical": "bottom"
+                }
+            }
+        },
+        "impact-2": {
+            "font": "Grenze-Caps",
+            "text-color": "F5C542FF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Caps",
+                    "text-color": "F5C542FF",
+                    "text-align-horizontal": "right",
+                    "text-align-vertical": "bottom"
+                }
+            }
+        },
+        "impact-3": {
+            "font": "Grenze-Caps",
+            "text-color": "FFF3DCFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Caps",
+                    "text-color": "FFF3DCFF",
+                    "text-align-horizontal": "right",
+                    "text-align-vertical": "bottom"
+                }
+            }
+        },
+        "profile-name": {
+            "font": "Uncial-Item",
+            "text-color": "FFF3DCFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Uncial-Item",
+                    "text-color": "FFF3DCFF",
+                    "text-align-horizontal": "center",
+                    "text-align-vertical": "middle"
+                }
+            }
+        },
+        "profile-hint": {
+            "font": "Grenze-Small",
+            "text-color": "B49E7CFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Small",
+                    "text-color": "B49E7CFF",
+                    "text-align-horizontal": "center",
+                    "text-align-vertical": "top"
+                }
+            }
+        },
+        "budget-caps": {
+            "font": "Grenze-Caps",
+            "text-color": "B49E7CFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Caps",
+                    "text-color": "B49E7CFF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "bottom"
+                }
+            }
+        },
+        "budget-caps-right": {
+            "font": "Grenze-Caps",
+            "text-color": "B49E7CFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Caps",
+                    "text-color": "B49E7CFF",
+                    "text-align-horizontal": "right",
+                    "text-align-vertical": "bottom"
+                }
+            }
+        },
+        "budget-number": {
+            "font": "Grenze-Numeric",
+            "text-color": "FFF3DCFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Numeric",
+                    "text-color": "FFF3DCFF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "top"
+                }
+            }
+        },
+        "budget-number-accent": {
+            "font": "Grenze-Numeric",
+            "text-color": "F5C542FF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Numeric",
+                    "text-color": "F5C542FF",
+                    "text-align-horizontal": "right",
+                    "text-align-vertical": "top"
+                }
+            }
+        },
+        "budget-cost": {
+            "font": "Grenze-Small",
+            "text-color": "F2E2C0FF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Small",
+                    "text-color": "F2E2C0FF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "middle"
+                }
+            }
+        },
+        "budget-cost-value": {
+            "font": "Grenze-Small",
+            "text-color": "FFF3DCFF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Small",
+                    "text-color": "FFF3DCFF",
+                    "text-align-horizontal": "right",
+                    "text-align-vertical": "middle"
+                }
+            }
+        },
+        "legend-label": {
+            "font": "Grenze-Small",
+            "text-color": "F2E2C0FF",
+            "elements": {
+                "UILabel": {
+                    "font": "Grenze-Small",
+                    "text-color": "F2E2C0FF",
+                    "text-align-horizontal": "left",
+                    "text-align-vertical": "middle"
+                }
+            }
+        },
+        "choice-on": {
+            "elements": {
+                "UIButton": {
+                    "font": "Grenze-Small",
+                    "text-color": "FFE08CFF",
+                    "background": "engine:button",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 9,
+                        "bottom": 18,
+                        "left": 9,
+                        "right": 9
+                    },
+                    "margin": {
+                        "top": 4,
+                        "bottom": 14,
+                        "left": 14,
+                        "right": 14
+                    },
+                    "min-height": 40,
+                    "fixed-height": 40,
+                    "modes": {
+                        "hover": {
+                            "background": "engine:buttonOver"
+                        },
+                        "down": {
+                            "background": "engine:buttonDown",
+                            "margin": {
+                                "top": 8,
+                                "bottom": 10,
+                                "left": 14,
+                                "right": 14
+                            }
+                        },
+                        "disabled": {
+                            "background": "engine:buttonDisabled",
+                            "text-color": "B49E7CFF"
+                        }
+                    }
+                }
+            }
+        },
+        "choice-off": {
+            "elements": {
+                "UIButton": {
+                    "font": "Grenze-Small",
+                    "text-color": "F2E2C0FF",
+                    "background": "engine:buttonSecondary",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 9,
+                        "bottom": 18,
+                        "left": 9,
+                        "right": 9
+                    },
+                    "margin": {
+                        "top": 4,
+                        "bottom": 14,
+                        "left": 14,
+                        "right": 14
+                    },
+                    "min-height": 40,
+                    "fixed-height": 40,
+                    "modes": {
+                        "hover": {
+                            "background": "engine:buttonSecondaryOver",
+                            "text-color": "FFF3DCFF"
+                        },
+                        "down": {
+                            "background": "engine:buttonSecondaryDown",
+                            "text-color": "FFE08CFF",
+                            "margin": {
+                                "top": 8,
+                                "bottom": 10,
+                                "left": 14,
+                                "right": 14
+                            }
+                        },
+                        "disabled": {
+                            "background": "engine:buttonDisabled",
+                            "text-color": "B49E7CFF"
+                        }
+                    }
+                }
+            }
+        },
+        "btn-step": {
+            "elements": {
+                "UIButton": {
+                    "font": "Grenze-Strong",
+                    "text-color": "FFF3DCFF",
+                    "background": "engine:buttonSecondary",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 9,
+                        "bottom": 18,
+                        "left": 9,
+                        "right": 9
+                    },
+                    "margin": {
+                        "top": 4,
+                        "bottom": 14,
+                        "left": 12,
+                        "right": 12
+                    },
+                    "min-height": 48,
+                    "fixed-height": 48,
+                    "fixed-width": 48,
+                    "modes": {
+                        "hover": {
+                            "background": "engine:buttonSecondaryOver"
+                        },
+                        "down": {
+                            "background": "engine:buttonSecondaryDown",
+                            "text-color": "FFE08CFF",
+                            "margin": {
+                                "top": 8,
+                                "bottom": 10,
+                                "left": 12,
+                                "right": 12
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "btn-ghost": {
+            "elements": {
+                "UIButton": {
+                    "font": "Grenze-Small",
+                    "text-color": "F2E2C0FF",
+                    "background": "engine:buttonGhost",
+                    "background-scale-mode": "tiled",
+                    "background-border": {
+                        "top": 9,
+                        "bottom": 18,
+                        "left": 9,
+                        "right": 9
+                    },
+                    "margin": {
+                        "top": 4,
+                        "bottom": 14,
+                        "left": 14,
+                        "right": 14
+                    },
+                    "min-height": 40,
+                    "fixed-height": 40,
+                    "modes": {
+                        "hover": {
+                            "background": "engine:buttonGhostOver",
+                            "text-color": "FFF3DCFF"
+                        },
+                        "down": {
+                            "background": "engine:buttonGhostDown",
+                            "text-color": "FFE08CFF",
+                            "margin": {
+                                "top": 8,
+                                "bottom": 10,
+                                "left": 14,
+                                "right": 14
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

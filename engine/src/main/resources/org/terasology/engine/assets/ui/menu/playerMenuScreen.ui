@@ -2,123 +2,137 @@
     "type": "PlayerSettingsScreen",
     "skin": "settingsmenu",
     "contents": {
-        "type": "relativeLayout",
+        "type": "RelativeLayout",
         "contents": [
             {
                 "type": "UILabel",
-                "text": "${engine:menu#player-settings-title}",
-                "family": "title",
                 "id": "title",
+                "family": "title",
+                "text": "${engine:menu#options-title}",
                 "layoutInfo": {
-                    "height": 48,
-                    "position-horizontal-center": {},
+                    "width": 250,
+                    "height": 52,
+                    "position-left": {
+                        "offset": 70
+                    },
                     "position-top": {
                         "target": "TOP",
-                        "offset": 48
+                        "offset": 32
                     }
                 }
             },
             {
-                "type": "UIBox",
-                "content": {
-                    "type": "ColumnLayout",
-                    "family": "option-grid",
-                    "columns": 2,
-                    "column-widths": [
-                        0.35,
-                        0.65
-                    ],
-                    "verticalSpacing": 8,
-                    "horizontalSpacing": 8,
-                    "overrideChildEnabledProp" : false,
-                    "contents": [
-                        {
-                            "type": "UILabel",
-                            "text": "${engine:menu#multiplayer-identities}",
-                            "enabled": false
-                        },
-                        {
-                            "type": "RowLayout",
-                            "horizontalSpacing": 10,
-                            "id": "identitiesLayout",
-                            "enabled": false,
-                            "contents": [
-                                {
-                                    "type": "UIButton",
-                                    "text": "${engine:menu#player-settings-identities-import}",
-                                    "id": "importIdentities"
-                                },
-                                {
-                                    "type": "UIButton",
-                                    "text": "${engine:menu#player-settings-identities-export}",
-                                    "id": "exportIdentities"
-                                }
-                            ]
-                        },
-                        {
-                            "type": "UILabel",
-                            "text": "${engine:menu#storage-service}:",
-                            "enabled": false
-                        },
-                        {
-                            "type": "RowLayout",
-                            "horizontalSpacing": 10,
-                            "enabled": false,
-                            "contents": [
-                                {
-                                    "type": "UILabel",
-                                    "id": "storageServiceStatus",
-                                    "layoutInfo": {
-                                        "relativeWidth": 0.7
-                                    }
-                                },
-                                {
-                                    "type": "UIButton",
-                                    "id": "storageServiceAction"
-                                }
-                            ]
-                        },
-                    ]
-                },
+                "type": "UILabel",
+                "id": "tabSummary",
+                "family": "caps",
                 "layoutInfo": {
-                    "width": 450,
-                    "use-content-height": true,
-                    "position-horizontal-center": {},
-                    "position-top": {
-                        "target": "BOTTOM",
-                        "offset": 16,
-                        "widget": "title"
+                    "width": 260,
+                    "height": 24,
+                    "position-left": {
+                        "target": "RIGHT",
+                        "widget": "title",
+                        "offset": 16
                     },
                     "position-bottom": {
-                        "target": "TOP",
-                        "offset": 32,
-                        "widget": "actionsRow"
+                        "target": "BOTTOM",
+                        "widget": "title",
+                        "offset": 10
                     }
                 }
             },
             {
                 "type": "RowLayout",
-                "id": "actionsRow",
+                "id": "tabs",
                 "horizontalSpacing": 4,
                 "contents": [
                     {
                         "type": "UIButton",
-                        "text": "${engine:menu#dialog-ok}",
-                        "id": "ok"
+                        "id": "tabVideo",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-video}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
                     },
                     {
                         "type": "UIButton",
-                        "text": "${engine:menu#dialog-cancel}",
-                        "id": "close"
+                        "id": "tabAudio",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-audio}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabInput",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-input}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabPlayer",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-player}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabModules",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-modules}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
                     }
                 ],
                 "layoutInfo": {
-                    "width": 400,
-                    "height": 32,
-                    "position-horizontal-center": {},
+                    "width": 640,
+                    "height": 56,
+                    "position-right": {
+                        "offset": 70
+                    },
                     "position-bottom": {
                         "target": "BOTTOM",
-                        "offset": 48
+                        "widget": "title"
+                    }
+                }
+            },
+            {
+                "type": "ColumnLayout",
+                "id": "sections",
+                "columns": 1,
+                "fillVerticalSpace": false,
+                "verticalSpacing": 16,
+                "layoutInfo": {
+                    "width": 900,
+                    "use-content-height": true,
+                    "position-horizontal-center": {},
+                    "position-top": {
+                        "target": "BOTTOM",
+                        "widget": "title",
+                        "offset": 20
+                    }
+                }
+            },
+            {
+                "type": "UIButton",
+                "id": "close",
+                "family": "btn-secondary",
+                "text": "${engine:menu#back}",
+                "layoutInfo": {
+                    "width": 200,
+                    "height": 46,
+                    "position-right": {
+                        "offset": 70
+                    },
+                    "position-bottom": {
+                        "offset": 28
                     }
                 }
             }

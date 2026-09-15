@@ -6,124 +6,159 @@
         "contents": [
             {
                 "type": "UILabel",
-                "family": "title",
-                "text": "${engine:menu#input-settings-title}",
                 "id": "title",
+                "family": "title",
+                "text": "${engine:menu#options-title}",
                 "layoutInfo": {
-                    "height": 48,
-                    "position-horizontal-center": {},
+                    "width": 250,
+                    "height": 52,
+                    "position-left": {
+                        "offset": 70
+                    },
                     "position-top": {
                         "target": "TOP",
-                        "offset": 48
+                        "offset": 32
+                    }
+                }
+            },
+            {
+                "type": "UILabel",
+                "id": "tabSummary",
+                "family": "caps",
+                "layoutInfo": {
+                    "width": 260,
+                    "height": 24,
+                    "position-left": {
+                        "target": "RIGHT",
+                        "widget": "title",
+                        "offset": 16
+                    },
+                    "position-bottom": {
+                        "target": "BOTTOM",
+                        "widget": "title",
+                        "offset": 10
+                    }
+                }
+            },
+            {
+                "type": "RowLayout",
+                "id": "tabs",
+                "horizontalSpacing": 4,
+                "contents": [
+                    {
+                        "type": "UIButton",
+                        "id": "tabVideo",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-video}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabAudio",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-audio}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabInput",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-input}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabPlayer",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-player}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabModules",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-modules}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    }
+                ],
+                "layoutInfo": {
+                    "width": 640,
+                    "height": 56,
+                    "position-right": {
+                        "offset": 70
+                    },
+                    "position-bottom": {
+                        "target": "BOTTOM",
+                        "widget": "title"
                     }
                 }
             },
             {
                 "type": "ScrollableArea",
-                "id": "area",
+                "id": "sectionArea",
+                "content": {
+                    "type": "ColumnLayout",
+                    "id": "sections",
+                    "columns": 1,
+                    "fillVerticalSpace": false,
+                    "verticalSpacing": 16
+                },
                 "layoutInfo": {
-                    "width": 740,
+                    "width": 900,
                     "position-horizontal-center": {},
                     "position-top": {
                         "target": "BOTTOM",
-                        "offset": 16,
-                        "widget": "title"
+                        "widget": "title",
+                        "offset": 20
                     },
                     "position-bottom": {
                         "target": "TOP",
-                        "offset": 32,
-                        "widget": "actionsRow"
+                        "widget": "close",
+                        "offset": 16
                     }
-                },
-                "contents": [
-                    {
-                        "type": "ColumnLayout",
-                        "id": "main",
-                        "horizontalSpacing": 8,
-                        "verticalSpacing": 8,
-                        "family": "option-grid",
-                        "contents": [
-                            {
-                                "type": "UILabel",
-                                "family": "subheading",
-                                "text": "${engine:menu#special-keyboards}",
-                                "id": "specialKeyboards"
-                            },
-                            {
-                                "type": "RowLayout",
-                                "columnRatios": 0.4,
-                                "horizontalSpacing": 12,
-                                "contents": [
-                                    {
-                                        "type": "UILabel",
-                                        "text": "AZERTY"
-                                    },
-                                    {
-                                        "type": "UIButton",
-                                        "text": "${engine:menu#input-settings-apply}",
-                                        "id": "azerty"
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "RowLayout",
-                                "columnRatios": 0.4,
-                                "horizontalSpacing": 12,
-                                "contents": [
-                                    {
-                                        "type": "UILabel",
-                                        "text": "DVORAK"
-                                    },
-                                    {
-                                        "type": "UIButton",
-                                        "text": "${engine:menu#input-settings-apply}",
-                                        "id": "dvorak"
-                                    }
-                                ]
-                            },
-                            {
-                                "type": "RowLayout",
-                                "columnRatios": 0.4,
-                                "horizontalSpacing": 12,
-                                "contents": [
-                                    {
-                                        "type": "UILabel",
-                                        "text": "NEO"
-                                    },
-                                    {
-                                        "type": "UIButton",
-                                        "text": "${engine:menu#input-settings-apply}",
-                                        "id": "neo"
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
+                }
             },
             {
-                "type": "RowLayout",
-                "id": "actionsRow",
-                "horizontalSpacing": 8,
-                "contents": [
-                    {
-                        "type": "UIButton",
-                        "text": "${engine:menu#restore-defaults}",
-                        "id": "reset"
-                    },
-                    {
-                        "type": "UIButton",
-                        "text": "${engine:menu#back}",
-                        "id": "back"
-                    }
-                ],
+                "type": "UIButton",
+                "id": "reset",
+                "family": "btn-secondary",
+                "text": "${engine:menu#restore-defaults}",
                 "layoutInfo": {
-                    "width": 400,
-                    "height": 32,
-                    "position-horizontal-center": {},
+                    "width": 380,
+                    "height": 46,
+                    "position-right": {
+                        "target": "LEFT",
+                        "widget": "close",
+                        "offset": 12
+                    },
                     "position-bottom": {
-                        "target": "BOTTOM",
-                        "offset": 48
+                        "offset": 28
+                    }
+                }
+            },
+            {
+                "type": "UIButton",
+                "id": "close",
+                "family": "btn-secondary",
+                "text": "${engine:menu#back}",
+                "layoutInfo": {
+                    "width": 200,
+                    "height": 46,
+                    "position-right": {
+                        "offset": 70
+                    },
+                    "position-bottom": {
+                        "offset": 28
                     }
                 }
             }

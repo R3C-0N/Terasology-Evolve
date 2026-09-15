@@ -2,72 +2,51 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.terasology.engine.rendering.nui.layers.mainMenu.settings;
 
-import org.terasology.gestalt.assets.ResourceUrn;
 import org.terasology.engine.config.AudioConfig;
-import org.terasology.engine.rendering.nui.animation.MenuAnimationSystems;
-import org.terasology.nui.WidgetUtil;
-import org.terasology.nui.databinding.Binding;
-import org.terasology.nui.widgets.UISlider;
+import org.terasology.engine.config.flexible.Setting;
 import org.terasology.engine.registry.In;
-import org.terasology.engine.rendering.nui.CoreScreenLayer;
+import org.terasology.gestalt.assets.ResourceUrn;
+import org.terasology.nui.UIWidget;
+import org.terasology.nui.layouts.ColumnLayout;
+import org.terasology.nui.widgets.UISlider;
 
-public class AudioSettingsScreen extends CoreScreenLayer {
+import java.util.Arrays;
+import java.util.List;
 
-    public static final ResourceUrn ASSET_URI = new ResourceUrn("engine:AudioMenuScreen");
+/**
+ * The Sound tab of the options.
+ */
+public class AudioSettingsScreen extends SettingsTabScreen {
+
+    public static final ResourceUrn ASSET_URI = SettingsTab.AUDIO.getAssetUri();
 
     @In
     private AudioConfig config;
 
     @Override
-    public void initialise() {
-        setAnimationSystem(MenuAnimationSystems.createDefaultSwipeAnimation());
-
-        // TODO: Remove this screen when AutoConfig UI is in place
-
-        UISlider sound = find("sound", UISlider.class);
-        if (sound != null) {
-            sound.setIncrement(0.05f);
-            sound.setPrecision(2);
-            sound.setMinimum(0);
-            sound.setRange(1.0f);
-            sound.bindValue(new Binding<Float>() {
-                @Override
-                public Float get() {
-                    return config.soundVolume.get();
-                }
-
-                @Override
-                public void set(Float value) {
-                    config.soundVolume.set(value);
-                }
-            });
-        }
-
-        UISlider music = find("music", UISlider.class);
-        if (music != null) {
-            music.setIncrement(0.05f);
-            music.setPrecision(2);
-            music.setMinimum(0);
-            music.setRange(1.0f);
-            music.bindValue(new Binding<Float>() {
-                @Override
-                public Float get() {
-                    return config.musicVolume.get();
-                }
-
-                @Override
-                public void set(Float value) {
-                    config.musicVolume.set(value);
-                }
-            });
-        }
-
-        WidgetUtil.trySubscribe(this, "close", button -> triggerBackAnimation());
+    protected SettingsTab getTab() {
+        return SettingsTab.AUDIO;
     }
 
     @Override
-    public boolean isLowerLayerVisible() {
-        return false;
+    public void initialise() {
+        initialiseTabs();
+        SettingsRows rows = rows();
+
+        List<UIWidget> volumes = Arrays.asList(
+                rows.row("${engine:menu#sound-volume}", "${engine:menu#opt-sound-help}", volume(rows, config.soundVolume)),
+                rows.row("${engine:menu#music-volume}", "${engine:menu#opt-music-help}", volume(rows, config.musicVolume)));
+
+        ColumnLayout sections = find("sections", ColumnLayout.class);
+        if (sections != null) {
+            sections.addWidget(rows.section("${engine:menu#opt-section-volume}", "${engine:menu#opt-section-volume-note}", volumes));
+        }
+        setSettingCount(volumes.size());
     }
 
+    /** A volume from 0 to 1, shown and set in whole percent. */
+    private static UISlider volume(SettingsRows rows, Setting<Float> setting) {
+        return rows.slider(0, 100, 5, SettingsRows.bindFloat(() -> setting.get() * 100f, value -> setting.set(value / 100f)),
+                rows::percent);
+    }
 }

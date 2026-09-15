@@ -57,6 +57,7 @@ FONTS = [
     ("Grenze-Strong",  "Grenze[wght].ttf",          18, 1.45, 600,  0.0),
     ("Grenze-Small",   "Grenze[wght].ttf",          15, 1.45, 400,  0.0),
     ("Grenze-Caps",    "Grenze[wght].ttf",          13, 1.20, 600,  0.14),
+    ("Grenze-Numeric", "Grenze[wght].ttf",          32, 1.10, 400,  0.0),
 ]
 
 

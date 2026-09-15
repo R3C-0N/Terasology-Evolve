@@ -7,7 +7,7 @@ import org.terasology.engine.core.GameEngine;
 import org.terasology.engine.core.Time;
 import org.terasology.engine.core.modes.StateMainMenu;
 import org.terasology.engine.rendering.nui.animation.MenuAnimationSystems;
-import org.terasology.engine.rendering.nui.layers.mainMenu.settings.SettingsMenuScreen;
+import org.terasology.engine.rendering.nui.layers.mainMenu.videoSettings.VideoSettingsScreen;
 import org.terasology.engine.network.NetworkMode;
 import org.terasology.engine.network.NetworkSystem;
 import org.terasology.nui.WidgetUtil;
@@ -36,7 +36,7 @@ public class PauseMenu extends CoreScreenLayer {
 
         WidgetUtil.trySubscribe(this, "close", widget -> triggerBackAnimation());
         WidgetUtil.trySubscribe(this, "extra", widget -> triggerForwardAnimation(ExtraMenuScreen.ASSET_URI));
-        WidgetUtil.trySubscribe(this, "settings", widget -> triggerForwardAnimation(SettingsMenuScreen.ASSET_URI));
+        WidgetUtil.trySubscribe(this, "settings", widget -> triggerForwardAnimation(VideoSettingsScreen.ASSET_URI));
         WidgetUtil.trySubscribe(this, "mainMenu", widget -> CoreRegistry.get(GameEngine.class).changeState(new StateMainMenu()));
         WidgetUtil.trySubscribe(this, "exit", widget -> CoreRegistry.get(GameEngine.class).shutdown());
 

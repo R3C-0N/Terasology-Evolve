@@ -2,91 +2,137 @@
     "type": "AudioSettingsScreen",
     "skin": "settingsmenu",
     "contents": {
-        "type": "relativeLayout",
+        "type": "RelativeLayout",
         "contents": [
             {
                 "type": "UILabel",
-                "text": "${engine:menu#audio-settings-title}",
-                "family": "title",
                 "id": "title",
+                "family": "title",
+                "text": "${engine:menu#options-title}",
                 "layoutInfo": {
-                    "height": 48,
-                    "position-horizontal-center": {},
+                    "width": 250,
+                    "height": 52,
+                    "position-left": {
+                        "offset": 70
+                    },
                     "position-top": {
                         "target": "TOP",
-                        "offset": 48
+                        "offset": 32
                     }
                 }
             },
             {
-                "type": "UIBox",
-                "content": {
-                    "type": "ColumnLayout",
-                    "family": "option-grid",
-                    "columns": 2,
-                    "column-widths": [0.35, 0.65],
-                    "verticalSpacing": 8,
-                    "horizontalSpacing": 8,
-                    "layoutInfo": {
-                        "width": 360,
-                        "height": 192,
-                        "position-horizontal-center": {},
-                        "position-top": {
-                            "target": "BOTTOM",
-                            "offset": 16,
-                            "widget": "title"
-                        },
-                        "position-bottom": {
-                            "target": "TOP",
-                            "offset": 32,
-                            "widget": "close"
+                "type": "UILabel",
+                "id": "tabSummary",
+                "family": "caps",
+                "layoutInfo": {
+                    "width": 260,
+                    "height": 24,
+                    "position-left": {
+                        "target": "RIGHT",
+                        "widget": "title",
+                        "offset": 16
+                    },
+                    "position-bottom": {
+                        "target": "BOTTOM",
+                        "widget": "title",
+                        "offset": 10
+                    }
+                }
+            },
+            {
+                "type": "RowLayout",
+                "id": "tabs",
+                "horizontalSpacing": 4,
+                "contents": [
+                    {
+                        "type": "UIButton",
+                        "id": "tabVideo",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-video}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
                         }
                     },
-                    "contents": [
-                        {
-                            "type": "UILabel",
-                            "text": "${engine:menu#sound-volume}:"
-                        },
-                        {
-                            "type": "UISlider",
-                            "id": "sound"
-                        },
-                        {
-                            "type": "UILabel",
-                            "text": "${engine:menu#music-volume}:"
-                        },
-                        {
-                            "type": "UISlider",
-                            "id": "music"
+                    {
+                        "type": "UIButton",
+                        "id": "tabAudio",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-audio}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
                         }
-                    ]
-                },
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabInput",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-input}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabPlayer",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-player}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabModules",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-modules}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    }
+                ],
                 "layoutInfo": {
-                    "width": 400,
+                    "width": 640,
+                    "height": 56,
+                    "position-right": {
+                        "offset": 70
+                    },
+                    "position-bottom": {
+                        "target": "BOTTOM",
+                        "widget": "title"
+                    }
+                }
+            },
+            {
+                "type": "ColumnLayout",
+                "id": "sections",
+                "columns": 1,
+                "fillVerticalSpace": false,
+                "verticalSpacing": 16,
+                "layoutInfo": {
+                    "width": 900,
                     "use-content-height": true,
                     "position-horizontal-center": {},
                     "position-top": {
                         "target": "BOTTOM",
-                        "widget": "title"
-                    },
-                    "position-bottom": {
-                        "target": "TOP",
-                        "offset": 32,
-                        "widget": "close"
+                        "widget": "title",
+                        "offset": 20
                     }
                 }
             },
             {
                 "type": "UIButton",
-                "text": "${engine:menu#back}",
                 "id": "close",
+                "family": "btn-secondary",
+                "text": "${engine:menu#back}",
                 "layoutInfo": {
-                    "height": 32,
                     "width": 200,
-                    "position-horizontal-center": {},
+                    "height": 46,
+                    "position-right": {
+                        "offset": 70
+                    },
                     "position-bottom": {
-                        "target": "BOTTOM",
-                        "offset": 48
+                        "offset": 28
                     }
                 }
             }

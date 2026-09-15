@@ -1,49 +1,149 @@
 {
-  "type": "AutoConfigScreen",
-  "skin": "engine:mainMenu",
-  "contents": {
-    "type": "RelativeLayout",
-    "contents": [
-      {
-        "type": "ScrollableArea",
-        "content": {
-          "type": "ColumnLayout",
-          "id": "mainContainer",
-          "fillVerticalSpace": false,
-          "layoutInfo": {
-            "use-content-height": true,
-            "position-horizontal-center": {}
-          },
-          "contents": []
-        },
-        "layoutInfo": {
-          "width": 800,
-          "position-horizontal-center": {},
-          "position-top": {
-            "target": "TOP",
-            "offset": 48
-          },
-          "position-bottom": {
-            "target": "TOP",
-            "offset": 32,
-            "widget": "close"
-          }
-        }
-      },
-      {
-        "type": "UIButton",
-        "text": "${engine:menu#back}",
-        "id": "close",
-        "layoutInfo": {
-          "height": 32,
-          "width": 200,
-          "position-horizontal-center": {},
-          "position-bottom": {
-            "target": "BOTTOM",
-            "offset": 48
-          }
-        }
-      }
-    ]
-  }
+    "type": "AutoConfigScreen",
+    "skin": "settingsmenu",
+    "contents": {
+        "type": "RelativeLayout",
+        "contents": [
+            {
+                "type": "UILabel",
+                "id": "title",
+                "family": "title",
+                "text": "${engine:menu#options-title}",
+                "layoutInfo": {
+                    "width": 250,
+                    "height": 52,
+                    "position-left": {
+                        "offset": 70
+                    },
+                    "position-top": {
+                        "target": "TOP",
+                        "offset": 32
+                    }
+                }
+            },
+            {
+                "type": "UILabel",
+                "id": "tabSummary",
+                "family": "caps",
+                "layoutInfo": {
+                    "width": 260,
+                    "height": 24,
+                    "position-left": {
+                        "target": "RIGHT",
+                        "widget": "title",
+                        "offset": 16
+                    },
+                    "position-bottom": {
+                        "target": "BOTTOM",
+                        "widget": "title",
+                        "offset": 10
+                    }
+                }
+            },
+            {
+                "type": "RowLayout",
+                "id": "tabs",
+                "horizontalSpacing": 4,
+                "contents": [
+                    {
+                        "type": "UIButton",
+                        "id": "tabVideo",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-video}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabAudio",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-audio}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabInput",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-input}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabPlayer",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-player}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    },
+                    {
+                        "type": "UIButton",
+                        "id": "tabModules",
+                        "family": "tab-bar",
+                        "text": "${engine:menu#opt-tab-modules}",
+                        "layoutInfo": {
+                            "relativeWidth": 0.2
+                        }
+                    }
+                ],
+                "layoutInfo": {
+                    "width": 640,
+                    "height": 56,
+                    "position-right": {
+                        "offset": 70
+                    },
+                    "position-bottom": {
+                        "target": "BOTTOM",
+                        "widget": "title"
+                    }
+                }
+            },
+            {
+                "type": "ScrollableArea",
+                "id": "sectionArea",
+                "content": {
+                    "type": "ColumnLayout",
+                    "id": "sections",
+                    "columns": 1,
+                    "fillVerticalSpace": false,
+                    "verticalSpacing": 16
+                },
+                "layoutInfo": {
+                    "width": 900,
+                    "position-horizontal-center": {},
+                    "position-top": {
+                        "target": "BOTTOM",
+                        "widget": "title",
+                        "offset": 20
+                    },
+                    "position-bottom": {
+                        "target": "TOP",
+                        "widget": "close",
+                        "offset": 16
+                    }
+                }
+            },
+            {
+                "type": "UIButton",
+                "id": "close",
+                "family": "btn-secondary",
+                "text": "${engine:menu#back}",
+                "layoutInfo": {
+                    "width": 200,
+                    "height": 46,
+                    "position-right": {
+                        "offset": 70
+                    },
+                    "position-bottom": {
+                        "offset": 28
+                    }
+                }
+            }
+        ]
+    }
 }

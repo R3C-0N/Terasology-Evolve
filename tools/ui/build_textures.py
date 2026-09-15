@@ -319,6 +319,21 @@ def button(wood, w=54, h=32, bl=3, plank_top=0, drop=2, socket=False, lit=True):
     return im
 
 
+def ghost_button(lit=0, pressed=False, w=54, h=32, drop=2):
+    """Bouton fantome : ni bois ni ombre portee, un cadre d'un texel.
+
+    Meme gabarit que `button`, arete comprise, pour partager ses bordures 9
+    tranches dans le skin. Le survol voile l'interieur de creme.
+    """
+    im = canvas(w, h)
+    top = 2 if pressed else 0
+    pb = h - 1 - drop * 2
+    if lit:
+        rect(im, [1, top + 1, w - 2, pb - 1], (255, 240, 210, lit))
+    frame(im, [0, top, w - 1, pb], solid(HAIRLINE))
+    return im
+
+
 # --- cuvettes -------------------------------------------------------------
 
 
@@ -562,6 +577,9 @@ def main():
         save(brightness(button(wood), f * 1.10), name + "Over.png")
         save(brightness(button(wood, plank_top=2, drop=1), f * .94), name + "Down.png")
     save(brightness(button(WOOD_TILE), .55), "buttonDisabled.png")
+    save(ghost_button(), "buttonGhost.png")
+    save(ghost_button(lit=28), "buttonGhostOver.png")
+    save(ghost_button(lit=18, pressed=True), "buttonGhostDown.png")
 
     for name, wood, lit, f in (("buttonMenu", WOOD_TILE, True, 1.0),
                                ("buttonMenuOff", WOOD_TILE, False, .88),
@@ -585,6 +603,9 @@ def main():
     save(list_row(selected=True), "listItemSelected.png")
     save(list_row(selected=True), "dropdownListItemActive.png")
     save(well(SUNKEN, 20, 20), "dropdownList.png")
+
+    # transparent : le fond d'une zone qui n'en veut aucun
+    save(canvas(4, 4), "clear.png")
 
     # onglets
     save(tab(False), "tab.png")

@@ -8,21 +8,25 @@ import org.terasology.engine.config.flexible.AutoConfig;
 import org.terasology.engine.config.flexible.AutoConfigManager;
 import org.terasology.engine.core.module.ModuleManager;
 import org.terasology.engine.registry.In;
-import org.terasology.engine.rendering.nui.CoreScreenLayer;
+import org.terasology.engine.rendering.nui.layers.mainMenu.settings.SettingsTab;
+import org.terasology.engine.rendering.nui.layers.mainMenu.settings.SettingsTabScreen;
 import org.terasology.gestalt.assets.ResourceUrn;
 import org.terasology.gestalt.assets.management.AssetManager;
 import org.terasology.nui.UIWidget;
-import org.terasology.nui.WidgetUtil;
 import org.terasology.nui.databinding.Binding;
 import org.terasology.nui.databinding.DefaultBinding;
 import org.terasology.nui.layouts.ColumnLayout;
 import org.terasology.nui.widgets.types.TypeWidgetLibrary;
 
+import java.util.Collections;
 import java.util.Optional;
 
-public class AutoConfigScreen extends CoreScreenLayer {
+/**
+ * The Modules tab of the options: the settings each loaded module declares, one framed panel per configuration.
+ */
+public class AutoConfigScreen extends SettingsTabScreen {
     public static final Logger logger = LoggerFactory.getLogger(AutoConfigScreen.class);
-    public static final ResourceUrn ASSET_URI = new ResourceUrn("engine:autoConfigScreen");
+    public static final ResourceUrn ASSET_URI = SettingsTab.MODULES.getAssetUri();
 
     @In
     private TypeWidgetLibrary typeWidgetLibrary;
@@ -33,27 +37,32 @@ public class AutoConfigScreen extends CoreScreenLayer {
     @In
     private AutoConfigManager configManager;
 
-    private ColumnLayout mainContainer;
+    @Override
+    protected SettingsTab getTab() {
+        return SettingsTab.MODULES;
+    }
 
     @Override
     public void initialise() {
-        mainContainer = find("mainContainer", ColumnLayout.class);
-        assert mainContainer != null;
+        initialiseTabs();
+        ColumnLayout sections = find("sections", ColumnLayout.class);
+        assert sections != null;
+        int configurations = 0;
         for (AutoConfig config : configManager.getLoadedConfigs()) {
             Binding<AutoConfig> configBinding = new DefaultBinding<>(config);
 
             Optional<UIWidget> widget = typeWidgetLibrary.getWidget(configBinding, AutoConfig.class);
             if (widget.isPresent()) {
-                mainContainer.addWidget(widget.get());
+                sections.addWidget(rows().section(config.getName(), null, Collections.singletonList(widget.get())));
+                configurations++;
             } else {
                 logger.warn("Cannot create widget for config: {}", config.getId()); //NOPMD
             }
         }
-        WidgetUtil.trySubscribe(this, "close", button -> triggerBackAnimation());
-    }
-
-    @Override
-    public boolean isLowerLayerVisible() {
-        return false;
+        if (configurations == 0) {
+            sections.addWidget(rows().section("${engine:menu#opt-tab-modules}", "${engine:menu#opt-modules-empty}",
+                    Collections.emptyList()));
+        }
+        setSettingCount(configurations);
     }
 }

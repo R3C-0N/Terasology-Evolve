@@ -11,7 +11,7 @@ import org.terasology.engine.identity.storageServiceClient.StorageServiceWorkerS
 import org.terasology.engine.registry.In;
 import org.terasology.engine.rendering.nui.CoreScreenLayer;
 import org.terasology.engine.rendering.nui.animation.MenuAnimationSystems;
-import org.terasology.engine.rendering.nui.layers.mainMenu.settings.SettingsMenuScreen;
+import org.terasology.engine.rendering.nui.layers.mainMenu.videoSettings.VideoSettingsScreen;
 import org.terasology.engine.version.TerasologyVersion;
 import org.terasology.nui.WidgetUtil;
 import org.terasology.nui.widgets.UILabel;
@@ -55,7 +55,7 @@ public class MainMenuScreen extends CoreScreenLayer {
             triggerForwardAnimation(selectScreen);
         });
         WidgetUtil.trySubscribe(this, "multiplayer", button -> openMultiplayer());
-        WidgetUtil.trySubscribe(this, "settings", button -> triggerForwardAnimation(SettingsMenuScreen.ASSET_URI));
+        WidgetUtil.trySubscribe(this, "settings", button -> triggerForwardAnimation(VideoSettingsScreen.ASSET_URI));
         WidgetUtil.trySubscribe(this, "exit", button -> engine.shutdown());
     }
 
