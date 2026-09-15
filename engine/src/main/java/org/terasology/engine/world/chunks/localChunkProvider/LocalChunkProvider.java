@@ -87,7 +87,7 @@ public class LocalChunkProvider implements ChunkProvider {
     private static final int UNLOAD_PER_FRAME = 64;
     private static final int UPDATE_PROCESSING_DEADLINE_MS = 24;
     private final EntityManager entityManager;
-    private final BlockingQueue<Chunk> readyChunks = Queues.newLinkedBlockingQueue();
+    private final BlockingQueue<ReadyChunk> readyChunks = Queues.newLinkedBlockingQueue();
     private final BlockingQueue<TShortObjectMap<TIntList>> deactivateBlocksQueue = Queues.newLinkedBlockingQueue();
     private final Map<Vector3ic, Chunk> chunkCache;
 
@@ -174,7 +174,7 @@ public class LocalChunkProvider implements ChunkProvider {
     }
 
 
-    private void processReadyChunk(final Chunk chunk) {
+    private void processReadyChunk(final Chunk chunk, TShortObjectMap<TIntList> mappings) {
         Vector3ic chunkPos = chunk.getPosition();
         if (chunkCache.get(chunkPos) != null) {
             loadedChunkStores.remove(chunkPos);
@@ -185,7 +185,6 @@ public class LocalChunkProvider implements ChunkProvider {
         //TODO, it is not clear if the activate/addedBlocks event logic is correct.
         //See https://github.com/MovingBlocks/Terasology/issues/3244
         ChunkStore store = loadedChunkStores.remove(chunkPos);
-        TShortObjectMap<TIntList> mappings = createBatchBlockEventMappings(chunk);
         if (store != null) {
             store.restoreEntities();
 
@@ -247,11 +246,11 @@ public class LocalChunkProvider implements ChunkProvider {
     public void update() {
         deactivateBlocks();
         checkForUnload();
-        Chunk chunk;
+        ReadyChunk ready;
 
         long processingStartTime = System.currentTimeMillis();
-        while ((chunk = readyChunks.poll()) != null) {
-            processReadyChunk(chunk);
+        while ((ready = readyChunks.poll()) != null) {
+            processReadyChunk(ready.chunk, ready.lifecycleBlocks);
             long totalProcessingTime = System.currentTimeMillis() - processingStartTime;
             if (!readyChunks.isEmpty() && totalProcessingTime > UPDATE_PROCESSING_DEADLINE_MS) {
                 logger.atWarn().log("Chunk processing took too long this tick ({}/{}ms). {} chunks remain.", totalProcessingTime,
@@ -330,10 +329,25 @@ public class LocalChunkProvider implements ChunkProvider {
         }
     }
 
+    /**
+     * Last stage of the loading pipeline: hands the chunk to the main thread along with its lifecycle blocks.
+     * <p>
+     * Finding those blocks visits every block of the chunk. Done here, on the pipeline thread, it no longer eats
+     * into the few milliseconds per frame the main thread has for bringing chunks in. Nothing can change the blocks
+     * in between: the chunk is not in the cache yet, so no one else can reach it.
+     */
+    private void queueReadyChunk(Chunk chunk) {
+        readyChunks.add(new ReadyChunk(chunk, createBatchBlockEventMappings(chunk)));
+    }
+
     private TShortObjectMap<TIntList> createBatchBlockEventMappings(Chunk chunk) {
         TShortObjectMap<TIntList> batchBlockMap = new TShortObjectHashMap<>();
         blockManager.listRegisteredBlocks().stream().filter(Block::isLifecycleEventsRequired).forEach(block ->
             batchBlockMap.put(block.getId(), new TIntArrayList()));
+        if (batchBlockMap.isEmpty()) {
+            // No registered block asks for lifecycle events, so the chunk cannot hold one: no need to look.
+            return batchBlockMap;
+        }
 
         ChunkBlockIterator i = chunk.getBlockIterator();
         while (i.next()) {
@@ -444,7 +458,7 @@ public class LocalChunkProvider implements ChunkProvider {
                     return LightMerger.merge(localChunks);
                 }, LightMerger::requiredChunks
             ))
-            .addStage(ChunkTaskProvider.create("Chunk ready", readyChunks::add));
+            .addStage(ChunkTaskProvider.create("Chunk ready", this::queueReadyChunk));
         unloadRequestTaskMaster = TaskMaster.createFIFOTaskMaster("Chunk-Unloader", 8);
         ChunkMonitor.fireChunkProviderInitialized(this);
 
@@ -480,6 +494,19 @@ public class LocalChunkProvider implements ChunkProvider {
                             return LightMerger.merge(localChunks);
                         }, LightMerger::requiredChunks
                 ))
-                .addStage(ChunkTaskProvider.create("Chunk ready", readyChunks::add));
+                .addStage(ChunkTaskProvider.create("Chunk ready", this::queueReadyChunk));
+    }
+
+    /**
+     * A chunk out of the loading pipeline, with the positions of its lifecycle blocks already gathered, by block id.
+     */
+    private static final class ReadyChunk {
+        private final Chunk chunk;
+        private final TShortObjectMap<TIntList> lifecycleBlocks;
+
+        ReadyChunk(Chunk chunk, TShortObjectMap<TIntList> lifecycleBlocks) {
+            this.chunk = chunk;
+            this.lifecycleBlocks = lifecycleBlocks;
+        }
     }
 }
