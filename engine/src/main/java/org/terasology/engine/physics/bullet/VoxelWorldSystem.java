@@ -81,11 +81,21 @@ public class VoxelWorldSystem extends BaseComponentSystem {
         ByteBuffer buffer =
                 ByteBuffer.allocateDirect(2 * (Chunks.SIZE_X * Chunks.SIZE_Y * Chunks.SIZE_Z));
         buffer.order(ByteOrder.nativeOrder());
+        // Registering is idempotent and only has to happen once per kind of block, while a column is mostly the same
+        // block over and over: calling every collider for each of the chunk's blocks is what made this handler cost
+        // milliseconds of the main thread per loaded chunk. Registering whenever the block changes still shows every
+        // kind of block to the colliders before its chunk is handed over.
+        Block previous = null;
         for (int z = 0; z < Chunks.SIZE_Z; z++) {
             for (int x = 0; x < Chunks.SIZE_X; x++) {
                 for (int y = 0; y < Chunks.SIZE_Y; y++) {
                     Block block = chunk.getBlock(x, y, z);
-                    colliders.forEach(k -> k.registerBlock(block));
+                    if (block != previous) {
+                        for (VoxelWorld collider : colliders) {
+                            collider.registerBlock(block);
+                        }
+                        previous = block;
+                    }
                     buffer.putShort(block.getId());
                 }
             }
