@@ -6,6 +6,7 @@ package org.terasology.engine.logic.debug;
 import org.lwjgl.glfw.GLFW;
 import org.terasology.engine.config.Config;
 import org.terasology.engine.config.RenderingConfig;
+import org.terasology.engine.context.Context;
 import org.terasology.engine.entitySystem.systems.BaseComponentSystem;
 import org.terasology.engine.entitySystem.systems.RegisterMode;
 import org.terasology.engine.entitySystem.systems.RegisterSystem;
@@ -15,6 +16,7 @@ import org.terasology.engine.logic.console.commandSystem.annotations.Command;
 import org.terasology.engine.logic.console.commandSystem.annotations.CommandParam;
 import org.terasology.engine.logic.permission.PermissionManager;
 import org.terasology.engine.registry.In;
+import org.terasology.engine.rendering.dag.GpuPassTimer;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -39,6 +41,9 @@ public class FrameTimeCommands extends BaseComponentSystem implements RenderSyst
 
     @In
     private Console console;
+
+    @In
+    private Context context;
 
     private final long[] intervals = new long[MAX_FRAMES];
     private int recorded;
@@ -83,6 +88,27 @@ public class FrameTimeCommands extends BaseComponentSystem implements RenderSyst
         windowStart = now + (long) (delaySeconds * 1_000_000_000L);
         windowEnd = windowStart + (long) (seconds * 1_000_000_000L);
         return String.format(Locale.ROOT, "Measuring frame times '%s' for %.1f s, starting in %.1f s", windowLabel, seconds,
+                delaySeconds);
+    }
+
+    @Command(value = "debug:gpuTimes",
+            shortDescription = "Measures how long each render pass keeps the GPU busy",
+            helpText = "Waits delaySeconds, then times every render graph node on the GPU for the given number of frames, and "
+                    + "prints the mean, 95th percentile and longest time of each, most expensive first.",
+            requiredPermission = PermissionManager.NO_PERMISSION)
+    public String gpuTimes(@CommandParam("delaySeconds") float delaySeconds,
+                           @CommandParam("frames") int frames,
+                           @CommandParam(value = "label", required = false) String label) {
+        GpuPassTimer timer = context.get(GpuPassTimer.class);
+        if (timer == null) {
+            return "No world is being rendered.";
+        }
+        if (frames <= 0 || delaySeconds < 0) {
+            return "The delay cannot be negative and at least one frame must be measured.";
+        }
+        String name = label == null ? "unlabelled" : label;
+        timer.start((long) (delaySeconds * 1_000_000_000L), frames, name, console::addMessage);
+        return String.format(Locale.ROOT, "Timing render passes '%s' on the GPU for %d frames, starting in %.1f s", name, frames,
                 delaySeconds);
     }
 

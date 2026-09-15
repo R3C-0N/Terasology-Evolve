@@ -26,6 +26,7 @@ import org.terasology.engine.rendering.ShaderManager;
 import org.terasology.engine.rendering.assets.material.Material;
 import org.terasology.engine.rendering.backdrop.BackdropProvider;
 import org.terasology.engine.rendering.cameras.Camera;
+import org.terasology.engine.rendering.dag.GpuPassTimer;
 import org.terasology.engine.rendering.dag.ModuleRendering;
 import org.terasology.engine.rendering.dag.Node;
 import org.terasology.engine.rendering.dag.RenderGraph;
@@ -92,6 +93,7 @@ public final class WorldRendererImpl implements WorldRenderer {
     private RenderTaskListGenerator renderTaskListGenerator;
     private boolean requestedTaskListRefresh;
     private List<RenderPipelineTask> renderPipelineTaskList;
+    private final GpuPassTimer gpuPassTimer = new GpuPassTimer();
 
     private DisplayResolutionDependentFbo displayResolutionDependentFbo;
 
@@ -131,6 +133,8 @@ public final class WorldRendererImpl implements WorldRenderer {
         this.context = new ContextImpl(context, serviceRegistry);
 
         renderGraph = this.context.get(RenderGraph.class);
+        // Put in the outer context, where the console commands look it up.
+        context.put(GpuPassTimer.class, gpuPassTimer);
     }
 
     @Override
@@ -318,7 +322,11 @@ public final class WorldRendererImpl implements WorldRenderer {
         FBO lastUpdatedGBuffer = displayResolutionDependentFbo.getGBufferPair().getLastUpdatedFbo();
         glViewport(0, 0, lastUpdatedGBuffer.width(), lastUpdatedGBuffer.height());
 
-        renderPipelineTaskList.forEach(RenderPipelineTask::process);
+        gpuPassTimer.beginFrame();
+        for (RenderPipelineTask task : renderPipelineTaskList) {
+            gpuPassTimer.process(task);
+        }
+        gpuPassTimer.endFrame();
 
         // this line re-establish Terasology defaults, so that the rest of the application can rely on them.
         LwjglGraphicsUtil.initOpenGLParams();
@@ -341,6 +349,7 @@ public final class WorldRendererImpl implements WorldRenderer {
      */
     @Override
     public void dispose() {
+        gpuPassTimer.dispose();
         renderableWorld.dispose();
         worldProvider.dispose();
         renderGraph.dispose();
