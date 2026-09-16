@@ -172,6 +172,17 @@ Other run targets exist in `facades/PC/build.gradle.kts`: `debug` (JDWP on 1044)
   crafting window take the key that opens the console, so `driver.py console`
   looks like it ran and nothing happens — check the log for the echo rather
   than trusting the exit code. Send `escape` first.
+- **A console left open inverts every later `console` call.** The sub-command
+  opens with F1 and closes with F1, so if the console was *already* up — the
+  usual cause is a `where` that timed out while the world was still loading —
+  the first press closes it, the text goes to the character, and the closing
+  press opens it again, ready to swallow the next call too. It looks exactly
+  like a driver that types too fast. `driver.py key escape` before the next
+  `console`, and check the `[CONSOLE]` echo in the log, never the exit code.
+- **`where` answers nothing until the world is up**, and world generation for a
+  *new* world runs well past the 30 s of an existing save. Poll it in a loop
+  rather than reading one failure as a broken game — and send `escape` after a
+  failed poll, per the gotcha above.
 - **`--no-save-games` is a trap, not a flag.** It persists as
   `writeSaveGamesEnabled: false` in
   `configs/engine/org.terasology.engine.config.SystemConfig.cfg`, and from then
