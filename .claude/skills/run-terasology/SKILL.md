@@ -156,6 +156,15 @@ Other run targets exist in `facades/PC/build.gradle.kts`: `debug` (JDWP on 1044)
 - **The window exists several seconds before it paints.** A screenshot taken
   when the window first appears is solid white. `launch` waits 8 s for this;
   after `Commencer à jouer`, world generation needs another 20-30 s.
+- **A synthetic right click only places a block when it is held.** `click
+  --button right` on its own does nothing perhaps four times out of five, and
+  the failure is silent — the block count never drops. `click --button right
+  --press 0.4` places every time. The same holds for `e` on a workstation: aim
+  first, verify with a screenshot, then send the key.
+- **`console` is swallowed while a NUI screen is open.** The inventory and the
+  crafting window take the key that opens the console, so `driver.py console`
+  looks like it ran and nothing happens — check the log for the echo rather
+  than trusting the exit code. Send `escape` first.
 - **`--no-save-games` is a trap, not a flag.** It persists as
   `writeSaveGamesEnabled: false` in
   `configs/engine/org.terasology.engine.config.SystemConfig.cfg`, and from then
