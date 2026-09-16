@@ -169,7 +169,7 @@ public class RenderableWorldImpl implements RenderableWorld {
                 chunk.setDirty(false);
 
                 newMesh = chunkTessellator.generateMesh(localView);
-                newMesh.updateMesh();
+                newMesh.updateMesh(chunk.hasMesh() ? chunk.getMesh() : null);
                 newMesh.discardData();
 
                 if (chunk.hasMesh()) {

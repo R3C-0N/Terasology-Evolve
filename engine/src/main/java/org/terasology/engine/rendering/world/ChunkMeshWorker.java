@@ -158,7 +158,9 @@ public final class ChunkMeshWorker {
     }
 
     private static Chunk uploadNewMesh(Chunk chunk, ChunkMesh chunkMesh) {
-        chunkMesh.updateMesh();  // Does GL stuff, must be on main thread!
+        // The chunk's previous mesh is disposed by setMesh below, so the new one takes over its GPU buffers instead of
+        // letting the driver delete as many as it allocates, on this thread, for every chunk that streams in.
+        chunkMesh.updateMesh(chunk.hasMesh() ? chunk.getMesh() : null);  // Does GL stuff, must be on main thread!
         chunkMesh.discardData();
         chunk.setMesh(chunkMesh);
         return chunk;

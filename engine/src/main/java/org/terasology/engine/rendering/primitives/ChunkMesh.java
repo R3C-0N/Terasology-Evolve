@@ -39,6 +39,20 @@ public interface ChunkMesh {
      */
     boolean updateMesh();
 
+    /**
+     * Update the mesh data, taking over the GPU buffers of the mesh it replaces.
+     * <p>
+     * A chunk that changes is meshed again into a new mesh, and the old one is thrown away right after. Creating a
+     * vertex array and two buffers per render type, only to delete as many, is work the driver does on the main thread
+     * while chunks stream in. Handing the names over instead leaves the old mesh with nothing to delete.
+     *
+     * @param previous the mesh about to be disposed, or null to allocate buffers as usual
+     * @return true if the data has been updated
+     */
+    default boolean updateMesh(ChunkMesh previous) {
+        return updateMesh();
+    }
+
     void discardData();
 
     void updateMaterial(Material chunkMaterial, Vector3fc chunkPosition, boolean chunkIsAnimated);

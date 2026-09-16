@@ -46,15 +46,22 @@ public class ChunkMeshImpl implements ChunkMesh {
 
     @Override
     public boolean updateMesh() {
+        return updateMesh(null);
+    }
+
+    @Override
+    public boolean updateMesh(ChunkMesh previous) {
 
         if (vertexElements == null || disposed) {
             return false;
         }
 
-        // Make sure that if it has already been generated, the previous buffers are freed
-        dispose();
-        disposed = false;
+        if (previous instanceof ChunkMeshImpl && previous != this) {
+            adoptBuffersOf((ChunkMeshImpl) previous);
+        }
 
+        // Buffers already held - this mesh's own from an earlier update, or the ones just taken over - are refilled
+        // rather than deleted and allocated again. Those a render type no longer needs are released below.
         for (ChunkMesh.RenderType type : ChunkMesh.RenderType.values()) {
             generateVBO(type);
         }
@@ -65,13 +72,57 @@ public class ChunkMeshImpl implements ChunkMesh {
         return true;
     }
 
+    /**
+     * Takes over the GPU buffers of the mesh this one replaces, for every render type where this mesh holds none.
+     * <p>
+     * The donor is left with nothing to delete, so disposing it - which the chunk does as soon as the new mesh is in
+     * place - frees only what was not handed over.
+     */
+    private void adoptBuffersOf(ChunkMeshImpl donor) {
+        if (donor.disposed) {
+            return;
+        }
+        for (int id = 0; id < vertexBuffers.length; id++) {
+            if (vertexBuffers[id] == 0 && idxBuffers[id] == 0 && vaoCount[id] == 0) {
+                vertexBuffers[id] = donor.vertexBuffers[id];
+                idxBuffers[id] = donor.idxBuffers[id];
+                vaoCount[id] = donor.vaoCount[id];
+                donor.vertexBuffers[id] = 0;
+                donor.idxBuffers[id] = 0;
+                donor.vaoCount[id] = 0;
+            }
+        }
+    }
+
+    /** Deletes the buffers of one render type, for a mesh that no longer draws it. */
+    private void releaseBuffers(int id) {
+        if (vertexBuffers[id] != 0) {
+            GL30.glDeleteBuffers(vertexBuffers[id]);
+            vertexBuffers[id] = 0;
+        }
+        if (idxBuffers[id] != 0) {
+            GL30.glDeleteBuffers(idxBuffers[id]);
+            idxBuffers[id] = 0;
+        }
+        if (vaoCount[id] != 0) {
+            GL30.glDeleteVertexArrays(vaoCount[id]);
+            vaoCount[id] = 0;
+        }
+    }
+
     private void generateVBO(ChunkMesh.RenderType type) {
         VertexElements elements = vertexElements[type.ordinal()];
         int id = type.getIndex();
         if (!disposed && elements.buffer.elements() > 0) {
-            vertexBuffers[id] = GL30.glGenBuffers();
-            idxBuffers[id] = GL30.glGenBuffers();
-            vaoCount[id] = GL30.glGenVertexArrays();
+            if (vertexBuffers[id] == 0) {
+                vertexBuffers[id] = GL30.glGenBuffers();
+            }
+            if (idxBuffers[id] == 0) {
+                idxBuffers[id] = GL30.glGenBuffers();
+            }
+            if (vaoCount[id] == 0) {
+                vaoCount[id] = GL30.glGenVertexArrays();
+            }
 
             GL30.glBindVertexArray(vaoCount[id]);
 
@@ -96,8 +147,7 @@ public class ChunkMeshImpl implements ChunkMesh {
             GL30.glBindVertexArray(0);
 
         } else {
-            vertexBuffers[id] = 0;
-            idxBuffers[id] = 0;
+            releaseBuffers(id);
             vertexCount[id] = 0;
         }
     }
