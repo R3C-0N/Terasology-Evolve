@@ -31,8 +31,8 @@ import java.util.concurrent.TimeUnit;
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 4, time = 2)
-@Measurement(iterations = 6, time = 2)
+@Warmup(iterations = 6, time = 3)
+@Measurement(iterations = 10, time = 3)
 @Fork(value = 1, jvmArgsAppend = "-Xmx1g")
 @State(Scope.Benchmark)
 public class SurfacesFacetBenchmark {
@@ -63,6 +63,15 @@ public class SurfacesFacetBenchmark {
             }
         }
         System.out.println("[surfaces-checksum] voxels=" + surface.length + " marked=" + marked + " hash=" + Long.toHexString(hash));
+    }
+
+    /**
+     * Only the facet itself: one empty set per column of the region. Subtracted from the benchmark below, it leaves
+     * what writing and reading the voxels costs.
+     */
+    @Benchmark
+    public SurfacesFacet createOnly() {
+        return new SurfacesFacet(CHUNK, BORDER);
     }
 
     @Benchmark
