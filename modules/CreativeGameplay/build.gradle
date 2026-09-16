@@ -1,0 +1,36 @@
+// Copyright 2020 The Terasology Foundation
+// SPDX-License-Identifier: Apache-2.0
+buildscript {
+    repositories {
+        mavenCentral()
+        google()
+
+        // required to provide runtime dependencies to build-logic.
+        maven {
+            def repoViaEnv = System.getenv()["RESOLUTION_REPO"]
+            if (rootProject.hasProperty("alternativeResolutionRepo")) {
+                // If the user supplies an alternative repo via gradle.properties then use that
+                name = "from alternativeResolutionRepo property"
+                url =  rootProject.properties["alternativeResolutionRepo"]
+            } else if (repoViaEnv != null && repoViaEnv != "") {
+                name = "from \$RESOLUTION_REPO"
+                url = repoViaEnv
+            } else {
+                // Our default is the main virtual repo containing everything except repos for testing Artifactory itself
+                name = "Terasology Artifactory"
+                url = "https://artifactory.terasology.io/artifactory/virtual-repo-live"
+            }
+        }
+
+        // TODO MYSTERY: As of November 7th 2011 virtual-repo-live could no longer be relied on for latest snapshots - Pro feature?
+        // We've been using it that way for *years* and nothing likewise changed in the area for years as well. This seems to work ....
+        maven {
+            name = "Terasology snapshot locals"
+            url = "https://artifactory.terasology.io/artifactory/terasology-snapshot-local"
+        }
+    }
+}
+
+plugins {
+    id("terasology-module")
+}

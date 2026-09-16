@@ -1,0 +1,14 @@
+{
+    "id": "CreativeGameplay",
+    "version": "1.0.0",
+    "displayName": "Créatif",
+    "description": "Le jeu entier, tout de suite : un catalogue de tous les blocs et de tous les objets, la pose sans dépense, la casse d'un coup, le vol et l'invulnérabilité. Tout le contenu de Core Gameplay, sans la survie.",
+    "dependencies": [
+        {
+            "id": "CoreSampleGameplay",
+            "minVersion": "4.1.0"
+        }
+    ],
+    "isGameplay": "true",
+    "defaultWorldGenerator": "CoreWorlds:FacetedSimplex"
+}

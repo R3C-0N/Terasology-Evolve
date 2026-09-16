@@ -28,6 +28,8 @@ extensions
 !/modules/Minimap
 !/modules/CubeWorlds
 !/modules/CoreSampleGameplay
+# Module ne du fork, sans amont : suivi ici meme plutot qu'en submodule
+!/modules/CreativeGameplay
 /metas/*
 !/metas/subprojects.gradle
 /libs/*
