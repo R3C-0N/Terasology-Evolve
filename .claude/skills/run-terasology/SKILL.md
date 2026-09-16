@@ -161,6 +161,13 @@ Other run targets exist in `facades/PC/build.gradle.kts`: `debug` (JDWP on 1044)
   the failure is silent — the block count never drops. `click --button right
   --press 0.4` places every time. The same holds for `e` on a workstation: aim
   first, verify with a screenshot, then send the key.
+- **Ghost mode blocks placing.** `console ghost` is the cure for a character
+  stuck in terrain, but while it is on, right click places nothing and gives no
+  message — the stack count simply never drops. Toggle it back off (`ghost`
+  again) before building anything. And a character boxed in by blocks *you*
+  placed at its feet reads exactly like a broken driver: keys, mouse and console
+  all answer, only the position never changes. Check `shot --hud` against the
+  previous position before blaming the input.
 - **`console` is swallowed while a NUI screen is open.** The inventory and the
   crafting window take the key that opens the console, so `driver.py console`
   looks like it ran and nothing happens — check the log for the echo rather
