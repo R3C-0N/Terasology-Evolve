@@ -6,6 +6,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terasology.engine.config.Config;
+import org.terasology.engine.config.RenderingConfig;
 import org.terasology.engine.core.module.ModuleManager;
 import org.terasology.gestalt.assets.ResourceUrn;
 import org.terasology.engine.context.Context;
@@ -23,6 +25,7 @@ import org.terasology.gestalt.naming.Name;
 import org.terasology.engine.utilities.Assets;
 
 import javax.annotation.Nullable;
+import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -525,6 +528,19 @@ public abstract class AbstractNode implements Node {
      */
     @Override
     public void dispose() {
+        // A node subscribes to the rendering config by property name, and the subscription outlives it: the config is
+        // global, the node dies with its game. Left in place, the node is still notified when a setting changes from
+        // the main menu - and reaches there for module assets that were unloaded with the game, which ends the engine.
+        // The display resolution FBO manager needs no such care: a game registers its own, which dies along with it.
+        if (this instanceof PropertyChangeListener && context != null) {
+            Config config = context.get(Config.class);
+            if (config != null) {
+                RenderingConfig renderingConfig = config.getRendering();
+                renderingConfig.unsubscribeFromAllProperties((PropertyChangeListener) this);
+                renderingConfig.getDebug().unsubscribeFromAllProperties((PropertyChangeListener) this);
+            }
+        }
+
         for (Map.Entry<SimpleUri, BaseFboManager> entry : fboUsages.entrySet()) {
             SimpleUri fboName = entry.getKey();
             BaseFboManager baseFboManager = entry.getValue();
