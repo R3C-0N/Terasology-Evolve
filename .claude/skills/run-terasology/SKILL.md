@@ -166,12 +166,25 @@ Other run targets exist in `facades/PC/build.gradle.kts`: `debug` (JDWP on 1044)
   panel lists only the stationless recipes — three of them — until you press `e`
   on a workbench in reach. Place one, aim at it, `key e`: the same press opens
   the character screen with the list already filled.
-- **Hunting a recipe by scrolling costs more than you think.** The list shows
-  three rows, and one wheel notch moves it a *third* of a row — nine notches per
-  screenful. Stitch the crops rather than reading them one by one:
-  `shot --crop 930,175,290,180` after every `scroll -3` ×3, then paste six of
-  them into one image. And the order is craftable-first over an arbitrary prefab
-  walk, so it changes under you the moment you craft something.
+- **To find an item, use creative mode, not the recipe list.** `console creative`
+  then `i` opens the catalogue, whose **search field** (top right, `click 1050 145`
+  then `type`) filters the whole tab at once and prints the count — one command
+  against a dozen scroll-and-stitch rounds. It is also the fastest way to check
+  that a new prefab loads and its icon resolves: a missing icon shows as `?`.
+  What it does *not* show is the detail panel, so the weapon-type label and the
+  ingredient list still need the workbench.
+- **Hunting a recipe by scrolling costs more than you think**, when you must.
+  The list shows three rows, and one wheel notch moves it a *third* of a row —
+  nine notches per screenful. Stitch the crops rather than reading them one by
+  one: `shot --crop 930,175,290,180` after every `scroll -3` ×3, then paste ten
+  of them into one image. And the order is craftable-first over an arbitrary
+  prefab walk, so it changes under you the moment you craft something.
+- **A workbench does not have to be placed by hand.** `click --button right`
+  fails silently when the crosshair is on the block under your own feet, which is
+  where it lands by default. `console replaceBlock CoreSampleGameplay:Workbench`
+  turns that very block into the station, in reach and under the crosshair, ready
+  for `key e`. And `console debugTarget` names the aimed block, which is the only
+  reliable way to know what you are pointing at.
 - **Ghost mode blocks placing.** `console ghost` is the cure for a character
   stuck in terrain, but while it is on, right click places nothing and gives no
   message — the stack count simply never drops. Toggle it back off (`ghost`
