@@ -161,6 +161,17 @@ Other run targets exist in `facades/PC/build.gradle.kts`: `debug` (JDWP on 1044)
   the failure is silent — the block count never drops. `click --button right
   --press 0.4` places every time. The same holds for `e` on a workstation: aim
   first, verify with a screenshot, then send the key.
+- **A station recipe is invisible until the character has touched the station.**
+  `StationRecipe.isAvailableTo` wants an `AtStationComponent`, so the crafting
+  panel lists only the stationless recipes — three of them — until you press `e`
+  on a workbench in reach. Place one, aim at it, `key e`: the same press opens
+  the character screen with the list already filled.
+- **Hunting a recipe by scrolling costs more than you think.** The list shows
+  three rows, and one wheel notch moves it a *third* of a row — nine notches per
+  screenful. Stitch the crops rather than reading them one by one:
+  `shot --crop 930,175,290,180` after every `scroll -3` ×3, then paste six of
+  them into one image. And the order is craftable-first over an arbitrary prefab
+  walk, so it changes under you the moment you craft something.
 - **Ghost mode blocks placing.** `console ghost` is the cure for a character
   stuck in terrain, but while it is on, right click places nothing and gives no
   message — the stack count simply never drops. Toggle it back off (`ghost`
@@ -183,6 +194,23 @@ Other run targets exist in `facades/PC/build.gradle.kts`: `debug` (JDWP on 1044)
   *new* world runs well past the 30 s of an existing save. Poll it in a loop
   rather than reading one failure as a broken game — and send `escape` after a
   failed poll, per the gotcha above.
+- **`escape` with no screen open opens the pause menu, and the pause menu stops
+  the simulation.** Nothing else betrays it: `console` still answers and its
+  echo still lands in the log, `key` and `click` still go through, the HUD still
+  draws — only the position never changes, `hold w` does nothing, and two
+  screenshots three seconds apart differ by *zero* pixels. That last one is the
+  tell, and it is the cheapest test: a live world always moves a few pixels.
+  This is the trap set by the previous two gotchas, which both prescribe
+  `escape` — send it only when a screen is actually open, and take a full `shot`
+  before diagnosing anything as frozen. `click 640 291` is `Retour`.
+- **The menu coordinates below are the ones that count; the old ones are two
+  redesigns out of date.** Main menu: `Solo` at `640 320`. The solo screen is a
+  save list — `Nouvelle partie` at `289 680`, `Jouer` at `1090 680`. The
+  new-game screen carries a *game mode* list: `Core Gameplay` at `640 303`,
+  `Créatif` at `640 368`, the name field at `640 211`, `Commencer à jouer` at
+  `896 684`. Picking `Créatif` gives a character whose `i` opens the block
+  catalogue instead of the crafting screen; `console creative` toggles that off.
+  Take a `shot` of every menu anyway — these move.
 - **`--no-save-games` is a trap, not a flag.** It persists as
   `writeSaveGamesEnabled: false` in
   `configs/engine/org.terasology.engine.config.SystemConfig.cfg`, and from then
