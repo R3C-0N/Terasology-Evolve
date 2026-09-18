@@ -98,6 +98,8 @@ running.
 | Turn the camera | `driver.py move 600 0 --steps 30` (relative, in mickeys) |
 | Toolbar wheel | `driver.py scroll -2` |
 | Console command | `driver.py console ghost` · `driver.py console "teleport 20 55 20"` |
+| **Aim, absolutely** | `driver.py console "look 180 30"` — yaw then pitch, in degrees |
+| **Read the whole view** | `driver.py console showView` → one `key=value` line |
 | Player position | `driver.py where` |
 | Screenshot | `driver.py shot look.png` → `build/shots/look.png` |
 | Just the F3 overlay | `driver.py shot hud.png --hud` (1000×80, cheap to read) |
@@ -129,6 +131,34 @@ the behaviour tree editor.
 mode it lands on** into the log. Prefer it whenever the current view matters:
 the key is a blind toggle over state the screenshot does not always settle, and
 one miscounted press leaves every later observation off by a mode.
+
+### Aiming and reading the view, without the mouse
+
+`look <yaw> <pitch>` and `showView` were added to the engine for this harness,
+and they replace the guesswork that `move` used to be.
+
+```bash
+python .claude/skills/run-terasology/driver.py console "look 180 30"
+python .claude/skills/run-terasology/driver.py console showView
+# pos=4928.00,44.41,4950.00 dir=0.0000,-0.5000,-0.8660 yaw=180.00 pitch=30.00 block=4928,42,4945 uri=CoreAssets:Sand
+```
+
+`look` is **absolute**, where `move` sends relative mouse motion that Windows
+pointer acceleration then bends. Degrees; yaw wraps at 360 and pitch is clamped
+to ±89 — and **pitch counts positive downwards**, which is not the obvious
+convention and was established by round trip, not by reading the source.
+`showView` reports the same convention back, so a value it prints can be fed
+straight to `look`. One caveat that is not a bug: it reports yaw in (−180, 180],
+so `look 270` reads back as `yaw=-90.00`.
+
+Prefer these to `move` for anything that has to be reproducible — two
+screenshots of the same view, a before and after. `move` remains for sweeping
+the camera when the exact angle does not matter.
+
+**`console screenshot` exists but the image is black**, and not because of the
+command: the buffer read-back is broken in this build, and the game's own save
+previews — same call, written long before — are black too, which is why the
+thumbnail beside a save is an empty rectangle. Use `driver.py shot`.
 
 ### Reading state back
 
