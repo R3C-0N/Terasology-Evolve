@@ -3,6 +3,7 @@
   "params": {
     "diffuse": "engine:heros",
     "colorOffset": [1.0, 1.0, 1.0],
-    "textured": true
+    "textured": true,
+    "alphaThreshold": 0.5
   }
 }
