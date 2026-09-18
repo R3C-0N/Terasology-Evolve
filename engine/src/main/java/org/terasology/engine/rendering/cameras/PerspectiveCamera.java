@@ -83,6 +83,18 @@ public class PerspectiveCamera extends Camera implements PropertyChangeListener 
         viewingDirection.set(calculateVector(previousViewingDirections));
     }
 
+    /**
+     * Drops the frames accumulated by {@link #applyCinematicEffect()}.
+     * <p>
+     * Call this when the camera teleports - switching between first and third person, say - so the smoothing does not
+     * glide across the gap, straight through whatever stands between the two positions. Only matters for the SMOOTH (5
+     * frames) and CINEMATIC (60 frames) settings; NORMAL keeps a single frame and is already exact.
+     */
+    public void resetSmoothing() {
+        previousPositions.clear();
+        previousViewingDirections.clear();
+    }
+
     private Vector3f calculateVector(Deque<Vector3f> vectors) {
         int i = 0;
         float x = 0;

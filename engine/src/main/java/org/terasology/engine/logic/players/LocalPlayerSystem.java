@@ -46,9 +46,14 @@ import org.terasology.engine.logic.characters.interactions.InteractionUtil;
 import org.terasology.engine.logic.location.LocationComponent;
 import org.terasology.engine.logic.players.event.LocalPlayerInitializedEvent;
 import org.terasology.engine.logic.players.event.OnPlayerSpawnedEvent;
+import org.terasology.engine.math.Direction;
 import org.terasology.engine.network.ClientComponent;
 import org.terasology.engine.network.NetworkMode;
 import org.terasology.engine.network.NetworkSystem;
+import org.terasology.engine.physics.CollisionGroup;
+import org.terasology.engine.physics.HitResult;
+import org.terasology.engine.physics.Physics;
+import org.terasology.engine.physics.StandardCollisionGroup;
 import org.terasology.engine.registry.In;
 import org.terasology.engine.rendering.AABBRenderer;
 import org.terasology.engine.rendering.cameras.Camera;
@@ -71,6 +76,25 @@ import java.util.List;
 // TODO: Camera should become an entity/component, so it can follow the player naturally
 public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubscriberSystem, RenderSystem {
 
+    /**
+     * How far behind - or in front of - the eyes the camera sits in third person, in blocks. Four blocks frames a
+     * 1.8 block character at about a quarter of the screen height, at the default field of view.
+     */
+    private static final float THIRD_PERSON_DISTANCE = 4.0f;
+
+    /**
+     * How far short of a blocking block the camera stops, in blocks. Has to stay comfortably above the camera's zNear
+     * of 0.1, or the block is clipped through rather than seen.
+     */
+    private static final float THIRD_PERSON_WALL_MARGIN = 0.35f;
+
+    /**
+     * Only blocks may push the camera in. The voxel world is registered in the WORLD group and in that one only, so
+     * creatures, other players and dropped items are ignored - otherwise the camera would snap to the character every
+     * time an animal walked behind it.
+     */
+    private static final CollisionGroup[] CAMERA_COLLISION_FILTER = {StandardCollisionGroup.WORLD};
+
     @In
     NetworkSystem networkSystem;
     @In
@@ -91,7 +115,14 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
     @In
     private DisplayDevice display;
 
+    @In
+    private Physics physics;
+
+    @In
+    private CameraViewSystem cameraViewSystem;
+
     private Camera playerCamera;
+    private CameraViewMode lastViewMode = CameraViewMode.FIRST_PERSON;
     private boolean localPlayerInitialized = false;
 
     private float bobFactor;
@@ -159,17 +190,20 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
         Vector3f relMove = new Vector3f(relativeMovement);
         relMove.y = 0;
 
+        // The gaze, not the render camera: in third person the camera is pulled away from the eyes and, facing the
+        // character, is turned around altogether - steering by it would send the player backwards. In first person the
+        // two are the same rotation, since updateCamera feeds the camera exactly this value.
         switch (characterMovementComponent.mode) {
             case CROUCHING:
             case WALKING:
-                playerCamera.getOrientation(new Quaternionf()).transform(relMove);
+                localPlayer.getViewRotation(new Quaternionf()).transform(relMove);
                 break;
             case CLIMBING:
                 // Rotation is applied in KinematicCharacterMover
                 relMove.y += relativeMovement.y;
                 break;
             default:
-                playerCamera.getOrientation(new Quaternionf()).transform(relMove);
+                localPlayer.getViewRotation(new Quaternionf()).transform(relMove);
                 relMove.y += relativeMovement.y;
                 break;
         }
@@ -401,8 +435,7 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
     }
 
     private void updateCamera(CharacterMovementComponent charMovementComp, Vector3f position, Quaternionf rotation) {
-        playerCamera.getPosition().set(position);
-        playerCamera.setOrientation(rotation);
+        applyViewMode(position, rotation);
 
         float stepDelta = charMovementComp.footstepDelta - lastStepDelta;
         if (stepDelta < 0) {
@@ -426,6 +459,71 @@ public class LocalPlayerSystem extends BaseComponentSystem implements UpdateSubs
         } else {
             playerCamera.resetFov();
         }
+    }
+
+    /**
+     * Applies the current point of view to the <em>render</em> camera only.
+     * <p>
+     * The camera entity - and therefore {@link LocalPlayer#getViewPosition} and {@link LocalPlayer#getViewRotation} -
+     * deliberately stays at the character's eyes, so every targeting ray keeps behaving exactly as in first person:
+     * {@link org.terasology.engine.input.cameraTarget.CameraTargetSystem}, {@link
+     * org.terasology.engine.input.cameraTarget.PlayerTargetSystem} and {@link LocalPlayer#activateOwnedEntityAsClient}
+     * are untouched. And since the offset runs along the gaze axis, the third person camera sits on the very extension
+     * of that ray - the crosshair stays exact.
+     *
+     * @param eyePosition world position of the character's eyes
+     * @param eyeRotation world rotation of the character's gaze
+     */
+    private void applyViewMode(Vector3f eyePosition, Quaternionf eyeRotation) {
+        CameraViewMode viewMode = (cameraViewSystem != null)
+                ? cameraViewSystem.getViewMode()
+                : CameraViewMode.FIRST_PERSON;
+
+        if (viewMode != lastViewMode) {
+            lastViewMode = viewMode;
+            // The camera jumps several blocks in one frame: drop the smoothing history rather than let the cinematic
+            // averaging glide across the gap.
+            if (playerCamera instanceof PerspectiveCamera) {
+                ((PerspectiveCamera) playerCamera).resetSmoothing();
+            }
+        }
+
+        if (viewMode == CameraViewMode.FIRST_PERSON) {
+            playerCamera.getPosition().set(eyePosition);
+            playerCamera.setOrientation(eyeRotation);
+            return;
+        }
+
+        Vector3f gazeDirection = eyeRotation.transform(new Vector3f(Direction.FORWARD.asVector3f()));
+        Vector3f offsetDirection = (viewMode == CameraViewMode.THIRD_PERSON_BACK)
+                ? new Vector3f(gazeDirection).negate()
+                : new Vector3f(gazeDirection);
+
+        playerCamera.getPosition().set(eyePosition)
+                .fma(resolveCameraDistance(eyePosition, offsetDirection), offsetDirection);
+
+        if (viewMode == CameraViewMode.THIRD_PERSON_FRONT) {
+            // Look back at the character. Built with rotationTo so that FORWARD maps onto the reversed gaze: a plain
+            // 180 degree yaw would leave the pitch with the wrong sign.
+            playerCamera.setOrientation(new Quaternionf()
+                    .rotationTo(Direction.FORWARD.asVector3f(), new Vector3f(gazeDirection).negate()));
+        } else {
+            playerCamera.setOrientation(eyeRotation);
+        }
+    }
+
+    /**
+     * @return how far the camera may sit from the eyes without ending up inside a block
+     */
+    private float resolveCameraDistance(Vector3f eyePosition, Vector3f offsetDirection) {
+        HitResult hit = physics.rayTrace(eyePosition, offsetDirection,
+                THIRD_PERSON_DISTANCE + THIRD_PERSON_WALL_MARGIN, CAMERA_COLLISION_FILTER);
+        if (!hit.isHit()) {
+            return THIRD_PERSON_DISTANCE;
+        }
+        float freeDistance = hit.getHitPoint().distance(eyePosition) - THIRD_PERSON_WALL_MARGIN;
+        // A block right against the face drops the camera back onto the eyes, rather than through the wall.
+        return Math.max(0f, Math.min(THIRD_PERSON_DISTANCE, freeDistance));
     }
 
     @ReceiveEvent(components = CharacterComponent.class)

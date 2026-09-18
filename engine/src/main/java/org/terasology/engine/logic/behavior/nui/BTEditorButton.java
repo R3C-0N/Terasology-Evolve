@@ -9,6 +9,8 @@ import org.terasology.input.Keyboard;
 import org.terasology.engine.input.RegisterBindButton;
 
 @RegisterBindButton(id = "behavior_editor", description = "${engine:menu#binding-behavior-editor}", category = "behavior")
-@DefaultBinding(type = InputType.KEY, id = Keyboard.KeyId.F5)
+// F5 now cycles the camera view, as it does in most voxel games. The behaviour tree editor is a development tool and
+// moves to F7, the only function key still free.
+@DefaultBinding(type = InputType.KEY, id = Keyboard.KeyId.F7)
 public class BTEditorButton extends BindButtonEvent {
 }

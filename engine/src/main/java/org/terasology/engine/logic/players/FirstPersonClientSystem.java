@@ -42,10 +42,16 @@ public class FirstPersonClientSystem extends BaseComponentSystem implements Upda
     @In
     private Time time;
 
+    @In
+    private CameraViewSystem cameraViewSystem;
+
     private EntityRef handEntity;
 
     // the item from the inventory synchronized with the server
     private EntityRef currentHeldItem = EntityRef.NULL;
+
+    // set while the held item has been torn down because the camera left first person
+    private boolean heldItemHiddenForThirdPerson;
 
     private EntityRef getHandEntity() {
         if (handEntity == null) {
@@ -191,6 +197,36 @@ public class FirstPersonClientSystem extends BaseComponentSystem implements Upda
      */
     @Override
     public void update(float delta) {
+
+        // The mount point rides the camera entity, which stays at the character's eyes whatever the camera does. In
+        // third person the hand or tool would therefore hang in front of the character's face: tear it down until we
+        // are back in first person.
+        if (cameraViewSystem != null && !cameraViewSystem.getViewMode().isFirstPerson()) {
+            if (currentHeldItem.exists()) {
+                currentHeldItem.destroy();
+            }
+            currentHeldItem = EntityRef.NULL;
+            heldItemHiddenForThirdPerson = true;
+
+            // Same cleanup as below: client side predicted items must not linger.
+            for (EntityRef entityRef : entityManager.getEntitiesWith(ItemIsHeldComponent.class)) {
+                if (!entityRef.equals(handEntity)) {
+                    entityRef.destroy();
+                }
+            }
+            return;
+        }
+
+        if (heldItemHiddenForThirdPerson) {
+            heldItemHiddenForThirdPerson = false;
+            CharacterHeldItemComponent heldItem = localPlayer
+                    .getCharacterEntity()
+                    .getComponent(CharacterHeldItemComponent.class);
+            if (heldItem != null && heldItem.selectedItem.exists()) {
+                linkHeldItemLocationForLocalPlayer(heldItem.selectedItem);
+            }
+            // With empty hands nothing to do: the block just below rebuilds the hand in this very frame.
+        }
 
         // ensure empty hand is shown if no item is hold at the moment
         if (!currentHeldItem.exists() && currentHeldItem != getHandEntity()) {

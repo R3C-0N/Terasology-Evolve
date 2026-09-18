@@ -51,6 +51,7 @@
     "binding-show-online-players": "binding-show-online-players",
     "binding-tabbing-modifier": "binding-tabbing-modifier",
     "binding-tabbing-ui": "binding-tabbing-ui",
+    "binding-toggle-camera-view": "binding-toggle-camera-view",
     "binding-toggle-speed-permanently": "binding-toggle-speed-permanently",
     "binding-toggle-speed-temporarily": "binding-toggle-speed-temporarily",
     "binding-toolbar-1": "binding-toolbar-1",

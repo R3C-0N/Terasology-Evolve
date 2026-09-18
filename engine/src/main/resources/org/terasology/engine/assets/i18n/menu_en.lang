@@ -52,6 +52,7 @@
     "binding-show-online-players": "Show Online Players",
     "binding-tabbing-modifier": "Tabbing Modifier",
     "binding-tabbing-ui": "Tab Between Widgets",
+    "binding-toggle-camera-view": "Cycle Camera View",
     "binding-toggle-speed-permanently": "Toggle Speed Permanently",
     "binding-toggle-speed-temporarily": "Toggle Speed Temporarily",
     "binding-toolbar-1": "Toolbar Slot 1",
