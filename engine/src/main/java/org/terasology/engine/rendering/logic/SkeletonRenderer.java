@@ -254,12 +254,13 @@ public class SkeletonRenderer extends BaseComponentSystem implements RenderSyste
                     || !skeletalMesh.material.isRenderable()) {
                 continue;
             }
-            AABBf aabb;
+            // The bind pose bounds always count. A glTF animation carries no bounds of its own - the loader hands out
+            // AABBf(0, 0, 0) - so taking the animation's box alone would cull an animated character down to a single
+            // point, and make it blink out at the edge of the screen the moment it started moving.
+            AABBf aabb = new AABBf(skeletalMesh.mesh.getStaticAabb());
             MeshAnimation animation = skeletalMesh.animation;
             if (animation != null) {
-                aabb = animation.getAabb();
-            } else {
-                aabb = skeletalMesh.mesh.getStaticAabb();
+                aabb.union(animation.getAabb());
             }
             LocationComponent location = entity.getComponent(LocationComponent.class);
             location.getWorldRotation(worldRot);

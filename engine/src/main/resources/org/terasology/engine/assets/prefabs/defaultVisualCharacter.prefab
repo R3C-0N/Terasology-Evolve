@@ -1,14 +1,10 @@
 {
   "SkeletalMesh": {
-    "mesh": "floatingCube",
-    "heightOffset": 0.5,
-    "material": "floatingCubeSkin",
-    "loop": true,
-    "scale": [
-      0.25,
-      0.25,
-      0.25
-    ]
+    "mesh": "engine:heros",
+    "material": "engine:herosPeau",
+    "animation": "engine:heros#repos",
+    "heightOffset": 0.0,
+    "loop": true
   },
   "Location": {}
 }

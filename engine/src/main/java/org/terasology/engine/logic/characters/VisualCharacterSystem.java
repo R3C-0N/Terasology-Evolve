@@ -20,6 +20,8 @@ import org.terasology.engine.logic.characters.events.CreateVisualCharacterEvent;
 import org.terasology.engine.logic.location.Location;
 import org.terasology.engine.logic.location.LocationComponent;
 import org.terasology.engine.logic.players.LocalPlayer;
+import org.terasology.engine.logic.players.event.CameraViewModeChangedEvent;
+import org.terasology.engine.network.ClientComponent;
 import org.terasology.engine.registry.In;
 import org.terasology.gestalt.assets.management.AssetManager;
 import org.terasology.gestalt.entitysystem.event.ReceiveEvent;
@@ -68,8 +70,17 @@ public class VisualCharacterSystem extends BaseComponentSystem {
                                                 VisualCharacterComponent visualCharacterComponent) {
         boolean isCharacterOfLocalPlayer = characterEntity.getOwner().equals(localPlayer.getClientEntity());
         if (isCharacterOfLocalPlayer) {
+            // One's own body is only built when the camera leaves the eyes - see onCameraViewModeChanged.
             return;
         }
+        createVisualCharacter(characterEntity, visualCharacterComponent);
+    }
+
+    /**
+     * Builds the visual body of a character and attaches it, whoever the character belongs to.
+     */
+    private void createVisualCharacter(EntityRef characterEntity,
+                                       VisualCharacterComponent visualCharacterComponent) {
         CreateVisualCharacterEvent event = new CreateVisualCharacterEvent(entityManager.newBuilder());
         characterEntity.send(event);
         EntityBuilder entityBuilder = event.getVisualCharacterBuilder();
@@ -104,6 +115,38 @@ public class VisualCharacterSystem extends BaseComponentSystem {
         }
     }
 
+
+    /**
+     * Builds the local player's own body when the camera pulls back, and tears it down when it returns to the eyes.
+     * <p>
+     * Keeping it around in first person would cost nothing visually - the camera sits inside the head - but it would
+     * put a skinned mesh through the CPU skinning path every frame for something nobody can see.
+     */
+    @ReceiveEvent(components = ClientComponent.class)
+    public void onCameraViewModeChanged(CameraViewModeChangedEvent event, EntityRef client) {
+        if (!localPlayer.getClientEntity().equals(client)) {
+            return;
+        }
+        EntityRef character = localPlayer.getCharacterEntity();
+        VisualCharacterComponent visualCharacterComponent = character.getComponent(VisualCharacterComponent.class);
+        if (visualCharacterComponent == null) {
+            return;
+        }
+
+        boolean bodyWanted = !event.getNewMode().isFirstPerson();
+        boolean bodyPresent = visualCharacterComponent.visualCharacter.exists();
+        if (bodyWanted == bodyPresent) {
+            return;
+        }
+
+        if (bodyWanted) {
+            createVisualCharacter(character, visualCharacterComponent);
+        } else {
+            visualCharacterComponent.visualCharacter.destroy();
+            visualCharacterComponent.visualCharacter = EntityRef.NULL;
+            character.saveComponent(visualCharacterComponent);
+        }
+    }
 
     @Priority(EventPriority.PRIORITY_TRIVIAL)
     @ReceiveEvent

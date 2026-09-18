@@ -17,6 +17,12 @@
   },
   "VisualCharacter": {
   },
+  "Stand": {
+    "animationPool": ["engine:heros#repos"]
+  },
+  "Walk": {
+    "animationPool": ["engine:heros#marche"]
+  },
   "Trigger": {
     "detectGroups": [
       "engine:debris",
