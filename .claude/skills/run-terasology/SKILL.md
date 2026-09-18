@@ -93,7 +93,7 @@ running.
 | Right / double click | `driver.py click 640 368 --button right --count 2` |
 | Mine (hold the button) | `driver.py click --press 3.0` |
 | Tap keys | `driver.py key escape` · `driver.py key f3` · `driver.py key 0` |
-| Walk | `driver.py hold w --ms 2500` · `driver.py hold shift w --ms 2000` |
+| Walk | `driver.py hold z --ms 2500` · `driver.py hold shift z --ms 2000` — **`z`, not `w`**, see below |
 | Type into a field | `driver.py type "SkillSmoke"` |
 | Turn the camera | `driver.py move 600 0 --steps 30` (relative, in mickeys) |
 | Toolbar wheel | `driver.py scroll -2` |
@@ -108,10 +108,27 @@ Key names are **physical US positions** — `w a s d`, `f1`…`f12`, `escape`,
 `enter`, `space`, `shift`, `tab`, `backspace`, `end`, arrows, digits. `driver.py
 key nosuchkey` prints the full list.
 
-The default bindings that matter: `W A S D` move, `space` jumps, mouse turns,
+**Walking is `Z Q S D`, not `W A S D`.** This machine's `config.cfg` was written
+on a French layout and stores `"forwards": "key_z"`, `"left": "key_q"`; the
+driver sends physical scancodes, so `hold w` presses a key nothing is bound to
+and the character never moves. The failure reads exactly like a broken harness
+— console commands answer, `teleport` works, `F3`/`F5` work — because
+`LocalPlayerSystem.processInput` is the only consumer of the movement binds.
+The cheap discriminator is `driver.py move 400 0`: if the view turns, input and
+focus are fine and the key is simply wrong. Read the `binds` block of
+`config.cfg` rather than trusting any table, this one included.
+
+The other default bindings that matter: `space` jumps, mouse turns,
 left click attacks/mines, right click places, `1`-`0` pick a toolbar slot,
 `escape` opens the pause menu, `i` the inventory, `e` interacts, `f1` (or
-backtick) the console, `f3` the debug overlay, `f4` cycles its metrics.
+backtick) the console, `f3` the debug overlay, `f4` cycles its metrics, `f5`
+cycles the camera view (first person → behind the hero → in front of it), `f7`
+the behaviour tree editor.
+
+`f5` has a console twin, `driver.py console cycleCameraView`, which **echoes the
+mode it lands on** into the log. Prefer it whenever the current view matters:
+the key is a blind toggle over state the screenshot does not always settle, and
+one miscounted press leaves every later observation off by a mode.
 
 ### Reading state back
 
