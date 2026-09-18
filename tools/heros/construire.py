@@ -83,6 +83,7 @@ RACINE = pathlib.Path(__file__).resolve().parents[2]
 ASSETS = RACINE / "engine/src/main/resources/org/terasology/engine/assets"
 GLTF = ASSETS / "skeletalMesh/heros.gltf"
 PNG = ASSETS / "textures/heros.png"
+PATRON = pathlib.Path(__file__).resolve().parent / "patron.json"
 
 # ---------------------------------------------------------------- proportions
 #
@@ -414,6 +415,51 @@ def ecrire_png(chemin):
     chemin.write_bytes(png)
 
 
+# Le nom francais de chaque face, par sa normale. `droite` et `gauche` sont
+# celles DU HEROS, qui regarde vers +z : sa droite est donc du cote -x, et elle
+# apparait a gauche de l'image quand on lui fait face.
+NOM_FACE = {
+    "+y": "dessus", "-y": "dessous",
+    "-x": "droite", "+z": "devant", "+x": "gauche", "-z": "derriere",
+}
+
+
+def ecrire_patron(chemin):
+    """Ou se lit chaque face, en pixels de l'image. Genere, pour que la carte ne
+    puisse pas mentir sur le maillage qu'elle decrit."""
+    parties = {}
+    for nom, os_nom, _, _, dims, coin, gonflement in BOITES:
+        largeur, haut, profondeur = dims
+        faces_json = {}
+        for face, nom_fr in NOM_FACE.items():
+            x, y, w, h = rect_face(coin, dims, face)
+            faces_json[nom_fr] = {"x": x, "y": y, "largeur": w, "hauteur": h}
+        parties[nom] = {
+            "os": os_nom,
+            "couche": 2 if gonflement else 1,
+            "coin": list(coin),
+            "boite": {"largeur": largeur, "hauteur": haut, "profondeur": profondeur},
+            "gonflement": gonflement,
+            "faces": faces_json,
+        }
+    patron = {
+        "image": "engine:heros",
+        "taille": [TAILLE, TAILLE],
+        "patron": "Minecraft 64x64, deux couches",
+        "unite_en_blocs": UNITE,
+        "conventions": {
+            "origine": "coin haut-gauche de l'image, y vers le bas",
+            "rectangle": "x, y inclus ; largeur, hauteur en pixels",
+            "depliage": "[dessus][dessous] en haut, [droite][devant][gauche][derriere] en dessous",
+            "lateralite": "droite et gauche sont celles du heros, qui regarde vers +z ;"
+                          " sa droite (-x) apparait a gauche de l'image quand on lui fait face",
+            "couche2": "ce qui y est transparent laisse voir la couche 1, en retrait du gonflement",
+        },
+        "parties": parties,
+    }
+    chemin.write_text(json.dumps(patron, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+
+
 def construire(reecrire_texture):
     positions, normales, uvs, joints, poids, indices = construire_geometrie()
     n = len(positions)
@@ -506,6 +552,9 @@ def construire(reecrire_texture):
     print("%s : %d sommets, %d triangles, %d boites, %d os, %d animations, %d o de tampon"
           % (GLTF.name, n, len(indices) // 3, len(BOITES), len(OS), len(animations),
              len(tampon.octets)))
+
+    ecrire_patron(PATRON)
+    print("%s : %d parties, %d rectangles" % (PATRON.name, len(BOITES), len(BOITES) * 6))
 
     # La peau, elle, se peint a la main : on ne l'ecrase jamais sans le dire.
     if reecrire_texture or not PNG.exists():

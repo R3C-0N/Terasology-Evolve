@@ -1,0 +1,642 @@
+{
+  "image": "engine:heros",
+  "taille": [
+    64,
+    64
+  ],
+  "patron": "Minecraft 64x64, deux couches",
+  "unite_en_blocs": 0.05625,
+  "conventions": {
+    "origine": "coin haut-gauche de l'image, y vers le bas",
+    "rectangle": "x, y inclus ; largeur, hauteur en pixels",
+    "depliage": "[dessus][dessous] en haut, [droite][devant][gauche][derriere] en dessous",
+    "lateralite": "droite et gauche sont celles du heros, qui regarde vers +z ; sa droite (-x) apparait a gauche de l'image quand on lui fait face",
+    "couche2": "ce qui y est transparent laisse voir la couche 1, en retrait du gonflement"
+  },
+  "parties": {
+    "tete": {
+      "os": "tete",
+      "couche": 1,
+      "coin": [
+        0,
+        0
+      ],
+      "boite": {
+        "largeur": 8,
+        "hauteur": 8,
+        "profondeur": 8
+      },
+      "gonflement": 0.0,
+      "faces": {
+        "dessus": {
+          "x": 8,
+          "y": 0,
+          "largeur": 8,
+          "hauteur": 8
+        },
+        "dessous": {
+          "x": 16,
+          "y": 0,
+          "largeur": 8,
+          "hauteur": 8
+        },
+        "droite": {
+          "x": 0,
+          "y": 8,
+          "largeur": 8,
+          "hauteur": 8
+        },
+        "devant": {
+          "x": 8,
+          "y": 8,
+          "largeur": 8,
+          "hauteur": 8
+        },
+        "gauche": {
+          "x": 16,
+          "y": 8,
+          "largeur": 8,
+          "hauteur": 8
+        },
+        "derriere": {
+          "x": 24,
+          "y": 8,
+          "largeur": 8,
+          "hauteur": 8
+        }
+      }
+    },
+    "torse": {
+      "os": "torse",
+      "couche": 1,
+      "coin": [
+        16,
+        16
+      ],
+      "boite": {
+        "largeur": 8,
+        "hauteur": 12,
+        "profondeur": 4
+      },
+      "gonflement": 0.0,
+      "faces": {
+        "dessus": {
+          "x": 20,
+          "y": 16,
+          "largeur": 8,
+          "hauteur": 4
+        },
+        "dessous": {
+          "x": 28,
+          "y": 16,
+          "largeur": 8,
+          "hauteur": 4
+        },
+        "droite": {
+          "x": 16,
+          "y": 20,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "devant": {
+          "x": 20,
+          "y": 20,
+          "largeur": 8,
+          "hauteur": 12
+        },
+        "gauche": {
+          "x": 28,
+          "y": 20,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "derriere": {
+          "x": 32,
+          "y": 20,
+          "largeur": 8,
+          "hauteur": 12
+        }
+      }
+    },
+    "brasD": {
+      "os": "brasD",
+      "couche": 1,
+      "coin": [
+        40,
+        16
+      ],
+      "boite": {
+        "largeur": 4,
+        "hauteur": 12,
+        "profondeur": 4
+      },
+      "gonflement": 0.0,
+      "faces": {
+        "dessus": {
+          "x": 44,
+          "y": 16,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "dessous": {
+          "x": 48,
+          "y": 16,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "droite": {
+          "x": 40,
+          "y": 20,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "devant": {
+          "x": 44,
+          "y": 20,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "gauche": {
+          "x": 48,
+          "y": 20,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "derriere": {
+          "x": 52,
+          "y": 20,
+          "largeur": 4,
+          "hauteur": 12
+        }
+      }
+    },
+    "brasG": {
+      "os": "brasG",
+      "couche": 1,
+      "coin": [
+        32,
+        48
+      ],
+      "boite": {
+        "largeur": 4,
+        "hauteur": 12,
+        "profondeur": 4
+      },
+      "gonflement": 0.0,
+      "faces": {
+        "dessus": {
+          "x": 36,
+          "y": 48,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "dessous": {
+          "x": 40,
+          "y": 48,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "droite": {
+          "x": 32,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "devant": {
+          "x": 36,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "gauche": {
+          "x": 40,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "derriere": {
+          "x": 44,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        }
+      }
+    },
+    "jambeD": {
+      "os": "jambeD",
+      "couche": 1,
+      "coin": [
+        0,
+        16
+      ],
+      "boite": {
+        "largeur": 4,
+        "hauteur": 12,
+        "profondeur": 4
+      },
+      "gonflement": 0.0,
+      "faces": {
+        "dessus": {
+          "x": 4,
+          "y": 16,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "dessous": {
+          "x": 8,
+          "y": 16,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "droite": {
+          "x": 0,
+          "y": 20,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "devant": {
+          "x": 4,
+          "y": 20,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "gauche": {
+          "x": 8,
+          "y": 20,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "derriere": {
+          "x": 12,
+          "y": 20,
+          "largeur": 4,
+          "hauteur": 12
+        }
+      }
+    },
+    "jambeG": {
+      "os": "jambeG",
+      "couche": 1,
+      "coin": [
+        16,
+        48
+      ],
+      "boite": {
+        "largeur": 4,
+        "hauteur": 12,
+        "profondeur": 4
+      },
+      "gonflement": 0.0,
+      "faces": {
+        "dessus": {
+          "x": 20,
+          "y": 48,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "dessous": {
+          "x": 24,
+          "y": 48,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "droite": {
+          "x": 16,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "devant": {
+          "x": 20,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "gauche": {
+          "x": 24,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "derriere": {
+          "x": 28,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        }
+      }
+    },
+    "tete2": {
+      "os": "tete",
+      "couche": 2,
+      "coin": [
+        32,
+        0
+      ],
+      "boite": {
+        "largeur": 8,
+        "hauteur": 8,
+        "profondeur": 8
+      },
+      "gonflement": 0.5,
+      "faces": {
+        "dessus": {
+          "x": 40,
+          "y": 0,
+          "largeur": 8,
+          "hauteur": 8
+        },
+        "dessous": {
+          "x": 48,
+          "y": 0,
+          "largeur": 8,
+          "hauteur": 8
+        },
+        "droite": {
+          "x": 32,
+          "y": 8,
+          "largeur": 8,
+          "hauteur": 8
+        },
+        "devant": {
+          "x": 40,
+          "y": 8,
+          "largeur": 8,
+          "hauteur": 8
+        },
+        "gauche": {
+          "x": 48,
+          "y": 8,
+          "largeur": 8,
+          "hauteur": 8
+        },
+        "derriere": {
+          "x": 56,
+          "y": 8,
+          "largeur": 8,
+          "hauteur": 8
+        }
+      }
+    },
+    "torse2": {
+      "os": "torse",
+      "couche": 2,
+      "coin": [
+        16,
+        32
+      ],
+      "boite": {
+        "largeur": 8,
+        "hauteur": 12,
+        "profondeur": 4
+      },
+      "gonflement": 0.25,
+      "faces": {
+        "dessus": {
+          "x": 20,
+          "y": 32,
+          "largeur": 8,
+          "hauteur": 4
+        },
+        "dessous": {
+          "x": 28,
+          "y": 32,
+          "largeur": 8,
+          "hauteur": 4
+        },
+        "droite": {
+          "x": 16,
+          "y": 36,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "devant": {
+          "x": 20,
+          "y": 36,
+          "largeur": 8,
+          "hauteur": 12
+        },
+        "gauche": {
+          "x": 28,
+          "y": 36,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "derriere": {
+          "x": 32,
+          "y": 36,
+          "largeur": 8,
+          "hauteur": 12
+        }
+      }
+    },
+    "brasD2": {
+      "os": "brasD",
+      "couche": 2,
+      "coin": [
+        40,
+        32
+      ],
+      "boite": {
+        "largeur": 4,
+        "hauteur": 12,
+        "profondeur": 4
+      },
+      "gonflement": 0.25,
+      "faces": {
+        "dessus": {
+          "x": 44,
+          "y": 32,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "dessous": {
+          "x": 48,
+          "y": 32,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "droite": {
+          "x": 40,
+          "y": 36,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "devant": {
+          "x": 44,
+          "y": 36,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "gauche": {
+          "x": 48,
+          "y": 36,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "derriere": {
+          "x": 52,
+          "y": 36,
+          "largeur": 4,
+          "hauteur": 12
+        }
+      }
+    },
+    "brasG2": {
+      "os": "brasG",
+      "couche": 2,
+      "coin": [
+        48,
+        48
+      ],
+      "boite": {
+        "largeur": 4,
+        "hauteur": 12,
+        "profondeur": 4
+      },
+      "gonflement": 0.25,
+      "faces": {
+        "dessus": {
+          "x": 52,
+          "y": 48,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "dessous": {
+          "x": 56,
+          "y": 48,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "droite": {
+          "x": 48,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "devant": {
+          "x": 52,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "gauche": {
+          "x": 56,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "derriere": {
+          "x": 60,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        }
+      }
+    },
+    "jambeD2": {
+      "os": "jambeD",
+      "couche": 2,
+      "coin": [
+        0,
+        32
+      ],
+      "boite": {
+        "largeur": 4,
+        "hauteur": 12,
+        "profondeur": 4
+      },
+      "gonflement": 0.25,
+      "faces": {
+        "dessus": {
+          "x": 4,
+          "y": 32,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "dessous": {
+          "x": 8,
+          "y": 32,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "droite": {
+          "x": 0,
+          "y": 36,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "devant": {
+          "x": 4,
+          "y": 36,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "gauche": {
+          "x": 8,
+          "y": 36,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "derriere": {
+          "x": 12,
+          "y": 36,
+          "largeur": 4,
+          "hauteur": 12
+        }
+      }
+    },
+    "jambeG2": {
+      "os": "jambeG",
+      "couche": 2,
+      "coin": [
+        0,
+        48
+      ],
+      "boite": {
+        "largeur": 4,
+        "hauteur": 12,
+        "profondeur": 4
+      },
+      "gonflement": 0.25,
+      "faces": {
+        "dessus": {
+          "x": 4,
+          "y": 48,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "dessous": {
+          "x": 8,
+          "y": 48,
+          "largeur": 4,
+          "hauteur": 4
+        },
+        "droite": {
+          "x": 0,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "devant": {
+          "x": 4,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "gauche": {
+          "x": 8,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        },
+        "derriere": {
+          "x": 12,
+          "y": 52,
+          "largeur": 4,
+          "hauteur": 12
+        }
+      }
+    }
+  }
+}
