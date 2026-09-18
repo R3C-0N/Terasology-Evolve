@@ -205,7 +205,11 @@ public class TeraStandardDeflator extends TeraVisitingDeflator {
             return new TeraSparseArray16Bit(sizeX, sizeY, sizeZ, fill);
         }
         if (inflated == null) {
-            return new TeraSparseArray16Bit(sizeX, sizeY, sizeZ, inflated, deflated);
+            // Half-grown: the array has published its deflated plane but not its rows yet. Passing
+            // the null through would trip the constructor's own null check, which is how this
+            // branch used to fail. An empty row table says exactly what this state means — every
+            // row uniform, at the value the plane gives — and is a state the array can live in.
+            return new TeraSparseArray16Bit(sizeX, sizeY, sizeZ, new short[sizeY][], deflated);
         }
 
         short[] packed = new short[sizeY];
@@ -249,7 +253,8 @@ public class TeraStandardDeflator extends TeraVisitingDeflator {
             return new TeraSparseArray8Bit(sizeX, sizeY, sizeZ, fill);
         }
         if (inflated == null) {
-            return new TeraSparseArray8Bit(sizeX, sizeY, sizeZ, inflated, deflated);
+            // Half-grown, as above: an empty row table rather than a null one.
+            return new TeraSparseArray8Bit(sizeX, sizeY, sizeZ, new byte[sizeY][], deflated);
         }
 
         byte[] packed = new byte[sizeY];

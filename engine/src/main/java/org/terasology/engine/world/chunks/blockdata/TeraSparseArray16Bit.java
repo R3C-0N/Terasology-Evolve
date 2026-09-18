@@ -18,8 +18,13 @@ import java.util.Arrays;
  */
 public class TeraSparseArray16Bit extends TeraSparseArray {
 
-    protected short[][] inflated;
-    protected short[] deflated;
+    /**
+     * Volatile, and written in a fixed order by {@link #allocate()}: {@code get} tests
+     * {@code inflated} and then reads {@code deflated}, so a reader that sees the first must be
+     * guaranteed to see the second. See {@link TeraSparseArrayByte} for the crash this prevents.
+     */
+    protected volatile short[][] inflated;
+    protected volatile short[] deflated;
     protected short fill;
 
     public TeraSparseArray16Bit() {
@@ -91,6 +96,20 @@ public class TeraSparseArray16Bit extends TeraSparseArray {
         return 16;
     }
 
+    /**
+     * Grows to the sparse form, publishing {@code deflated} before {@code inflated}.
+     * <p>
+     * See {@link TeraSparseArray8Bit} for why: {@link #get} tests {@code inflated} and then reads
+     * {@code deflated}, so the reverse order leaves a window in which a concurrent reader
+     * dereferences a {@code deflated} that has not been assigned yet.
+     */
+    private void allocate() {
+        short[] plane = new short[getSizeY()];
+        Arrays.fill(plane, fill);
+        this.deflated = plane;
+        this.inflated = new short[getSizeY()][];
+    }
+
     @Override
     public int get(int x, int y, int z) {
         if (inflated == null) {
@@ -110,9 +129,7 @@ public class TeraSparseArray16Bit extends TeraSparseArray {
             if (old == value) {
                 return old;
             } else {
-                this.inflated = new short[getSizeY()][];
-                this.deflated = new short[getSizeY()];
-                Arrays.fill(deflated, fill);
+                allocate();
             }
         }
         short[] row = inflated[y];
@@ -143,9 +160,7 @@ public class TeraSparseArray16Bit extends TeraSparseArray {
             if (old == value) {
                 return true;
             } else {
-                this.inflated = new short[getSizeY()][];
-                this.deflated = new short[getSizeY()];
-                Arrays.fill(deflated, fill);
+                allocate();
             }
         }
         int pos = pos(x, z);

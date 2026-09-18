@@ -14,8 +14,20 @@ import java.nio.ByteBuffer;
  */
 public abstract class TeraSparseArrayByte extends TeraSparseArray {
 
-    protected byte[][] inflated;
-    protected byte[] deflated;
+    /**
+     * Volatile because a chunk is read by the mesh worker while light propagation writes into it.
+     * <p>
+     * {@code get} tests {@code inflated} first and falls through to {@code deflated}, so a reader
+     * that sees a freshly allocated {@code inflated} must also see a fully built {@code deflated}.
+     * The subclasses guarantee that by publishing {@code deflated} first and {@code inflated} last;
+     * this keyword is what makes that ordering hold for the reader. Without it the reader crashed
+     * with a null {@code deflated} — rarely, since the window is two instructions wide.
+     * <p>
+     * Both are read on the hottest path in the engine. A volatile read of a reference is a plain
+     * load on x86 and a load-acquire elsewhere: no fence, no barrier, and no measurable cost.
+     */
+    protected volatile byte[][] inflated;
+    protected volatile byte[] deflated;
     protected byte fill;
 
     protected TeraSparseArrayByte() {

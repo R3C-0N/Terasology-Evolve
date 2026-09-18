@@ -58,6 +58,27 @@ public final class TeraSparseArray8Bit extends TeraSparseArrayByte {
         return 8;
     }
 
+    /**
+     * Grows from the all-{@code fill} form to the sparse one, in an order a reader can survive.
+     * <p>
+     * {@code deflated} is built, filled and published <em>before</em> {@code inflated}, because
+     * {@link #get} tests {@code inflated} first and then reads {@code deflated}. Publishing them the
+     * other way round leaves a two-instruction window in which a reader sees a non-null
+     * {@code inflated}, finds a null row in it, and dereferences a {@code deflated} that does not
+     * exist yet. That is a real crash, seen once in sixteen minutes of play: light propagation
+     * writes into a neighbouring chunk that the mesh worker is reading at the same time.
+     * <p>
+     * This does not make the class thread-safe — a row split by {@code set} is still racy, though
+     * only for the value read, not for the liveness of the process. It closes the one window that
+     * throws.
+     */
+    private void allocate() {
+        byte[] plane = new byte[getSizeY()];
+        Arrays.fill(plane, fill);
+        this.deflated = plane;
+        this.inflated = new byte[getSizeY()][];
+    }
+
     @Override
     public int get(int x, int y, int z) {
         if (inflated == null) {
@@ -77,9 +98,7 @@ public final class TeraSparseArray8Bit extends TeraSparseArrayByte {
             if (old == value) {
                 return old;
             } else {
-                this.inflated = new byte[getSizeY()][];
-                this.deflated = new byte[getSizeY()];
-                Arrays.fill(deflated, fill);
+                allocate();
             }
         }
         byte[] row = inflated[y];
@@ -110,9 +129,7 @@ public final class TeraSparseArray8Bit extends TeraSparseArrayByte {
             if (old == value) {
                 return true;
             } else {
-                this.inflated = new byte[getSizeY()][];
-                this.deflated = new byte[getSizeY()];
-                Arrays.fill(deflated, fill);
+                allocate();
             }
         }
         int pos = pos(x, z);

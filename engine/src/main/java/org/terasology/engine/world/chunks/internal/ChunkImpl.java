@@ -49,9 +49,15 @@ public class ChunkImpl implements Chunk {
 
     private BlockManager blockManager;
 
-    private TeraArray sunlightData;
-    private TeraArray sunlightRegenData;
-    private TeraArray lightData;
+    /**
+     * Volatile because {@code deflate} and {@code deflateSunlight} swap these out from a pipeline
+     * thread while the mesh worker reads them, and the arrays they point at are not immutable.
+     * {@code blockDataSnapshot} and {@code extraDataSnapshots} below were already volatile for the
+     * same reason; these three were not, and they are the ones light propagation writes into.
+     */
+    private volatile TeraArray sunlightData;
+    private volatile TeraArray sunlightRegenData;
+    private volatile TeraArray lightData;
 
     private TeraArray blockData;
     private volatile TeraArray blockDataSnapshot;

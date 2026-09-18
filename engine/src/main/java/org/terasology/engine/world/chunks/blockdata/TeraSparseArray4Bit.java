@@ -98,6 +98,20 @@ public final class TeraSparseArray4Bit extends TeraSparseArrayByte {
         return 4;
     }
 
+    /**
+     * Grows to the sparse form, publishing {@code deflated} before {@code inflated}.
+     * <p>
+     * See {@link TeraSparseArray8Bit} for why the order matters: {@link #get} tests {@code inflated}
+     * and then reads {@code deflated}, so publishing them the other way round leaves a window in
+     * which a concurrent reader dereferences a {@code deflated} that does not exist yet.
+     */
+    private void allocate() {
+        byte[] plane = new byte[getSizeY()];
+        Arrays.fill(plane, fill);
+        this.deflated = plane;
+        this.inflated = new byte[getSizeY()][];
+    }
+
     @Override
     public int get(int x, int y, int z) {
         int pos = pos(x, z);
@@ -119,9 +133,7 @@ public final class TeraSparseArray4Bit extends TeraSparseArrayByte {
             if (old == value) {
                 return old;
             } else {
-                this.inflated = new byte[getSizeY()][];
-                this.deflated = new byte[getSizeY()];
-                Arrays.fill(deflated, fill);
+                allocate();
             }
         }
         byte[] row = inflated[y];
@@ -148,9 +160,7 @@ public final class TeraSparseArray4Bit extends TeraSparseArrayByte {
             if (old == value) {
                 return true;
             } else {
-                this.inflated = new byte[getSizeY()][];
-                this.deflated = new byte[getSizeY()];
-                Arrays.fill(deflated, fill);
+                allocate();
             }
         }
         byte[] row = inflated[y];
