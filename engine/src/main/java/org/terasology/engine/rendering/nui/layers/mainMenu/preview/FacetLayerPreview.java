@@ -17,6 +17,7 @@ import org.terasology.engine.world.chunks.Chunks;
 import org.terasology.engine.world.generation.Region;
 import org.terasology.engine.world.generation.World;
 import org.terasology.engine.world.generation.WorldFacet;
+import org.terasology.engine.world.generator.PreviewCentered;
 import org.terasology.engine.world.generator.WorldGenerator;
 import org.terasology.engine.world.viewer.TileThreadFactory;
 import org.terasology.engine.world.viewer.color.ColorModels;
@@ -62,6 +63,13 @@ public class FacetLayerPreview implements PreviewGenerator {
 
     private final WorldGenerator worldGenerator;
 
+    /**
+     * The world column the preview is framed on. (0, 0) unless the generator says otherwise, which
+     * is the right guess for a world that spreads outwards from the origin and useless for one that
+     * does not reach it.
+     */
+    private final Vector2ic centre;
+
     private final List<FacetLayer> facetLayers;
 
     private ExecutorService threadPool = Executors.newFixedThreadPool(
@@ -71,25 +79,45 @@ public class FacetLayerPreview implements PreviewGenerator {
 
     public FacetLayerPreview(WorldGenerator worldGenerator, List<FacetLayer> facetLayers) {
         this.worldGenerator = worldGenerator;
+        this.centre = centreOf(worldGenerator);
         this.facetLayers = facetLayers.stream()
-                .sorted(Comparator.comparingInt(layer -> layer.getClass().getAnnotation(Renders.class).order()))
+                // A layer handed in directly need not carry the annotation, unlike one the factory
+                // found by it. Ordering it last is arbitrary but defined; dereferencing a missing
+                // annotation was not.
+                .sorted(Comparator.comparingInt(FacetLayerPreview::orderOf))
                 .collect(Collectors.toList());
     }
 
     public FacetLayerPreview(ModuleEnvironment environment, WorldGenerator worldGenerator) {
         this.worldGenerator = worldGenerator;
+        this.centre = centreOf(worldGenerator);
 
         World world = worldGenerator.getWorld();
         Set<Class<? extends WorldFacet>> facets = world.getAllFacets();
         facetLayers = FacetLayers.createLayersFor(facets, environment);
     }
 
+    private static Vector2ic centreOf(WorldGenerator worldGenerator) {
+        if (worldGenerator instanceof PreviewCentered) {
+            return ((PreviewCentered) worldGenerator).getPreviewCentre();
+        }
+        return new Vector2i();
+    }
+
+    private static int orderOf(FacetLayer layer) {
+        Renders anno = layer.getClass().getAnnotation(Renders.class);
+        return anno != null ? anno.order() : Integer.MAX_VALUE;
+    }
+
     @Override
     public ByteBuffer render(TextureData texData, int scale, ProgressListener progressListener) throws InterruptedException {
         int width = texData.getWidth();
-        int height  = texData.getWidth();
-        final int offX = -width * scale / 2;
-        final int offY = -height * scale / 2;
+        int height = texData.getHeight();
+        // Framed on the generator's centre rather than on the origin. A world laid out away from
+        // (0, 0) — a cube net, for one, which starts there and runs outwards in one direction only
+        // — otherwise gets a preview of empty space at every zoom the slider can reach.
+        final int offX = centre.x() - width * scale / 2;
+        final int offY = centre.y() - height * scale / 2;
 
         worldGenerator.getWorld(); // trigger building the World now
 

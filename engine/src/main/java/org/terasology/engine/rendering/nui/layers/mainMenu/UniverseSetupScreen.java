@@ -43,7 +43,6 @@ import org.terasology.engine.world.generator.internal.WorldGeneratorInfo;
 import org.terasology.engine.world.generator.internal.WorldGeneratorManager;
 import org.terasology.engine.world.generator.plugin.TempWorldGeneratorPluginLibrary;
 import org.terasology.engine.world.generator.plugin.WorldGeneratorPluginLibrary;
-import org.terasology.engine.world.zones.Zone;
 import org.terasology.gestalt.assets.AssetType;
 import org.terasology.gestalt.assets.ResourceUrn;
 import org.terasology.gestalt.assets.management.AssetManager;
@@ -88,7 +87,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.stream.Collectors;
 
 /**
  * Sets up the Universe for a user. Displays a list of {@link WorldGenerator}
@@ -366,13 +364,12 @@ public class UniverseSetupScreen extends CoreScreenLayer implements UISliderOnCh
         texture = generateTexture();
         previewImage = find("preview", UIImage.class);
         previewImage.setImage(texture);
-        List<Zone> previewZones = Lists.newArrayList(universeWrapper.getWorldGenerator().getZones())
-                .stream()
-                .filter(z -> !z.getPreviewLayers().isEmpty())
-                .collect(Collectors.toList());
-        if (previewZones.isEmpty()) {
-            previewGen = new FacetLayerPreview(environment, universeWrapper.getWorldGenerator());
-        }
+        // Unconditional. This used to be skipped when some zone carried preview layers, which left
+        // previewGen null while update() went on calling render() on it a second later — a certain
+        // NPE. The zone path it was reserving the slot for is dead code: nothing in the engine ever
+        // calls Zone.preview(), so no generator has ever reached it. Building the ordinary preview
+        // is strictly better than building none.
+        previewGen = new FacetLayerPreview(environment, universeWrapper.getWorldGenerator());
 
         previewUpdateRequiredSince = time.getRealTimeInMs();
     }
