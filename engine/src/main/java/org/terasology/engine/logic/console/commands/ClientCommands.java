@@ -185,6 +185,34 @@ public class ClientCommands extends BaseComponentSystem implements UpdateSubscri
     }
 
     /**
+     * Prints the stored sunlight and block light down a column, one line per height.
+     * <p>
+     * Written to settle whether black terrain means the light data is wrong or the mesh reads it
+     * from the wrong place: the vertex attribute is baked from these very cells, so if they hold
+     * fifteen and the ground still renders black, the fault is in the baking, not the propagation.
+     *
+     * @param x world column
+     * @param z world column
+     * @param from lowest height, inclusive
+     * @param to highest height, inclusive
+     * @return one line per height, coarse to read but unambiguous
+     */
+    @Command(shortDescription = "Stored sunlight and block light down a column",
+            requiredPermission = PermissionManager.NO_PERMISSION)
+    public String sunlightColumn(@CommandParam("x") int x, @CommandParam("z") int z,
+                                 @CommandParam("from") int from, @CommandParam("to") int to) {
+        StringBuilder out = new StringBuilder();
+        Vector3i pos = new Vector3i();
+        for (int y = Math.min(from, to); y <= Math.max(from, to); y++) {
+            pos.set(x, y, z);
+            out.append(String.format(Locale.ROOT, "y=%d sun=%d light=%d %s%n",
+                    y, worldProvider.getSunlight(pos), worldProvider.getLight(pos),
+                    worldProvider.getBlock(pos).getURI()));
+        }
+        return out.toString();
+    }
+
+    /**
      * Sets the current world time for the local player in days
      * @param day Float containing day to be set
      * @return String message containing message to notify user
