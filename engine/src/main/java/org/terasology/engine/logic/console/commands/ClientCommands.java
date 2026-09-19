@@ -213,6 +213,45 @@ public class ClientCommands extends BaseComponentSystem implements UpdateSubscri
     }
 
     /**
+     * Replays the mesher's eight light samples at one vertex, and prints each one.
+     * <p>
+     * {@code BlockMeshPart.appendLighting} bakes a vertex's sunlight from eight samples, four a
+     * little above and four a little below, averaged over the non-zero ones. When the baked value
+     * comes out zero while the stored light is fifteen, the disagreement is either in those offsets
+     * or in the view the mesher reads through. This runs the same offsets against the world
+     * provider, so the two can be compared instead of argued about.
+     *
+     * @param x vertex position, in world coordinates
+     * @param y vertex position
+     * @param z vertex position
+     * @return the eight samples and the average the mesher would write
+     */
+    @Command(shortDescription = "Replays the mesher's eight light samples at a vertex",
+            requiredPermission = PermissionManager.NO_PERMISSION)
+    public String meshLightAt(@CommandParam("x") float x, @CommandParam("y") float y,
+                              @CommandParam("z") float z) {
+        float[] dx = {0.1f, 0.1f, -0.1f, -0.1f, 0.1f, 0.1f, -0.1f, -0.1f};
+        float[] dy = {0.8f, 0.8f, 0.8f, 0.8f, -0.1f, -0.1f, -0.1f, -0.1f};
+        float[] dz = {0.1f, -0.1f, -0.1f, 0.1f, 0.1f, -0.1f, -0.1f, 0.1f};
+        StringBuilder out = new StringBuilder();
+        float sum = 0;
+        int lit = 0;
+        Vector3f probe = new Vector3f();
+        for (int i = 0; i < dx.length; i++) {
+            probe.set(x + dx[i], y + dy[i], z + dz[i]);
+            byte sun = worldProvider.getSunlight(probe);
+            if (sun > 0) {
+                sum += sun;
+                lit++;
+            }
+            out.append(String.format(Locale.ROOT, "s%d(%.1f,%.1f,%.1f) sun=%d %s%n", i,
+                    probe.x, probe.y, probe.z, sun, worldProvider.getBlock(probe).getURI()));
+        }
+        out.append(String.format(Locale.ROOT, "-> lit=%d moyenne=%.3f", lit, lit == 0 ? 0f : sum / lit / 15f));
+        return out.toString();
+    }
+
+    /**
      * Sets the current world time for the local player in days
      * @param day Float containing day to be set
      * @return String message containing message to notify user
