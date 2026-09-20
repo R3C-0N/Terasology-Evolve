@@ -34,6 +34,21 @@ import static org.terasology.engine.rendering.dag.AbstractNode.getMaterial;
  */
 public class SetSphereProjection implements StateChange {
 
+    /**
+     * The {@code currentOnly} flag of the material setters, spelled out and inverted.
+     * <p>
+     * A state change is applied before its node runs, and a node is free to switch shader feature
+     * afterwards — {@code RefractiveReflectiveBlocksNode} activates
+     * {@code FEATURE_REFRACTIVE_PASS} at the top of its own process method. That switch binds a
+     * different GL program, and a uniform written to the program that happened to be current never
+     * reaches it. The water was then the one piece of the world still drawn flat while the ground
+     * beside it was bent: near the shore it sank three blocks under its own bed and lost the depth
+     * test, and out at sea it floated above the curved horizon. Writing to every permutation is
+     * the only form that survives a feature switch, and the node beside this one already re-binds
+     * all its texture units by hand for the same reason.
+     */
+    private static final boolean ALL_PERMUTATIONS = false;
+
     private final int textureSlot;
     private final ResourceUrn materialUrn;
     private final SphereProjection projection;
@@ -104,7 +119,7 @@ public class SetSphereProjection implements StateChange {
         material.enable();
 
         if (!enabled) {
-            material.setInt("sphereEnabled", 0, true);
+            material.setInt("sphereEnabled", 0, ALL_PERMUTATIONS);
             glActiveTexture(GL_TEXTURE0 + textureSlot);
             glBindTexture(GL_TEXTURE_2D, 0);
             return;
@@ -113,13 +128,13 @@ public class SetSphereProjection implements StateChange {
         glActiveTexture(GL_TEXTURE0 + textureSlot);
         glBindTexture(GL_TEXTURE_2D, projection.getTableTextureId());
 
-        material.setInt("sphereTable", textureSlot, true);
-        material.setInt("sphereEnabled", 1, true);
-        material.setInt("sphereTableSize", projection.getTableResolution(), true);
-        material.setFloat("sphereRadius", projection.getRadius(), true);
-        material.setFloat("sphereFaceEdge", projection.getFaceEdge(), true);
-        material.setFloat("sphereReferenceHeight", projection.getReferenceHeight(), true);
-        material.setFloat3("sphereFocus", projection.getFocus(), true);
-        material.setFloat3("sphereModelOrigin", scratch.set(modelOrigin.get()), true);
+        material.setInt("sphereTable", textureSlot, ALL_PERMUTATIONS);
+        material.setInt("sphereEnabled", 1, ALL_PERMUTATIONS);
+        material.setInt("sphereTableSize", projection.getTableResolution(), ALL_PERMUTATIONS);
+        material.setFloat("sphereRadius", projection.getRadius(), ALL_PERMUTATIONS);
+        material.setFloat("sphereFaceEdge", projection.getFaceEdge(), ALL_PERMUTATIONS);
+        material.setFloat("sphereReferenceHeight", projection.getReferenceHeight(), ALL_PERMUTATIONS);
+        material.setFloat3("sphereFocus", projection.getFocus(), ALL_PERMUTATIONS);
+        material.setFloat3("sphereModelOrigin", scratch.set(modelOrigin.get()), ALL_PERMUTATIONS);
     }
 }
