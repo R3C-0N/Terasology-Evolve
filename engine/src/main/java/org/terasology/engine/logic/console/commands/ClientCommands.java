@@ -24,7 +24,11 @@ import org.terasology.engine.network.NetworkSystem;
 import org.terasology.engine.registry.CoreRegistry;
 import org.terasology.engine.registry.In;
 import org.terasology.engine.rendering.opengl.ScreenGrabber;
+import org.terasology.engine.rendering.primitives.ChunkMesh;
 import org.terasology.engine.world.WorldProvider;
+import org.terasology.engine.world.chunks.Chunk;
+import org.terasology.engine.world.chunks.ChunkProvider;
+import org.terasology.engine.world.chunks.Chunks;
 import org.terasology.engine.world.sun.CelestialSystem;
 
 import java.util.Locale;
@@ -249,6 +253,40 @@ public class ClientCommands extends BaseComponentSystem implements UpdateSubscri
         }
         out.append(String.format(Locale.ROOT, "-> lit=%d moyenne=%.3f", lit, lit == 0 ? 0f : sum / lit / 15f));
         return out.toString();
+    }
+
+    /**
+     * Triangle counts, per render phase, of the chunk holding a world position.
+     * <p>
+     * Written to settle why water is drawn out at sea and not near the shore. The opaque and the
+     * refractive queues are filled behind the same visibility test, so a chunk whose ground is drawn
+     * and whose water is not either has no refractive geometry at all, or has some that never
+     * survives the depth test. Only the first of those shows up here.
+     *
+     * @return one line of counts, or why there is nothing to count
+     */
+    @Command(shortDescription = "Triangle counts per render phase for the chunk at a position",
+            requiredPermission = PermissionManager.NO_PERMISSION)
+    public String chunkMeshStats(@CommandParam("x") int x, @CommandParam("y") int y,
+                                 @CommandParam("z") int z) {
+        ChunkProvider provider = CoreRegistry.get(ChunkProvider.class);
+        if (provider == null) {
+            return "No chunk provider.";
+        }
+        Vector3i chunkPos = Chunks.toChunkPos(x, y, z, new Vector3i());
+        Chunk chunk = provider.getChunk(chunkPos);
+        if (chunk == null) {
+            return String.format(Locale.ROOT, "chunk %d,%d,%d is not loaded", chunkPos.x, chunkPos.y, chunkPos.z);
+        }
+        if (!chunk.hasMesh()) {
+            return String.format(Locale.ROOT, "chunk %d,%d,%d has no mesh", chunkPos.x, chunkPos.y, chunkPos.z);
+        }
+        ChunkMesh mesh = chunk.getMesh();
+        return String.format(Locale.ROOT, "chunk=%d,%d,%d opaque=%d refractive=%d alphaReject=%d",
+                chunkPos.x, chunkPos.y, chunkPos.z,
+                mesh.triangleCount(ChunkMesh.RenderPhase.OPAQUE),
+                mesh.triangleCount(ChunkMesh.RenderPhase.REFRACTIVE),
+                mesh.triangleCount(ChunkMesh.RenderPhase.ALPHA_REJECT));
     }
 
     /**
