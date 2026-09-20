@@ -79,6 +79,9 @@ vec4 sphereDirection(vec2 column) {
     return vec4(d, ab.z);
 }
 
+// Declared here because the curved position below needs it and it reads better after.
+mat3 sphereFrameAbs(vec3 worldPos);
+
 // Where a world position ends up once the world is bent, relative to the focus.
 //
 // The height is multiplied by the scale factor, not added raw. A conformal map stretches both
@@ -89,12 +92,19 @@ vec3 sphereCurvedPos(vec3 worldPos) {
     vec4 origin = sphereDirection(sphereFocus.xz);
     float r = sphereRadius + here.w * (worldPos.y - sphereReferenceHeight);
     float r0 = sphereRadius + origin.w * (sphereFocus.y - sphereReferenceHeight);
-    return here.xyz * r - origin.xyz * r0;
+    // Back into world axes. The difference of two planet-space points is still planet space, and
+    // the caller multiplies it by the linear part of a world-space view matrix: without this the
+    // whole terrain is rotated, and at the middle of a face mirrored, out from under everything
+    // that is not drawn through this function.
+    return transpose(sphereFrameAbs(sphereFocus)) * (here.xyz * r - origin.xyz * r0);
 }
 
-// The frame that turns a flat normal into the curved one. Without it the distant ground is lit as
-// though it were flat: the local frame turns by d / R, which is eleven degrees at a thousand blocks.
-mat3 sphereFrame(vec3 worldPos) {
+// The local frame of a world column, in planet space: world X, Y, Z map onto east, up, north.
+//
+// Planet space is not world space, and the two differ by a whole rotation — at the middle of face
+// one by a reflection, determinant minus one. Nothing outside this file knows about planet space,
+// so nothing outside may see a vector expressed in it. Both users below bring it back.
+mat3 sphereFrameAbs(vec3 worldPos) {
     float step = sphereFaceEdge / 256.0;
     vec3 up = sphereDirection(worldPos.xz).xyz;
     vec3 alongX = sphereDirection(worldPos.xz + vec2(step, 0.0)).xyz
@@ -103,8 +113,17 @@ mat3 sphereFrame(vec3 worldPos) {
                 - sphereDirection(worldPos.xz - vec2(0.0, step)).xyz;
     vec3 east = normalize(alongX - up * dot(alongX, up));
     vec3 north = normalize(alongZ - up * dot(alongZ, up));
-    // world X, Y, Z map onto east, up, north
     return mat3(east, up, north);
+}
+
+// The frame that turns a flat normal into the curved one, expressed in world axes.
+//
+// Relative to the focus, which is what makes it the identity under the camera and a turn of d / R
+// away from it — eleven degrees at a thousand blocks. The absolute frame would instead hand the
+// renderer a planet-space normal while the sun stays in world space, and no amount of daylight
+// would land on the right face.
+mat3 sphereFrame(vec3 worldPos) {
+    return transpose(sphereFrameAbs(sphereFocus)) * sphereFrameAbs(worldPos);
 }
 
 // The whole point of the exercise, in one call.
