@@ -61,6 +61,7 @@ public class ChunkImpl implements Chunk {
 
     private TeraArray blockData;
     private volatile TeraArray blockDataSnapshot;
+    private volatile TeraArray sunlightRegenSnapshot;
     private TeraArray[] extraData;
     private volatile TeraArray[] extraDataSnapshots;
 
@@ -100,6 +101,14 @@ public class ChunkImpl implements Chunk {
             chunkPos.z() * getChunkSizeZ())
             .setSize(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         ChunkMonitor.fireChunkCreated(this);
+    }
+
+    /**
+     * The sunlight seed, for the serializer in this package to read back into. Not part of the
+     * public chunk interface: everything else goes through getSunlightRegen.
+     */
+    TeraArray getSunlightRegenData() {
+        return sunlightRegenData;
     }
 
     @Override
@@ -449,7 +458,7 @@ public class ChunkImpl implements Chunk {
 
     @Override
     public EntityData.ChunkStore.Builder encode() {
-        return ChunkSerializer.encode(chunkPos, blockData, extraData);
+        return ChunkSerializer.encode(chunkPos, blockData, extraData, sunlightRegenData);
     }
 
     /**
@@ -460,6 +469,10 @@ public class ChunkImpl implements Chunk {
         this.blockDataSnapshot = this.blockData;
         this.extraDataSnapshots = new TeraArray[extraData.length];
         System.arraycopy(extraData, 0, extraDataSnapshots, 0, extraData.length);
+        // A real copy, not a reference: unlike the blocks, the sunlight seed has no copy-on-write
+        // and light propagation writes into it in place. The array is sparse and nearly uniform, so
+        // the copy is a handful of rows.
+        this.sunlightRegenSnapshot = this.sunlightRegenData.copy();
     }
 
     /**
@@ -470,9 +483,11 @@ public class ChunkImpl implements Chunk {
      * @return an encoded version of the snapshot taken with {@link #createSnapshot()}.
      */
     public EntityData.ChunkStore.Builder encodeAndReleaseSnapshot() {
-        EntityData.ChunkStore.Builder result = ChunkSerializer.encode(chunkPos, blockDataSnapshot, extraDataSnapshots);
+        EntityData.ChunkStore.Builder result =
+                ChunkSerializer.encode(chunkPos, blockDataSnapshot, extraDataSnapshots, sunlightRegenSnapshot);
         this.blockDataSnapshot = null;
         this.extraDataSnapshots = null;
+        this.sunlightRegenSnapshot = null;
         return result;
     }
 }

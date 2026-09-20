@@ -108,6 +108,15 @@ message ChunkStore {
 
     optional RunLengthEncoding16 block_data = 10;
     repeated RunLengthEncoding16 extra_data = 13;
+
+    // The sunlight seed, and the only part of a chunk's lighting worth storing.
+    //
+    // Sunlight itself is recomputed on load from this field: the internal light pass reads the top
+    // row of the chunk and propagates downwards, so everything below the roof is derivable. What is
+    // not derivable is the roof value, which is written during world generation by a rasterizer
+    // that never runs again for a chunk read back from disk. Without this field such a chunk gets
+    // no daylight at all, and the mesh bakes that zero in for good: black terrain.
+    optional RunLengthEncoding16 sunlight_regen_data = 14;
 }
 
 message RunLengthEncoding16 {

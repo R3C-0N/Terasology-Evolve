@@ -18,12 +18,19 @@ public final class ChunkSerializer {
     private ChunkSerializer() {
     }
 
-    public static EntityData.ChunkStore.Builder encode(Vector3ic pos, TeraArray blockData, TeraArray[] extraData) {
+    /**
+     * @param sunlightRegenData the sunlight seed, see the field's comment in EntityData.proto
+     */
+    public static EntityData.ChunkStore.Builder encode(Vector3ic pos, TeraArray blockData, TeraArray[] extraData,
+                                                       TeraArray sunlightRegenData) {
         final EntityData.ChunkStore.Builder b = EntityData.ChunkStore.newBuilder()
             .setX(pos.x()).setY(pos.y()).setZ(pos.z());
         b.setBlockData(runLengthEncode16(blockData));
         for (TeraArray extraDatum : extraData) {
             b.addExtraData(runLengthEncode16(extraDatum));
+        }
+        if (sunlightRegenData != null) {
+            b.setSunlightRegenData(runLengthEncode16(sunlightRegenData));
         }
         return b;
     }
@@ -43,7 +50,14 @@ public final class ChunkSerializer {
         for (int i = 0; i < extraData.length; i++) {
             runLengthDecode(message.getExtraData(i), extraData[i]);
         }
-        return new ChunkImpl(pos, blockData, extraData, blockManager);
+        ChunkImpl chunk = new ChunkImpl(pos, blockData, extraData, blockManager);
+        if (message.hasSunlightRegenData()) {
+            runLengthDecode(message.getSunlightRegenData(), chunk.getSunlightRegenData());
+        }
+        // A save written before this field existed simply has no seed, and the chunk comes back
+        // lightless exactly as it used to. Nothing to repair here: the world will look wrong until
+        // those chunks are regenerated, and pretending otherwise would hide it.
+        return chunk;
     }
 
     private static EntityData.RunLengthEncoding16 runLengthEncode16(TeraArray array) {
