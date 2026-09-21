@@ -115,6 +115,11 @@ public interface ChunkMesh {
         // column beneath it. Zero on every vertex that is not a water surface, which never reads it.
         public static final int WATER_DEPTH_INDEX = 9; // float
 
+        // How much of the block light at this vertex is the glow of molten rock rather than the near white of a
+        // flame, as a byte holding nought to a hundred and twenty seven. Zero on every vertex no lava reaches,
+        // which is almost all of them, and which is what makes a torch lit wall come out exactly as it did before.
+        public static final int WARMTH_INDEX = 10; // float
+
         public final VertexResource buffer;
         public final IndexResource indices = new IndexResource();
 
@@ -128,6 +133,7 @@ public interface ChunkMesh {
         public final VertexByteAttributeBinding frames;
 
         public final VertexByteAttributeBinding waterDepth;
+        public final VertexByteAttributeBinding warmth;
 
         public final VertexFloatAttributeBinding sunlight;         // this could be changed to a single byte
         public final VertexFloatAttributeBinding blockLight;       // this could be changed to a single byte
@@ -145,6 +151,7 @@ public interface ChunkMesh {
             frames = builder.add(FRAME_INDEX, GLAttributes.BYTE_1_VERTEX_ATTRIBUTE);
 
             waterDepth = builder.add(WATER_DEPTH_INDEX, GLAttributes.BYTE_1_VERTEX_ATTRIBUTE);
+            warmth = builder.add(WARMTH_INDEX, GLAttributes.BYTE_1_VERTEX_ATTRIBUTE);
 
             sunlight = builder.add(SUNLIGHT_INDEX, GLAttributes.FLOAT_1_VERTEX_ATTRIBUTE);
             blockLight = builder.add(BLOCK_INDEX, GLAttributes.FLOAT_1_VERTEX_ATTRIBUTE);

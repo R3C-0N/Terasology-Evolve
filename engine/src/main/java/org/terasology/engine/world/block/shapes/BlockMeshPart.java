@@ -182,6 +182,7 @@ public class BlockMeshPart {
         int sunlitSamples = 0;
         float blockLight = 0;
         int blockLitSamples = 0;
+        float warmth = 0;
         for (int sample = 0; sample < LIGHT_SAMPLE_X.length; sample++) {
             float sampleX = x + LIGHT_SAMPLE_X[sample];
             float sampleY = y + LIGHT_SAMPLE_Y[sample];
@@ -195,11 +196,18 @@ public class BlockMeshPart {
             if (light > 0) {
                 blockLight += light;
                 blockLitSamples++;
+                warmth += chunkView.getWarmth(sampleX, sampleY, sampleZ);
             }
         }
 
         elements.sunlight.put(sunlitSamples == 0 ? 0 : sunlight / sunlitSamples / 15f);
         elements.blockLight.put(blockLitSamples == 0 ? 0 : blockLight / blockLitSamples / 15f);
+        // The warm share of that light, as a byte holding zero to a hundred and twenty seven. Summing both over the
+        // same samples is what makes the ratio of the sums the ratio of the averages, so the two need not be divided
+        // out first. The min is a belt: warmth is at or below the light at every point, unless a block definition
+        // has broken the invariant by declaring itself warmer than it is bright.
+        float warmShare = blockLitSamples == 0 ? 0f : Math.min(1f, warmth / blockLight);
+        elements.warmth.put((byte) Math.round(warmShare * 127f));
         elements.ambientOcclusion.put((float) ((OPAQUE_OCCLUSION[occluders] + BILLBOARD_OCCLUSION[billboardOccluders]) / 2.0));
     }
 

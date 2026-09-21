@@ -131,10 +131,81 @@ float calcLuminance(vec3 color) {
     return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
 }
 
-vec3 calcBlocklightColor(float blockBrightness) {
-    // Calculate the final blocklight color value and add a slight reddish tint to it
-    return vec3(blockBrightness) * vec3(1.0, 0.95, 0.94);
+// The colour of the block light: the near white of a flame, plus however much of it is the orange of molten rock.
+//
+// Additive, and not a mix over the total, because by the time the deferred pass calls this the x channel of the
+// light buffer has picked up the sun as well - only the warm term may be recoloured, or a lava lake would turn
+// daylight orange along its whole shore. Written this way, warmBrightness of zero gives back the old literal
+// exactly, so a torch lit wall is unchanged to the bit.
+//
+// The max is not decoration. LAVA_LIGHT_TINT - BLOCK_LIGHT_TINT is negative in green and in blue, and a point
+// light adding red into the total does not raise the ceiling on how much green the warm term may take away.
+vec3 calcBlocklightColor(float blockBrightness, float warmBrightness) {
+    return max(vec3(0.0),
+               vec3(blockBrightness) * BLOCK_LIGHT_TINT
+             + vec3(warmBrightness) * (LAVA_LIGHT_TINT - BLOCK_LIGHT_TINT));
 }
+
+#if __VERSION__ >= 130
+
+// A repeatable random number per block of the world, in [0, 1).
+//
+// Integer mixing rather than fract(sin(dot(...))): a float hash of a world coordinate loses its low bits a few
+// thousand blocks out from the origin, and whole regions there collapse onto a single value. The offset brings
+// negative coordinates into range; the finalising multipliers are MurmurHash3's.
+uint hashCell(ivec3 cell, uint salt) {
+    uvec3 c = uvec3(cell + ivec3(1 << 20));
+    uint h = c.x * 0x8da6b343u + c.y * 0xd8163841u + c.z * 0xcb1ab31fu + salt * 0x9e3779b9u;
+    h ^= h >> 16; h *= 0x85ebca6bu;
+    h ^= h >> 13; h *= 0xc2b2ae35u;
+    h ^= h >> 16;
+    return h;
+}
+
+float cellRandom(ivec3 cell, uint salt) {
+    return float(hashCell(cell, salt)) * (1.0 / 4294967296.0);
+}
+
+// Value noise along time for one cell, in [-1, 1]: one random value per unit of t, joined by a smoothstep. A sum
+// of these never comes back round, where a sum of triangle waves repeats as soon as two periods share a multiple.
+float cellValueNoise(ivec3 cell, float t, uint salt) {
+    float base = floor(t);
+    float f = t - base;
+    f = f * f * (3.0 - 2.0 * f);
+    uint step = uint(int(base) + (1 << 20));
+    float a = cellRandom(cell, salt ^ (step * 0x27220a95u));
+    float b = cellRandom(cell, salt ^ ((step + 1u) * 0x27220a95u));
+    return mix(a, b, f) * 2.0 - 1.0;
+}
+
+#endif
+
+#if defined (FLICKERING_LIGHT) && __VERSION__ >= 130
+
+// How far the light of one block of lava is down, right now.
+//
+// The world wide flicker is a single number for the whole frame, which is exactly why a lava lake beats as one
+// body. This one is keyed to the block the fragment sits on. Block centres are on the integers and a face is on a
+// half integer, hence the half block shift; the step back along the grid normal then picks the block the face
+// belongs to rather than its neighbour. Without that step the six faces of one cube would beat out of time with
+// each other.
+//
+// The rate is drawn per block as well as the phase: a phase alone would only offset neighbours along one shared
+// beat, where drawing the rate too lets them drift apart. The three octaves are in golden ratio, so no two of them
+// ever line back up.
+float lavaFlickerOffset(vec3 worldPos, vec3 gridNormal) {
+    ivec3 cell = ivec3(floor(worldPos + vec3(0.5) - 0.5 * gridNormal));
+
+    float rate = LAVA_FLICKER_RATE * (0.75 + 0.5 * cellRandom(cell, 0x5bf03635u));
+    float t = timeToTick(time, rate);
+
+    float offset  = cellValueNoise(cell, t,         0x11u) * (LAVA_FLICKER_DEPTH * 0.50);
+    offset       += cellValueNoise(cell, t * 1.618, 0x22u) * (LAVA_FLICKER_DEPTH * 0.33);
+    offset       += cellValueNoise(cell, t * 2.618, 0x33u) * (LAVA_FLICKER_DEPTH * 0.17);
+    return offset;
+}
+
+#endif
 
 float calcBlocklightColorBrightness(float blocklightValue
 #if defined (FLICKERING_LIGHT)
