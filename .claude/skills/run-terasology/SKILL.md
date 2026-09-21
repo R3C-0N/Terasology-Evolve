@@ -239,6 +239,29 @@ Other run targets exist in `facades/PC/build.gradle.kts`: `debug` (JDWP on 1044)
   placed at its feet reads exactly like a broken driver: keys, mouse and console
   all answer, only the position never changes. Check `shot --hud` against the
   previous position before blaming the input.
+- **`ghost` is a blind toggle, and toggling it in mid-air over lava kills
+  you.** Nothing reports which way it went, so a second `ghost` sent "to be
+  sure" turns it *off* — and if you were hovering, you fall. Over lava that is
+  eight damage a second against twenty health: two deaths in one session, both
+  from exactly this. Only ever toggle it while standing on the ground, and
+  teleport *after*, never before.
+- **`replaceBlock` cannot remove a liquid — it will dig the ground instead.**
+  Water and lava are `targetable: false`, so the crosshair ray goes straight
+  through them and lands on the solid block underneath; `replaceBlock
+  engine:air` then deletes *that*, and the liquid pours into the hole you just
+  made. What works is the opposite move: liquids are `replacementAllowed`, so
+  **placing** a block lands *in* the liquid and removes it. `give
+  CoreAssets:Grass`, then right click with `--press 0.4`.
+  Two things make it practical. Only the **source** (`liquidFlow` says
+  `flow=0`) has to go — the rest drains itself, and a source is almost always
+  the block you originally converted, so putting the original terrain back is
+  exact. And because the ray ignores liquids, you can aim *through* a pool at
+  a solid face on its far side: `showView` names the block, and the placement
+  lands on the near side of it. That is how to reach a source you cannot walk
+  up to without burning. The floor is what limits you, not distance — a ray
+  cast from standing height grazes the ground about three blocks out, so aim
+  from slightly above, or place one block at the pool's edge, stand on it, and
+  shoot from there.
 - **`console` is swallowed while a NUI screen is open.** The inventory and the
   crafting window take the key that opens the console, so `driver.py console`
   looks like it ran and nothing happens — check the log for the echo rather
