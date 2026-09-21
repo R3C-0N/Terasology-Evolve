@@ -8,7 +8,6 @@ import org.joml.Vector2fc;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import org.joml.Vector4f;
-import org.terasology.engine.logic.players.LocalPlayer;
 import org.terasology.engine.registry.CoreRegistry;
 import org.terasology.engine.rendering.assets.material.Material;
 import org.terasology.engine.rendering.assets.mesh.Mesh;
@@ -76,7 +75,15 @@ public class AABBRenderer implements BlockOverlayRenderer, AutoCloseable {
         Camera camera = worldRenderer.getActiveCamera();
 
         Vector3f center = aabb.center(new Vector3f());
-        Vector3f cameraPosition = CoreRegistry.get(LocalPlayer.class).getViewPosition(new Vector3f());
+        // The camera's own position, and not the player's eyes, because the view matrix beside it
+        // is built with the eye at the origin: whatever is subtracted here has to be the point that
+        // matrix was built around. The two used to be the same point and the mistake cost nothing.
+        // They stopped being the same the day the game grew a third person view, which slides the
+        // camera up to four blocks behind the character: the outline of the aimed block was then
+        // drawn four blocks off, and it looked like a stray box floating beside the player. Every
+        // other overlay in the engine already takes the camera — RegionOutlineRenderer,
+        // BoundingBoxRenderer, BlockSelectionRenderer — and so does OpaqueBlocksNode for the chunks.
+        Vector3f cameraPosition = camera.getPosition();
         modelView.set(camera.getViewMatrix()).mul(new Matrix4f().setTranslation(
                 center.x() - cameraPosition.x, center.y() - cameraPosition.y,
                 center.z() - cameraPosition.z
