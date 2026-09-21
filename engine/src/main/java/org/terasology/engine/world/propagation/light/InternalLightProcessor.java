@@ -20,6 +20,7 @@ import org.terasology.engine.world.propagation.StandardBatchPropagator;
 public final class InternalLightProcessor {
 
     private static final PropagationRules LIGHT_RULES = new LightPropagationRules();
+    private static final PropagationRules WARMTH_RULES = new WarmthPropagationRules();
     private static final PropagationRules SUNLIGHT_REGEN_RULES = new SunlightRegenPropagationRules();
 
     private InternalLightProcessor() {
@@ -36,12 +37,16 @@ public final class InternalLightProcessor {
     }
 
     /**
-     * Propagate out light from the initial luminous blocks
+     * Propagate out light, and the warm share of it, from the initial luminous blocks
+     * <p>
+     * Both channels are seeded from the one sweep. Sixty five thousand {@code getBlock} calls is the expensive part
+     * here, and the warmth of a block is a field on the block we have already fetched.
      *
      * @param chunk The chunk to populate through
      */
     private static void populateLight(Chunk chunk, int scale) {
         BatchPropagator lightPropagator = new StandardBatchPropagator(LIGHT_RULES, new SingleChunkView(LIGHT_RULES, chunk), scale);
+        BatchPropagator warmthPropagator = new StandardBatchPropagator(WARMTH_RULES, new SingleChunkView(WARMTH_RULES, chunk), scale);
         Vector3i pos = new Vector3i();
         for (int x = 0; x < Chunks.SIZE_X; x++) {
             for (int z = 0; z < Chunks.SIZE_Z; z++) {
@@ -51,10 +56,15 @@ public final class InternalLightProcessor {
                         chunk.setLight(x, y, z, block.getLuminance());
                         lightPropagator.propagateFrom(pos.set(x, y, z), block.getLuminance());
                     }
+                    if (block.getWarmth() > 0) {
+                        chunk.setWarmth(x, y, z, block.getWarmth());
+                        warmthPropagator.propagateFrom(pos.set(x, y, z), block.getWarmth());
+                    }
                 }
             }
         }
         lightPropagator.process();
+        warmthPropagator.process();
     }
 
     /**

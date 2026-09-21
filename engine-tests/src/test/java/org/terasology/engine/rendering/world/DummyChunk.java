@@ -127,6 +127,21 @@ public class DummyChunk implements Chunk {
     }
 
     @Override
+    public byte getWarmth(int x, int y, int z) {
+        return 0;
+    }
+
+    @Override
+    public boolean setWarmth(int x, int y, int z, byte amount) {
+        return false;
+    }
+
+    @Override
+    public boolean hasWarmth() {
+        return false;
+    }
+
+    @Override
     public int getEstimatedMemoryConsumptionInBytes() {
         return 0;
     }

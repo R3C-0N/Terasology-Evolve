@@ -170,6 +170,7 @@ public class BlockBuilder implements BlockBuilderHelper {
         block.setShadowCasting(def.isShadowCasting());
         block.setWaving(def.isWaving());
         block.setLuminance(def.getLuminance());
+        block.setWarmth(def.getWarmth());
         block.setTint(def.getTint());
         if (Strings.isNullOrEmpty(def.getDisplayName())) {
             block.setDisplayName(properCase(defaultName));

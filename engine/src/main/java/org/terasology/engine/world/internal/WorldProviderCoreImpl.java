@@ -35,6 +35,8 @@ import org.terasology.engine.world.propagation.light.SunlightPropagationRules;
 import org.terasology.engine.world.propagation.light.SunlightRegenPropagationRules;
 import org.terasology.engine.world.propagation.light.SunlightRegenWorldView;
 import org.terasology.engine.world.propagation.light.SunlightWorldView;
+import org.terasology.engine.world.propagation.light.WarmthPropagationRules;
+import org.terasology.engine.world.propagation.light.WarmthWorldView;
 import org.terasology.engine.world.time.WorldTime;
 import org.terasology.engine.world.time.WorldTimeImpl;
 
@@ -96,6 +98,9 @@ public class WorldProviderCoreImpl implements WorldProviderCore {
         worldTime.setMilliseconds(time);
 
         propagators.add(new StandardBatchPropagator(new LightPropagationRules(), new LightWorldView(chunkProvider)));
+        // The warm share of that light follows the same paths, so that mining out a block of lava takes its orange
+        // with it exactly as it takes its brightness.
+        propagators.add(new StandardBatchPropagator(new WarmthPropagationRules(), new WarmthWorldView(chunkProvider)));
         PropagatorWorldView regenWorldView = new SunlightRegenWorldView(chunkProvider);
         PropagationRules sunlightRules = new SunlightPropagationRules(regenWorldView);
         PropagatorWorldView sunlightWorldView = new SunlightWorldView(chunkProvider);

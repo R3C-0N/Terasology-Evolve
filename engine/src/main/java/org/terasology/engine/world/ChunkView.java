@@ -83,6 +83,25 @@ public interface ChunkView {
     byte getLight(int x, int y, int z);
 
     /**
+     * How much of the light at the given coordinates is the glow of molten rock rather than the near white of a
+     * flame. Never above the light itself; only the mesher reads it, to decide how orange a surface is lit.
+     *
+     * @param x
+     * @param y
+     * @param z
+     * @return The warmth at the given coordinates, or 0 if outside the view.
+     */
+    byte getWarmth(float x, float y, float z);
+
+    /**
+     * @param x
+     * @param y
+     * @param z
+     * @return The warmth at the given coordinates, or 0 if outside the view.
+     */
+    byte getWarmth(int x, int y, int z);
+
+    /**
      * Sets the block at the given position, if it is within the view.
      *
      * @param pos

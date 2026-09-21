@@ -30,6 +30,7 @@ public final class LightMerger {
             LOCAL_CHUNKS_SIDE_LENGTH * LOCAL_CHUNKS_SIDE_LENGTH * LOCAL_CHUNKS_SIDE_LENGTH;
 
     private static final LightPropagationRules LIGHT_RULES = new LightPropagationRules();
+    private static final WarmthPropagationRules WARMTH_RULES = new WarmthPropagationRules();
     private static final SunlightRegenPropagationRules SUNLIGHT_REGEN_RULES = new SunlightRegenPropagationRules();
 
     private LightMerger() {
@@ -61,6 +62,23 @@ public final class LightMerger {
     }
 
     /**
+     * Whether warmth could cross any of the faces this merge touches: the centre chunk, or one of its six direct
+     * neighbours. The other twenty never exchange anything with the centre here.
+     */
+    private static boolean anyWarmth(Chunk[] localChunks, Chunk chunk) {
+        if (chunk.hasWarmth()) {
+            return true;
+        }
+        for (Side side : Side.allSides()) {
+            Chunk adjChunk = localChunks[indexOf(side)];
+            if (adjChunk != null && adjChunk.hasWarmth()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * Merge light for chunk.
      *
      * @param localChunks nearest chunks with target chunk
@@ -81,6 +99,13 @@ public final class LightMerger {
         List<BatchPropagator> propagators = Lists.newArrayList();
         propagators.add(new StandardBatchPropagator(new LightPropagationRules(), new LocalChunkView(localChunks,
                 LIGHT_RULES)));
+        // Warmth only has somewhere to flow if one of the seven chunks a merge actually touches holds some. Each
+        // propagator here sweeps twelve chunk faces, so carrying a fourth one over the whole world for the handful
+        // of chunks that have ever seen lava would be a third of the merge spent on zeroes.
+        if (anyWarmth(localChunks, chunk)) {
+            propagators.add(new StandardBatchPropagator(new WarmthPropagationRules(), new LocalChunkView(localChunks,
+                    WARMTH_RULES)));
+        }
         PropagatorWorldView regenWorldView = new LocalChunkView(localChunks, SUNLIGHT_REGEN_RULES);
         PropagationRules sunlightRules = new SunlightPropagationRules(regenWorldView);
         PropagatorWorldView sunlightWorldView = new LocalChunkView(localChunks, sunlightRules);

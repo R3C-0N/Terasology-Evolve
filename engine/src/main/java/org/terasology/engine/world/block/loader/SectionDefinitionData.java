@@ -36,6 +36,7 @@ public class SectionDefinitionData {
     private BlockSounds sounds;
 
     private byte luminance;
+    private byte warmth;
 
     private Vector3f tint = new Vector3f();
 
@@ -87,6 +88,7 @@ public class SectionDefinitionData {
         this.sounds = other.sounds;
 
         this.luminance = other.luminance;
+        this.warmth = other.warmth;
         this.tint = new Vector3f(other.tint);
 
         this.blockTiles = new EnumMap<>(other.blockTiles);
@@ -234,6 +236,14 @@ public class SectionDefinitionData {
 
     public void setLuminance(byte luminance) {
         this.luminance = luminance;
+    }
+
+    public byte getWarmth() {
+        return warmth;
+    }
+
+    public void setWarmth(byte warmth) {
+        this.warmth = warmth;
     }
 
     public Vector3f getTint() {

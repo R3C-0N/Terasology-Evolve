@@ -121,6 +121,25 @@ public class ChunkViewCoreImpl implements ChunkViewCore {
     }
 
     @Override
+    public byte getWarmth(float x, float y, float z) {
+        return getWarmth(TeraMath.floorToInt(x + 0.5f), TeraMath.floorToInt(y + 0.5f), TeraMath.floorToInt(z + 0.5f));
+    }
+
+    @Override
+    public byte getWarmth(int blockX, int blockY, int blockZ) {
+        if (blockRegion.contains(blockX, blockY, blockZ)) {
+            Chunk chunk = chunks[relChunkIndex(blockX, blockY, blockZ)];
+            if (chunk != null) {
+                return chunk.getWarmth(
+                        Chunks.toRelative(blockX, chunkFilterSize.x),
+                        Chunks.toRelative(blockY, chunkFilterSize.y),
+                        Chunks.toRelative(blockZ, chunkFilterSize.z));
+            }
+        }
+        return 0;
+    }
+
+    @Override
     public void setBlock(Vector3ic pos, Block type) {
         setBlock(pos.x(), pos.y(), pos.z(), type);
     }

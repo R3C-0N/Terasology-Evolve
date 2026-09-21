@@ -297,6 +297,7 @@ public class BlockFamilyDefinitionFormat extends AbstractAssetFileFormat<BlockFa
             setBoolean(data::setWaving, jsonObject, "waving");
             setObject(data::setSounds, jsonObject, "sounds", BlockSounds.class, context);
             setByte(data::setLuminance, jsonObject, "luminance");
+            setByte(data::setWarmth, jsonObject, "warmth");
             setObject(data::setTint, jsonObject, "tint", Vector3f.class, context);
 
             readBlockPartMap(jsonObject, "tile", "tiles", data::getBlockTiles, BlockTile.class, context);

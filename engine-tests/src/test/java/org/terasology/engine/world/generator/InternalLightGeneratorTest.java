@@ -36,6 +36,7 @@ public class InternalLightGeneratorTest extends TerasologyTestingEnvironment {
     Block airBlock;
     Block solidBlock;
     Block fullLight;
+    Block fullWarmLight;
 
     private BlockManager blockManager;
     private ExtraBlockDataManager extraDataManager;
@@ -67,6 +68,15 @@ public class InternalLightGeneratorTest extends TerasologyTestingEnvironment {
         fullLightData.setBlockFamily(SymmetricFamily.class);
         assetManager.loadAsset(new ResourceUrn("engine:torch"), fullLightData, BlockFamilyDefinition.class);
         fullLight = blockManager.getBlock(new BlockUri(new ResourceUrn("engine:torch")));
+
+        BlockFamilyDefinitionData fullWarmLightData = new BlockFamilyDefinitionData();
+        fullWarmLightData.getBaseSection().setDisplayName("Lava");
+        fullWarmLightData.getBaseSection().setShape(assetManager.getAsset("engine:cube", BlockShape.class).get());
+        fullWarmLightData.getBaseSection().setLuminance(Chunks.MAX_LIGHT);
+        fullWarmLightData.getBaseSection().setWarmth(Chunks.MAX_LIGHT);
+        fullWarmLightData.setBlockFamily(SymmetricFamily.class);
+        assetManager.loadAsset(new ResourceUrn("engine:lava"), fullWarmLightData, BlockFamilyDefinition.class);
+        fullWarmLight = blockManager.getBlock(new BlockUri(new ResourceUrn("engine:lava")));
     }
 
     @Test
@@ -189,6 +199,36 @@ public class InternalLightGeneratorTest extends TerasologyTestingEnvironment {
         for (int i = 1; i < fullLight.getLuminance(); ++i) {
             for (Vector3ic pos : Diamond3iIterable.shell(new Vector3i(16, 32, 16), i).build()) {
                 assertEquals(fullLight.getLuminance() - i, chunk.getLight(pos));
+            }
+        }
+    }
+
+    @Test
+    public void testWarmthPropagatesLikeLight() {
+        Chunk chunk = new ChunkImpl(0, 0, 0, blockManager, extraDataManager);
+        chunk.setBlock(16, 32, 16, fullWarmLight);
+
+        InternalLightProcessor.generateInternalLighting(chunk);
+        assertEquals(fullWarmLight.getWarmth(), chunk.getWarmth(16, 32, 16));
+        for (int i = 1; i < fullWarmLight.getWarmth(); ++i) {
+            for (Vector3ic pos : Diamond3iIterable.shell(new Vector3i(16, 32, 16), i).build()) {
+                assertEquals(fullWarmLight.getWarmth() - i, chunk.getWarmth(pos), () -> "Incorrect warmth at " + pos);
+                // Warmth must never outrun the light it is a share of, or the mesher divides out above one.
+                assertEquals(chunk.getLight(pos), chunk.getWarmth(pos), () -> "Warmth above light at " + pos);
+            }
+        }
+    }
+
+    @Test
+    public void testLightWithoutWarmthStaysCold() {
+        Chunk chunk = new ChunkImpl(0, 0, 0, blockManager, extraDataManager);
+        chunk.setBlock(16, 32, 16, fullLight);
+
+        InternalLightProcessor.generateInternalLighting(chunk);
+        assertEquals(fullLight.getLuminance(), chunk.getLight(16, 32, 16));
+        for (int i = 0; i < fullLight.getLuminance(); ++i) {
+            for (Vector3ic pos : Diamond3iIterable.shell(new Vector3i(16, 32, 16), i).build()) {
+                assertEquals(0, chunk.getWarmth(pos), () -> "A torch warmed " + pos);
             }
         }
     }

@@ -362,6 +362,62 @@ public interface Chunk extends RenderableChunk {
      */
     boolean setLight(int x, int y, int z, byte amount);
 
+    /**
+     * Returns how much of the light at a block is the glow of molten rock.
+     * <p>
+     * A second light channel, propagated exactly as the light is and never above it, so that the mesher can tell the
+     * orange of lava from the near white of a torch. Like the light, it is never stored or sent: the client rebuilds
+     * it from the blocks.
+     *
+     * @param pos Position of the block relative to corner of the chunk
+     * @return Current warmth, nought to fifteen
+     */
+    default byte getWarmth(Vector3ic pos) {
+        return getWarmth(pos.x(), pos.y(), pos.z());
+    }
+
+    /**
+     * Returns how much of the light at a block is the glow of molten rock.
+     *
+     * @param x X offset from the corner of the chunk
+     * @param y Y offset from the corner of the chunk
+     * @param z Z offset from the corner of the chunk
+     * @return Current warmth, nought to fifteen
+     */
+    byte getWarmth(int x, int y, int z);
+
+    /**
+     * Sets the warmth for given block relative to the chunk.
+     *
+     * @param pos    Position of the block relative to corner of the chunk
+     * @param amount Warmth value
+     * @return False if the amount is same as the old value, true otherwise
+     */
+    default boolean setWarmth(Vector3ic pos, byte amount) {
+        return setWarmth(pos.x(), pos.y(), pos.z(), amount);
+    }
+
+    /**
+     * Sets the warmth for given block relative to the chunk.
+     *
+     * @param x      X offset from the corner of the chunk
+     * @param y      Y offset from the corner of the chunk
+     * @param z      Z offset from the corner of the chunk
+     * @param amount Warmth value
+     * @return False if the amount is same as the old value, true otherwise
+     */
+    boolean setWarmth(int x, int y, int z, byte amount);
+
+    /**
+     * Whether any warmth has ever been written into this chunk.
+     * <p>
+     * Merging a light channel between two chunks sweeps a whole face twice per side, so the warmth propagator is only
+     * worth running where there is, or was, something warm. Once true it stays true.
+     *
+     * @return True if this chunk has ever held warmth
+     */
+    boolean hasWarmth();
+
     int getEstimatedMemoryConsumptionInBytes();
 
     ChunkBlockIterator getBlockIterator();

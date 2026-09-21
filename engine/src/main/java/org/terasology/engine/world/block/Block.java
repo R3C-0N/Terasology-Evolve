@@ -62,6 +62,7 @@ public final class Block {
     private boolean shadowCasting = true;
     private boolean waving;
     private byte luminance;
+    private byte warmth;
     private Vector3f tint = new Vector3f(0, 0, 0);
     private Map<BlockPart, BlockColorSource> colorSource = Maps.newEnumMap(BlockPart.class);
     private Map<BlockPart, Colorc> colorOffsets = Maps.newEnumMap(BlockPart.class);
@@ -438,6 +439,28 @@ public final class Block {
      */
     public void setLuminance(byte luminance) {
         this.luminance = (byte) TeraMath.clamp(luminance, 0, Chunks.MAX_LIGHT);
+    }
+
+    /**
+     * @return how much of the light this block produces is the glow of molten rock rather than the near white of a
+     *         flame, on the same nought to fifteen scale as the luminance
+     */
+    public byte getWarmth() {
+        return warmth;
+    }
+
+    /**
+     * Sets the warm share of the light this block produces.
+     * <p>
+     * This travels through the world as a second light channel, falling off one per block exactly as the luminance
+     * does, and the two are compared where the mesh is built to decide how orange a lit surface is. It must therefore
+     * stay at or below the luminance: a block warmer than it is bright would light a wall more warmly than it lights
+     * it at all, and the share would come out above one.
+     *
+     * @param warmth the warm share of the light produced, nought to fifteen
+     */
+    public void setWarmth(byte warmth) {
+        this.warmth = (byte) TeraMath.clamp(warmth, 0, Chunks.MAX_LIGHT);
     }
 
     public Vector3f getTint() {

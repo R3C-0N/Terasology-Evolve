@@ -58,6 +58,15 @@ public class ChunkImpl implements Chunk {
     private volatile TeraArray sunlightData;
     private volatile TeraArray sunlightRegenData;
     private volatile TeraArray lightData;
+    private volatile TeraArray warmthData;
+
+    /**
+     * Whether any warmth has ever been written here. Merging a light channel across a chunk boundary sweeps a whole
+     * face twice per side, so running the warmth propagator over the twenty odd chunks nowhere near any lava would
+     * cost a third of the merge for nothing. Once true it stays true: a chunk whose lava has been mined still has
+     * warmth to clear.
+     */
+    private volatile boolean hasWarmth;
 
     private TeraArray blockData;
     private volatile TeraArray blockDataSnapshot;
@@ -93,6 +102,7 @@ public class ChunkImpl implements Chunk {
         sunlightData = new TeraSparseArray8Bit(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         sunlightRegenData = new TeraSparseArray8Bit(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         lightData = new TeraSparseArray8Bit(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+        warmthData = new TeraSparseArray8Bit(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
         dirty = true;
         this.blockManager = blockManager;
         region = new BlockRegion(
@@ -136,6 +146,7 @@ public class ChunkImpl implements Chunk {
             + sunlightData.getEstimatedMemoryConsumptionInBytes()
             + sunlightRegenData.getEstimatedMemoryConsumptionInBytes()
             + lightData.getEstimatedMemoryConsumptionInBytes()
+            + warmthData.getEstimatedMemoryConsumptionInBytes()
             + extraDataSize;
     }
 
@@ -189,6 +200,25 @@ public class ChunkImpl implements Chunk {
     public boolean setLight(int x, int y, int z, byte amount) {
         Preconditions.checkArgument(amount >= 0 && amount <= Chunks.MAX_LIGHT);
         return lightData.set(x, y, z, amount) != amount;
+    }
+
+    @Override
+    public byte getWarmth(int x, int y, int z) {
+        return (byte) warmthData.get(x, y, z);
+    }
+
+    @Override
+    public boolean setWarmth(int x, int y, int z, byte amount) {
+        Preconditions.checkArgument(amount >= 0 && amount <= Chunks.MAX_LIGHT);
+        if (amount > 0) {
+            hasWarmth = true;
+        }
+        return warmthData.set(x, y, z, amount) != amount;
+    }
+
+    @Override
+    public boolean hasWarmth() {
+        return hasWarmth;
     }
 
     @Override
@@ -259,7 +289,9 @@ public class ChunkImpl implements Chunk {
             int blocksSize = blockData.getEstimatedMemoryConsumptionInBytes();
             int sunlightSize = sunlightData.getEstimatedMemoryConsumptionInBytes();
             int sunlightRegenSize = sunlightRegenData.getEstimatedMemoryConsumptionInBytes();
-            int lightSize = lightData.getEstimatedMemoryConsumptionInBytes();
+            // The warmth channel deflates alongside the light it is a share of, so the log counts them as one.
+            int lightSize = lightData.getEstimatedMemoryConsumptionInBytes()
+                + warmthData.getEstimatedMemoryConsumptionInBytes();
             int extraSize = 0;
             for (TeraArray extraDatum : extraData) {
                 extraSize += extraDatum.getEstimatedMemoryConsumptionInBytes();
@@ -268,12 +300,14 @@ public class ChunkImpl implements Chunk {
 
             blockData = def.deflate(blockData);
             lightData = def.deflate(lightData);
+            warmthData = def.deflate(warmthData);
             for (int i = 0; i < extraData.length; i++) {
                 extraData[i] = def.deflate(extraData[i]);
             }
 
             int blocksReduced = blockData.getEstimatedMemoryConsumptionInBytes();
-            int lightReduced = lightData.getEstimatedMemoryConsumptionInBytes();
+            int lightReduced = lightData.getEstimatedMemoryConsumptionInBytes()
+                + warmthData.getEstimatedMemoryConsumptionInBytes();
             int extraReduced = 0;
             for (TeraArray extraDatum : extraData) {
                 extraReduced += extraDatum.getEstimatedMemoryConsumptionInBytes();
@@ -304,6 +338,7 @@ public class ChunkImpl implements Chunk {
             final int oldSize = getEstimatedMemoryConsumptionInBytes();
             blockData = def.deflate(blockData);
             lightData = def.deflate(lightData);
+            warmthData = def.deflate(warmthData);
             for (int i = 0; i < extraData.length; i++) {
                 extraData[i] = def.deflate(extraData[i]);
             }
@@ -413,6 +448,8 @@ public class ChunkImpl implements Chunk {
             sunlightRegenData = new TeraDenseArray8Bit(getChunkSizeX(), getChunkSizeY(),
                     getChunkSizeZ());
             lightData = new TeraDenseArray8Bit(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+            warmthData = new TeraDenseArray8Bit(getChunkSizeX(), getChunkSizeY(), getChunkSizeZ());
+            hasWarmth = false;
         }
     }
 
