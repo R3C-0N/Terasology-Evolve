@@ -159,6 +159,8 @@ public class BlockBuilder implements BlockBuilderHelper {
         block.setGrass(def.isGrass());
         block.setIce(def.isIce());
         block.setHardness(def.getHardness());
+        block.setFlowRange(def.getFlowRange());
+        block.setViscosity(def.getViscosity());
         block.setAttachmentAllowed(def.isAttachmentAllowed());
         block.setReplacementAllowed(def.isReplacementAllowed());
         block.setSupportRequired(def.isSupportRequired());

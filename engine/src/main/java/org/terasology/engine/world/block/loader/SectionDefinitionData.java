@@ -19,6 +19,8 @@ public class SectionDefinitionData {
     private String displayName = "";
     private boolean liquid;
     private int hardness = 0x3;
+    private int flowRange;
+    private byte viscosity;
 
     private boolean attachmentAllowed = true;
     private boolean replacementAllowed;
@@ -71,6 +73,8 @@ public class SectionDefinitionData {
         this.displayName = other.displayName;
         this.liquid = other.liquid;
         this.hardness = other.hardness;
+        this.flowRange = other.flowRange;
+        this.viscosity = other.viscosity;
 
         this.attachmentAllowed = other.attachmentAllowed;
         this.replacementAllowed = other.replacementAllowed;
@@ -132,6 +136,22 @@ public class SectionDefinitionData {
 
     public void setHardness(int hardness) {
         this.hardness = hardness;
+    }
+
+    public int getFlowRange() {
+        return flowRange;
+    }
+
+    public void setFlowRange(int flowRange) {
+        this.flowRange = flowRange;
+    }
+
+    public byte getViscosity() {
+        return viscosity;
+    }
+
+    public void setViscosity(byte viscosity) {
+        this.viscosity = viscosity;
     }
 
     public boolean isAttachmentAllowed() {

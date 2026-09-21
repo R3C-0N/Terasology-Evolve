@@ -47,7 +47,13 @@ public final class ChunkSerializer {
 
         final TeraArray blockData = runLengthDecode(message.getBlockData());
         final TeraArray[] extraData = extraDataManager.makeDataArrays(Chunks.SIZE_X, Chunks.SIZE_Y, Chunks.SIZE_Z);
-        for (int i = 0; i < extraData.length; i++) {
+        // A save written before a data field existed carries fewer arrays than are registered now. Reading
+        // only what is there leaves the newcomers at their zero, which is what a field means by "nothing has
+        // been written here yet" - the liquid flow field, for one, reads a zero as a permanent source, so an
+        // old sea comes back a sea. Taking the registered count on trust instead threw an index error deep
+        // inside chunk loading, and every chunk of every existing world failed to load.
+        int stored = Math.min(extraData.length, message.getExtraDataCount());
+        for (int i = 0; i < stored; i++) {
             runLengthDecode(message.getExtraData(i), extraData[i]);
         }
         ChunkImpl chunk = new ChunkImpl(pos, blockData, extraData, blockManager);

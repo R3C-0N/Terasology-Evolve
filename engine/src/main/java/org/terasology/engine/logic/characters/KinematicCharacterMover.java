@@ -111,6 +111,25 @@ public class KinematicCharacterMover implements CharacterMover {
         return Math.max(0, speedEvent.getResultValue());
     }
 
+    /**
+     * How much the liquid at this position holds a character back, one being open air and a thicker liquid
+     * being less.
+     * <p>
+     * This is read from the block rather than collected through {@link GetMaxSpeedEvent} on purpose. That
+     * event carries no position, so a handler would have to read the character's {@code LocationComponent} —
+     * and during a client's prediction replay that component holds the last predicted position, not the
+     * position of the step being replayed, so the factor would be taken from the wrong block and the client
+     * would drift from the server at every liquid's edge. The state passed to the mover is the position of
+     * the step, identical on both sides, which is why the lookup lives here.
+     */
+    private float liquidDrag(Vector3f position) {
+        Block block = worldProvider.getBlock(position);
+        if (!block.isLiquid()) {
+            return 1f;
+        }
+        return 1f - block.getViscosity() / (float) (Block.MAX_VISCOSITY + 1);
+    }
+
     /*
      * Figure out if our position has put us into a new set of blocks and fire the appropriate events.
      */
@@ -584,6 +603,7 @@ public class KinematicCharacterMover implements CharacterMover {
         if (input.isRunning()) {
             maxSpeed *= movementComp.runFactor;
         }
+        maxSpeed *= liquidDrag(state.getPosition());
 
         // As we can't use it, remove the y component of desired movement while maintaining speed.
         if (movementComp.grounded && desiredVelocity.y != 0) {

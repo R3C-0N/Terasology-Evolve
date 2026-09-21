@@ -33,6 +33,20 @@ import java.util.Optional;
  */
 public final class Block {
 
+    /**
+     * The highest viscosity a liquid may declare, a block of tar against the nought of a block of air.
+     */
+    public static final int MAX_VISCOSITY = 15;
+
+    /**
+     * The furthest a liquid may declare it flows, in blocks.
+     * <p>
+     * The ceiling is four bits minus one: the flow solver stores the distance from the source as
+     * {@code flowRange + 1} in a four bit per-block data field, nought there meaning a source rather than a
+     * distance.
+     */
+    public static final int MAX_FLOW_RANGE = 14;
+
     private short id;
     private BlockUri uri;
     private String displayName = "Untitled block";
@@ -46,6 +60,8 @@ public final class Block {
     private boolean attachmentAllowed = true;
     private boolean replacementAllowed;
     private int hardness = 3;
+    private int flowRange;
+    private byte viscosity;
     private boolean supportRequired;
     private final boolean[] fullSide = new boolean[Side.values().length];
     private BlockSounds sounds;
@@ -425,6 +441,44 @@ public final class Block {
 
     public boolean isDestructible() {
         return getHardness() > 0;
+    }
+
+    /**
+     * @return how far this liquid runs from its source, in blocks, nought meaning it does not flow at all
+     */
+    public int getFlowRange() {
+        return flowRange;
+    }
+
+    /**
+     * Sets how far this liquid runs from its source.
+     * <p>
+     * Only the horizontal steps are counted: falling is free, so a source at the lip of a cliff spreads its
+     * full range again at the foot of the drop. A block that is not a liquid never flows whatever this says.
+     *
+     * @param flowRange the reach in blocks, nought to {@link #MAX_FLOW_RANGE}
+     */
+    public void setFlowRange(int flowRange) {
+        this.flowRange = TeraMath.clamp(flowRange, 0, MAX_FLOW_RANGE);
+    }
+
+    /**
+     * @return how much this liquid resists being moved through, on a nought to fifteen scale
+     */
+    public byte getViscosity() {
+        return viscosity;
+    }
+
+    /**
+     * Sets how thick this liquid is to swim through.
+     * <p>
+     * Water sits at four and lava at ten, so lava is crossed at half the pace of water. It scales the
+     * swimming speed alone — the sink and the climb keep the gravity of the movement mode.
+     *
+     * @param viscosity the thickness, nought to {@link #MAX_VISCOSITY}
+     */
+    public void setViscosity(byte viscosity) {
+        this.viscosity = (byte) TeraMath.clamp(viscosity, 0, MAX_VISCOSITY);
     }
 
     /**
