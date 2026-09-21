@@ -339,15 +339,31 @@ public class LiquidFlowSolver {
         enqueueFlow(key, candidate);
     }
 
+    /**
+     * Writes the pass's decisions out: the distances first, then the blocks.
+     * <p>
+     * The order is the whole point, and it is not tidiness. A chunk is snapshotted for saving from another
+     * thread, and the snapshot takes the block array and the data arrays one after the other. Put the blocks
+     * down first and there is a window - as long as a full synchronous dispatch of {@code OnChangedBlock} for
+     * the whole batch - in which the chunk holds living liquid whose distance is still nought. A snapshot
+     * taken there writes that to disk, and nought means source: the flow comes back from the save as a
+     * spring that never dries up, a whole batch of it at a time. Copy-on-write hands the live array the right
+     * value a moment later, so nothing looks wrong until the world is reloaded.
+     * <p>
+     * Writing the distance first tears the other way, into a value standing over air, and that is harmless:
+     * nothing reads the field except through a liquid, and the mesher checks the block before the distance.
+     * It is also what {@link org.terasology.engine.world.chunks.internal.ChunkImpl#setBlock} asks for in so
+     * many words - it does not clear the extra data, and leaves initialising it to whoever placed the block.
+     */
     private void flush() {
         if (staged.isEmpty()) {
             return;
         }
-        selfWrites.addAll(staged.keySet());
-        view.setBlocks(staged);
         for (Map.Entry<Vector3ic, Integer> entry : stagedValues.entrySet()) {
             view.setFlow(entry.getKey(), entry.getValue());
         }
+        selfWrites.addAll(staged.keySet());
+        view.setBlocks(staged);
         staged.clear();
         stagedValues.clear();
     }
@@ -479,6 +495,10 @@ public class LiquidFlowSolver {
         if (removals.isEmpty()) {
             return;
         }
+        // Here the blocks go first, and unlike in flush() that is the safe order: the tear this leaves is a
+        // stale distance standing over air, which nothing reads. Turning it round to match flush() would
+        // leave living liquid at nought instead - a source, saved as such the moment a snapshot caught it.
+        // The two orders look inconsistent and are both deliberate.
         selfWrites.addAll(removals.keySet());
         view.setBlocks(removals);
         for (Vector3ic cell : removals.keySet()) {

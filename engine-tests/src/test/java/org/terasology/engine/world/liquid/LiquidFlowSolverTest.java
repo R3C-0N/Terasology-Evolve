@@ -3,12 +3,19 @@
 
 package org.terasology.engine.world.liquid;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.joml.Vector3i;
+import org.joml.Vector3ic;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.terasology.engine.math.Side;
 import org.terasology.engine.world.block.Block;
 import org.terasology.engine.world.block.BlockRegion;
+
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -261,6 +268,52 @@ public class LiquidFlowSolverTest {
         settle();
 
         assertEquals(water, view.at(3, 1, 0), "it should fill right up to the edge");
+    }
+
+    @Test
+    @DisplayName("Water never stands at a source's distance while it is still running")
+    public void aRunningLiquidIsNeverCaughtCallingItselfASource() {
+        // The defect this test exists for was never visible in the finished state: the solver put its blocks
+        // down first and their distances a moment later, and in between the world held living water whose
+        // distance still read nought - which is what a source reads. Nothing in memory stayed wrong, so
+        // nothing looked wrong. But a chunk is snapshotted for saving from another thread, and a snapshot
+        // taken in that window wrote living water down as a spring. It came back from the save immortal, a
+        // whole batch of it at a time, and no amount of taking the real source away would shift it.
+        //
+        // So the assertion is not about the state the solver reaches. It is about every state it passes
+        // through, watched from where the save thread watches.
+        floor(0, 20);
+        Set<Vector3ic> sources = Sets.newHashSet(new Vector3i(0, 1, 0));
+        view.put(0, 1, 0, water, 0);
+
+        List<Vector3ic> caught = Lists.newArrayList();
+        view.onBlocksWritten(() -> caught.addAll(view.livingLiquidsCallingThemselvesSources(sources)));
+
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        settle();
+
+        assertTrue(caught.isEmpty(), () -> caught.size() + " cells were water at a source's distance while "
+                + "the solver was mid-write, the first at " + caught.get(0));
+    }
+
+    @Test
+    @DisplayName("Taking the source away takes the whole pool with it")
+    public void aPoolDoesNotOutliveItsSource() {
+        // The plain statement of what a source is for, and the shape of the bug as it was reported: a pool
+        // spread, the source replaced by something solid, and the water simply stayed.
+        floor(0, 20);
+        view.put(0, 1, 0, water, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        settle();
+        assertTrue(view.count(water) > 1, "the pool never formed, so its draining proves nothing");
+
+        view.put(0, 1, 0, stone, 0);
+        for (Side side : Side.horizontalSides()) {
+            solver.enqueueCheck(side.getAdjacentPos(new Vector3i(0, 1, 0), new Vector3i()));
+        }
+        settle();
+
+        assertEquals(0, view.count(water), "water outlived the source that made it");
     }
 
     @Test

@@ -5,6 +5,8 @@ package org.terasology.engine.world.liquid;
 
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terasology.engine.entitySystem.entity.EntityRef;
 import org.terasology.engine.entitySystem.systems.BaseComponentSystem;
 import org.terasology.engine.entitySystem.systems.RegisterMode;
@@ -33,6 +35,8 @@ import org.terasology.gestalt.entitysystem.event.ReceiveEvent;
  */
 @RegisterSystem(RegisterMode.AUTHORITY)
 public class LiquidFlowSystem extends BaseComponentSystem implements UpdateSubscriberSystem {
+
+    private static final Logger logger = LoggerFactory.getLogger(LiquidFlowSystem.class);
 
     @In
     private WorldProvider worldProvider;
@@ -102,7 +106,7 @@ public class LiquidFlowSystem extends BaseComponentSystem implements UpdateSubsc
         }
         if (LiquidFlowSolver.isFlowLiquid(now) && !now.equals(was)) {
             // A liquid that appeared by some other hand - a bucket, a structure, a command - is a source.
-            view.setFlow(pos, 0);
+            declareSource(pos, was, now);
             solver.enqueueFlow(pos, 0);
         }
 
@@ -126,6 +130,24 @@ public class LiquidFlowSystem extends BaseComponentSystem implements UpdateSubsc
                 solver.enqueueCheck(side.getAdjacentPos(pos, new Vector3i()));
             }
         }
+    }
+
+    /**
+     * Marks a position a permanent source, and complains if it was not entitled to be one.
+     * <p>
+     * Nought is absorbing: three guards in the solver refuse to reconsider a cell that reads it, because a
+     * source must never dry up. So a nought written where a distance stood is not a small mistake that later
+     * passes will tidy - it is liquid made immortal, and the only way anyone would ever find out is by
+     * noticing a puddle that outlives its source. A position that already carried a distance was, by
+     * construction, running: whatever put it back to nought is a bug, and this is where it says so.
+     */
+    private void declareSource(Vector3ic pos, Block was, Block now) {
+        int previous = view.getFlow(pos);
+        if (previous != 0) {
+            logger.warn("Liquid that had run {} steps at {} is being called a source ({} became {}).",
+                    previous, pos, was.getURI(), now.getURI());
+        }
+        view.setFlow(pos, 0);
     }
 
     @ReceiveEvent

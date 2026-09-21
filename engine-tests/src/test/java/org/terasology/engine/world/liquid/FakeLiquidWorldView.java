@@ -4,12 +4,14 @@
 package org.terasology.engine.world.liquid;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.terasology.engine.world.block.Block;
 import org.terasology.engine.world.block.BlockRegion;
 
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A world in two hash maps, for testing the flow solver without an engine.
@@ -30,6 +32,11 @@ public class FakeLiquidWorldView implements LiquidWorldView {
      * state reached - which is the only way to catch an oscillation that settles.
      */
     private int writes;
+
+    /**
+     * Run just after a batch of blocks lands, to look at the world the way the save thread would.
+     */
+    private Runnable onBlocksWritten;
 
     public FakeLiquidWorldView(BlockRegion relevant, Block air) {
         this.relevant = relevant;
@@ -65,6 +72,40 @@ public class FakeLiquidWorldView implements LiquidWorldView {
             blocks.put(new Vector3i(entry.getKey()), entry.getValue());
             writes++;
         }
+        if (onBlocksWritten != null) {
+            onBlocksWritten.run();
+        }
+    }
+
+    /**
+     * Stands where the save thread stands: called once the blocks of a batch are down, before the caller has
+     * had the chance to do anything else.
+     * <p>
+     * A real chunk is snapshotted for saving from another thread, and the snapshot takes the block array and
+     * the data arrays one after the other. There is no way to make that race happen on demand, but there is
+     * no need to: what it can see is exactly what is true at this instant, so looking here is looking with
+     * the save thread's eyes.
+     */
+    public void onBlocksWritten(Runnable hook) {
+        this.onBlocksWritten = hook;
+    }
+
+    /**
+     * The positions holding a liquid whose distance reads nought, other than those a test declared sources.
+     * <p>
+     * Nought means source, and a source never dries up, so a running liquid caught at nought is a liquid
+     * made immortal. This is the shape the defect took: not a wrong value in memory, but a wrong value
+     * visible for an instant - and an instant is all a snapshot needs.
+     */
+    public Set<Vector3ic> livingLiquidsCallingThemselvesSources(Set<Vector3ic> declaredSources) {
+        Set<Vector3ic> caught = Sets.newLinkedHashSet();
+        for (Map.Entry<Vector3i, Block> entry : blocks.entrySet()) {
+            if (entry.getValue().isLiquid() && entry.getValue().getFlowRange() > 0
+                    && getFlow(entry.getKey()) == 0 && !declaredSources.contains(entry.getKey())) {
+                caught.add(new Vector3i(entry.getKey()));
+            }
+        }
+        return caught;
     }
 
     @Override

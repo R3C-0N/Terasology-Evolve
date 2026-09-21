@@ -79,8 +79,18 @@ public class LiquidSeeder {
                             continue;
                         }
                         chunk.chunkToWorldPosition(x, cursor.y, z, world);
+                        int flow = view.getFlow(world);
                         if (hasSomewhereToGo(world)) {
-                            solver.enqueueFlow(world, view.getFlow(world));
+                            solver.enqueueFlow(world, flow);
+                        }
+                        if (flow != 0) {
+                            // Asking to spread is only half the reconciliation, and it is the half that can
+                            // never take anything away. A puddle that lost its source while this chunk was
+                            // off the books has somewhere to go only if it is still spreading - so the
+                            // filter above passes over exactly the cells that ought to dry up, and they
+                            // would stand there for good. A source is never asked: it does not dry up, and
+                            // that is what keeps a generated sea free.
+                            solver.enqueueCheck(world);
                         }
                     }
                 }
