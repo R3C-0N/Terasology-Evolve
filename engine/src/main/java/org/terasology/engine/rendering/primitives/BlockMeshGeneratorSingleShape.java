@@ -51,6 +51,11 @@ public class BlockMeshGeneratorSingleShape extends BlockMeshShapeGenerator {
         // face turns out to be visible, and the block above a liquid is read once, when first needed.
         Color colorCache = null;
         Block topBlock = null;
+        // The four corner heights of a liquid surface, read once for the block and shared by all of its faces, so
+        // that the top and the sides that meet it cannot disagree. Null while unread, and still null afterwards
+        // wherever the surface does not slope.
+        float[] corners = null;
+        boolean cornersRead = false;
 
         List<Side> sides = Side.allSides();
         for (int i = 0; i < sides.size(); i++) {
@@ -63,10 +68,12 @@ public class BlockMeshGeneratorSingleShape extends BlockMeshShapeGenerator {
                 BlockMeshPart blockMeshPart = blockAppearance.getPart(BlockPart.fromSide(side));
 
                 // If the selfBlock isn't lowered, some more faces may have to be drawn
+                boolean surfaceOfLiquid = false;
                 if (block.isLiquid()) {
                     if (topBlock == null) {
                         topBlock = view.getBlock(x, y + 1, z);
                     }
+                    surfaceOfLiquid = !topBlock.isLiquid();
                     // Draw horizontal sides if visible from below
                     if (topBlock.isLiquid() && Side.horizontalSides().contains(side)) {
                         final Vector3ic offset = side.direction();
@@ -97,7 +104,16 @@ public class BlockMeshGeneratorSingleShape extends BlockMeshShapeGenerator {
                             .setGreen(colorSource.gf() * colorOffset.gf())
                             .setBlue(colorSource.bf() * colorOffset.bf())
                             .setAlpha(colorSource.af() * colorOffset.af());
-                    blockMeshPart.appendTo(chunkMesh, view, x, y, z, renderType, colorCache, sideVertexFlag);
+                    if (surfaceOfLiquid && LiquidSurfaceField.deforms(block)) {
+                        if (!cornersRead) {
+                            corners = LiquidSurfaceField.corners(view, block, x, y, z);
+                            cornersRead = true;
+                        }
+                        blockMeshPart.appendTo(chunkMesh, view, x, y, z, renderType, colorCache, sideVertexFlag,
+                                corners, LiquidSurfaceField.HIGH);
+                    } else {
+                        blockMeshPart.appendTo(chunkMesh, view, x, y, z, renderType, colorCache, sideVertexFlag);
+                    }
                 }
             }
         }

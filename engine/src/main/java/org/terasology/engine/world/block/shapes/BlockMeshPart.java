@@ -8,6 +8,7 @@ import org.joml.Vector3f;
 import org.terasology.engine.math.Direction;
 import org.terasology.engine.rendering.primitives.ChunkMesh;
 import org.terasology.engine.rendering.primitives.ChunkVertexFlag;
+import org.terasology.engine.rendering.primitives.LiquidSurfaceField;
 import org.terasology.engine.rendering.primitives.WaterDepthField;
 import org.terasology.engine.world.ChunkView;
 import org.terasology.engine.world.block.Block;
@@ -42,6 +43,20 @@ public class BlockMeshPart {
     private int[] indices;
     private int texFrames;
 
+    /**
+     * How this part is stretched over its own height, so a vertex moved up or down can keep the texture where it
+     * belongs. The shapes hand-trim their side texcoords by exactly what they trim off the geometry - the lowered
+     * cube stops at 0.4 and starts its {@code v} at 0.1 - and moving a vertex without moving its {@code v} would
+     * undo precisely what that trimming is for.
+     *
+     * A part whose vertices all sit at one height, such as a top or a bottom face, has {@code lowY == highY}: its
+     * texcoords are a plan view and have nothing to do with height, so they are left alone.
+     */
+    private final float lowY;
+    private final float highY;
+    private final float vAtLowY;
+    private final float vAtHighY;
+
     public BlockMeshPart(Vector3f[] vertices, Vector3f[] normals, Vector2f[] texCoords, int[] indices) {
         this(vertices, normals, texCoords, indices, 1);
     }
@@ -52,6 +67,22 @@ public class BlockMeshPart {
         this.texCoords = Arrays.copyOf(texCoords, texCoords.length);
         this.indices = Arrays.copyOf(indices, indices.length);
         this.texFrames = texFrames;
+
+        int lowest = 0;
+        int highest = 0;
+        for (int i = 1; i < vertices.length; i++) {
+            if (vertices[i].y < vertices[lowest].y) {
+                lowest = i;
+            }
+            if (vertices[i].y > vertices[highest].y) {
+                highest = i;
+            }
+        }
+        // The loader refuses a shape whose vertices and texcoords differ in length, so these always pair up.
+        this.lowY = vertices[lowest].y;
+        this.highY = vertices[highest].y;
+        this.vAtLowY = texCoords[lowest].y;
+        this.vAtHighY = texCoords[highest].y;
     }
 
     public int size() {
@@ -94,19 +125,44 @@ public class BlockMeshPart {
 
     public void appendTo(ChunkMesh chunk, ChunkView chunkView, int offsetX, int offsetY, int offsetZ,
                          ChunkMesh.RenderType renderType, Colorc colorOffset, ChunkVertexFlag flags) {
+        appendTo(chunk, chunkView, offsetX, offsetY, offsetZ, renderType, colorOffset, flags, null, 0);
+    }
+
+    /**
+     * Appends this part, optionally pulling the top of it to the height of the liquid surface standing there.
+     *
+     * @param corners the four corner heights, indexed as {@link LiquidSurfaceField#cornerIndex}, or null to append
+     *         the part exactly as the shape describes it
+     * @param deformAbove the height, in shape coordinates, at or over which a vertex belongs to the top of the shape
+     *         and follows the corner. It is the shape's top rather than this part's own, because a bottom face is
+     *         also entirely at its own highest point and must not be lifted.
+     */
+    public void appendTo(ChunkMesh chunk, ChunkView chunkView, int offsetX, int offsetY, int offsetZ,
+                         ChunkMesh.RenderType renderType, Colorc colorOffset, ChunkVertexFlag flags,
+                         float[] corners, float deformAbove) {
         ChunkMesh.VertexElements elements = chunk.getVertexElements(renderType);
-        for (Vector2f texCoord : texCoords) {
-            elements.uv0.put(texCoord);
-        }
 
         int nextIndex = elements.vertexCount;
         elements.buffer.reserveElements(nextIndex + vertices.length);
         Vector3f pos = new Vector3f();
+        Vector2f uv = new Vector2f();
         // Only the water surface carries the depth; nothing else reads the byte.
         boolean surfaceOfWater = flags == ChunkVertexFlag.WATER_SURFACE;
         for (int vIdx = 0; vIdx < vertices.length; ++vIdx) {
             elements.color.put(colorOffset);
-            elements.position.put(pos.set(vertices[vIdx]).add(offsetX, offsetY, offsetZ));
+            pos.set(vertices[vIdx]).add(offsetX, offsetY, offsetZ);
+            uv.set(texCoords[vIdx]);
+            // The vertex arrays are shared with the shape asset and with every other block built from it, and
+            // meshing runs on several threads: the scratch copies are the only things that may be moved.
+            if (corners != null && vertices[vIdx].y >= deformAbove) {
+                float height = corners[LiquidSurfaceField.cornerIndex(vertices[vIdx].x, vertices[vIdx].z)];
+                pos.y = offsetY + height;
+                if (highY > lowY) {
+                    uv.y = vAtLowY + (vAtHighY - vAtLowY) * (height - lowY) / (highY - lowY);
+                }
+            }
+            elements.position.put(pos);
+            elements.uv0.put(uv);
             elements.normals.put(normals[vIdx]);
             elements.flags.put((byte) (flags.getValue()));
             elements.frames.put((byte) (texFrames - 1));
@@ -119,8 +175,10 @@ public class BlockMeshPart {
             } else {
                 elements.waterDepth.put((byte) 0);
             }
-            // The buffer took a copy, so pos is still the vertex in chunk coordinates.
-            appendLighting(elements, chunkView, pos.x, pos.y, pos.z, normals[vIdx]);
+            // Deliberately the undeformed height: the light is sampled eight tenths of a block up and down, so a
+            // vertex pulled down three quarters of a block would gather the light of the block underneath, and the
+            // surface would flicker every time the flow changed by a step.
+            appendLighting(elements, chunkView, pos.x, vertices[vIdx].y + offsetY, pos.z, normals[vIdx]);
         }
         elements.vertexCount += vertices.length;
 
