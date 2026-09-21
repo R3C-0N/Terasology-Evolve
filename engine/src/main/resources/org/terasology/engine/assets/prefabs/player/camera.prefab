@@ -2,6 +2,7 @@
     "Location": {},
     "FirstPersonHeldItemMountPoint": {
         "translate": [-0.25, 0, 0.5],
+        "rotateDegrees": [25, 0, 0],
         "scale": 0.25
     }
 }
