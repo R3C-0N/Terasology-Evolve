@@ -280,6 +280,20 @@ Other run targets exist in `facades/PC/build.gradle.kts`: `debug` (JDWP on 1044)
   `driver.py launch` detects and repairs it. Do not pass that flag.
 - **`F3` is a toggle over a persisted value**, so pressing it blind turns the
   overlay *off* half the time. Set it with `driver.py debug on` before launching.
+- **The HUD may be switched off, and nothing says so.** `config.cfg` persists
+  `"hudHidden": true` once somebody has pressed `H`, and from then on every
+  screenshot shows the world and the F3 text but no hotbar, no health orbs, no
+  crosshair — and no HUD element any module adds. A new overlay then looks
+  broken when it is drawing perfectly: its `onDraw` runs, its region is the
+  whole screen, and not one pixel reaches the glass. Check that line of
+  `config.cfg` before debugging a widget. `H` toggles it back, but **only once
+  F3 is off** — with the debug overlay up, `H` opens the debug documentation
+  instead.
+- **Two `driver.py` calls at once deadlock each other.** Each brings the window
+  to the foreground, so a second one launched while the first is still working
+  leaves both spinning until their timeouts. Run them one at a time; if
+  everything starts timing out, `tasklist | grep python` and kill the strays
+  before blaming the game.
 - **A character in a hole makes input look broken.** `hold w` moves nobody when
   the save left the player boxed in, standing against a slope, or inside rock —
   which is exactly what happens after a `teleport` into terrain. Send
