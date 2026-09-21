@@ -3,6 +3,7 @@
 
 package org.terasology.engine.world.liquid;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.joml.Vector3i;
@@ -14,10 +15,14 @@ import org.terasology.engine.world.block.Block;
 import org.terasology.engine.world.chunks.Chunks;
 
 import java.util.ArrayDeque;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Set;
+import java.util.function.LongSupplier;
 
 /**
  * Works out where a liquid runs to, and where it drains back from.
@@ -80,6 +85,17 @@ public class LiquidFlowSolver {
      */
     public static final int MAX_VISITS_PER_PASS = 4096;
 
+    /**
+     * How long a liquid dwells on a block before running on, per point of viscosity.
+     * <p>
+     * Water declares four and so takes 480 ms a block, near four seconds to run its eight; lava declares ten
+     * and takes a second and a fifth, so it crawls where water runs. The pace is read off the block and
+     * never off a constant here, so a module that adds tar gets a tar that creeps without touching this
+     * class. A liquid declaring no viscosity at all runs as fast as the budget allows, which is what every
+     * liquid did before there was a clock in here.
+     */
+    public static final int FLOW_DELAY_PER_VISCOSITY_MS = 120;
+
     private static final Logger logger = LoggerFactory.getLogger(LiquidFlowSolver.class);
 
     private static final int BUCKETS = 16;
@@ -115,11 +131,55 @@ public class LiquidFlowSolver {
     private final Map<Vector3ic, Block> staged = Maps.newLinkedHashMap();
     private final Map<Vector3ic, Integer> stagedValues = Maps.newLinkedHashMap();
 
+    /**
+     * Positions that have somewhere to go but have not yet dwelt long enough to go there, soonest first.
+     * <p>
+     * The buckets are untouched by this: a position waits here, then moves there, and the ordering that
+     * makes the field correct - the smallest distance out first - still holds over everything that is due.
+     * The clock decides what is admitted, never what comes out.
+     * <p>
+     * Two liquids of different thickness share this queue without interfering, because each entry carries
+     * its own absolute moment: water due in half a second and lava due in a second simply interleave.
+     */
+    private final PriorityQueue<Waiting> waiting = new PriorityQueue<>(Comparator.comparingLong(w -> w.dueAt));
+
+    /**
+     * Cells a drain has condemned and the moment each is to go, soonest first, deepest first among equals.
+     * <p>
+     * The drain works out the whole truth in one pass - which is what keeps a column from leaving an orphan
+     * puddle behind - and then lets the answer out a ring at a time, so a tide is seen to go out rather than
+     * found already gone. A falling column carries one distance from top to bottom, so without the tiebreak
+     * on height it would vanish all at once instead of emptying from the top.
+     */
+    private final PriorityQueue<Removal> removalSchedule = new PriorityQueue<>(
+            Comparator.<Removal>comparingLong(r -> r.dueAt).thenComparing(r -> -r.pos.y()));
+
+    /**
+     * The same condemned cells, by position. Two things need this and not merely the queue: a second drain
+     * must not schedule a cell twice, and a cell on its way out must not be counted as feeding the one
+     * behind it.
+     */
+    private final Set<Vector3i> condemned = Sets.newHashSet();
+
+    private final LongSupplier clock;
+
     private boolean warnedFullQueue;
 
-    @SuppressWarnings("unchecked")
     public LiquidFlowSolver(LiquidWorldView view) {
+        this(view, System::currentTimeMillis);
+    }
+
+    /**
+     * @param clock the clock this solver paces itself by, in milliseconds. Injected rather than fetched from
+     *         a registry, because the solver is driven by two hash maps in its tests and would stop being
+     *         testable the moment it reached into the engine to ask the time. The no-argument constructor
+     *         hands it real time rather than a stopped clock: a solver built with a stopped clock would
+     *         simply never flow, and would do it silently.
+     */
+    @SuppressWarnings("unchecked")
+    public LiquidFlowSolver(LiquidWorldView view, LongSupplier clock) {
         this.view = view;
+        this.clock = clock;
         this.addBuckets = new Deque[BUCKETS];
         for (int i = 0; i < BUCKETS; i++) {
             addBuckets[i] = new ArrayDeque<>();
@@ -208,14 +268,75 @@ public class LiquidFlowSolver {
 
     // ---------------------------------------------------------------- the queues
 
+    /**
+     * The dwell this liquid owes on one block.
+     */
+    public static long flowDelayMillis(Block liquid) {
+        return (long) FLOW_DELAY_PER_VISCOSITY_MS * liquid.getViscosity();
+    }
+
     public void enqueueFlow(Vector3ic pos, int value) {
+        enqueueFlow(pos, value, blockAt(pos));
+    }
+
+    /**
+     * Queues a position to spread once it has dwelt as long as its liquid is thick.
+     * <p>
+     * Membership is {@link #queuedToAdd} whether a position is waiting or ready, so the waiting room and the
+     * buckets are disjoint and their union is that set. That is what keeps {@link #isIdle()} honest and the
+     * queue cap meaningful, and it makes "are the buckets empty" a size comparison rather than a scan.
+     * <p>
+     * There is no decrease-key here and none is needed, which is worth stating because the absence looks
+     * like an oversight: the dwell is a property of the block, and a position holds one block, so a second
+     * queueing can only ever land later than the one already booked. Ignoring it is exactly right.
+     */
+    private void enqueueFlow(Vector3ic pos, int value, Block liquid) {
+        if (queuedToAdd.size() >= MAX_QUEUE_SIZE) {
+            warnFullQueue();
+            return;
+        }
+        Vector3i key = new Vector3i(pos);
+        if (!queuedToAdd.add(key)) {
+            return;
+        }
+        long dwell = flowDelayMillis(liquid);
+        if (dwell <= 0) {
+            addBuckets[bucketOf(value)].addLast(key);
+        } else {
+            waiting.add(new Waiting(key, clock.getAsLong() + dwell, value));
+        }
+    }
+
+    /**
+     * Puts a position straight back among the ready, owing no fresh dwell.
+     * <p>
+     * A write the budget refused is the solver's own doing and not the liquid's thickness. Charging another
+     * block's worth of waiting for it would make a liquid run slower on a busy frame than on a quiet one,
+     * which is a pace nobody asked for and nobody could predict.
+     */
+    private void enqueueReady(Vector3ic pos, int value) {
         if (queuedToAdd.size() >= MAX_QUEUE_SIZE) {
             warnFullQueue();
             return;
         }
         Vector3i key = new Vector3i(pos);
         if (queuedToAdd.add(key)) {
-            addBuckets[Math.min(Math.max(value, 0), BUCKETS - 1)].addLast(key);
+            addBuckets[bucketOf(value)].addLast(key);
+        }
+    }
+
+    private static int bucketOf(int value) {
+        return Math.min(Math.max(value, 0), BUCKETS - 1);
+    }
+
+    /**
+     * Moves everything whose moment has come out of the waiting room and into the buckets.
+     */
+    private void admitDue(long now) {
+        Waiting head;
+        while ((head = waiting.peek()) != null && head.dueAt <= now) {
+            waiting.poll();
+            addBuckets[bucketOf(head.value)].addLast(head.pos);
         }
     }
 
@@ -243,8 +364,34 @@ public class LiquidFlowSolver {
         selfWrites.clear();
     }
 
+    /**
+     * Whether there is nothing left to do at all, waiting included. This is what a test settles against.
+     */
     public boolean isIdle() {
-        return queuedToAdd.isEmpty() && checkQueue.isEmpty();
+        return queuedToAdd.isEmpty() && checkQueue.isEmpty() && condemned.isEmpty();
+    }
+
+    /**
+     * Whether there is anything to do at this very moment.
+     * <p>
+     * The driving system asks this rather than {@link #isIdle()}, because a thick liquid spends most of its
+     * life waiting: lava dwells a second and a fifth on every block it takes, and a second and a fifth of
+     * monitored, empty passes is a second and a fifth of frames paid for nothing.
+     */
+    public boolean hasWorkDue() {
+        if (!checkQueue.isEmpty()) {
+            return true;
+        }
+        if (queuedToAdd.size() > waiting.size()) {
+            return true; // Something sits in the buckets, and a bucket holds only what is due.
+        }
+        long now = clock.getAsLong();
+        Waiting head = waiting.peek();
+        if (head != null && head.dueAt <= now) {
+            return true;
+        }
+        Removal due = removalSchedule.peek();
+        return due != null && due.dueAt <= now;
     }
 
     private Vector3i popLowest() {
@@ -266,8 +413,13 @@ public class LiquidFlowSolver {
      * depth guard, so cascading from a handler blows the stack.
      */
     public void update() {
+        // Read once. Two readings in one pass buy nothing and make a test's outcome depend on how long the
+        // pass took.
+        long now = clock.getAsLong();
         Budget budget = new Budget();
         processChecks(budget);
+        applyDueRemovals(now, budget);
+        admitDue(now);
         processAdds(budget);
     }
 
@@ -280,6 +432,13 @@ public class LiquidFlowSolver {
                 break;
             }
             if (!view.isRelevant(q)) {
+                continue;
+            }
+            if (condemned.contains(q)) {
+                // A cell on its way out feeds nothing, least of all the hole it is about to leave behind.
+                // This is what makes every spread below start from a cell that is certainly alive, and it is
+                // the pair of the reprieve in spreadTo: together they let water coming back overtake a tide
+                // still going out, instead of trailing one deadline behind it and being dug through.
                 continue;
             }
             Block liquid = blockAt(q);
@@ -314,12 +473,17 @@ public class LiquidFlowSolver {
         if (standing.equals(liquid)) {
             int existing = flowAt(target);
             if (existing != 0 && existing > candidate) {
+                // No reprieve is granted here, and that is measured rather than assumed: letting a smaller
+                // distance strike a cell off the condemned list early was worth four blocks out of sixty on
+                // a pool refilling mid-ebb, because the water coming back travels at its own pace anyway and
+                // arrives about when the deadline does. The re-check in applyDueRemovals is what actually
+                // saves a cell that is fed again, and it is enough.
                 if (staged.containsKey(target)) {
                     stagedValues.put(new Vector3i(target), candidate);
                 } else {
                     view.setFlow(target, candidate);
                 }
-                enqueueFlow(target, candidate);
+                enqueueFlow(target, candidate, liquid);
             }
             return;
         }
@@ -329,14 +493,14 @@ public class LiquidFlowSolver {
         if (!budget.stage(liquid, target)) {
             // This pass has written enough. Put the position back and stop: carrying on would pop it
             // straight back off the queue, refuse it again, and spin the main thread forever.
-            enqueueFlow(from, value);
+            enqueueReady(from, value);
             budget.spend();
             return;
         }
         Vector3i key = new Vector3i(target);
         staged.put(key, liquid);
         stagedValues.put(key, candidate);
-        enqueueFlow(key, candidate);
+        enqueueFlow(key, candidate, liquid);
     }
 
     /**
@@ -377,6 +541,14 @@ public class LiquidFlowSolver {
             checkQueue.remove(pos);
             checked++;
             if (!view.isRelevant(pos)) {
+                continue;
+            }
+            if (condemned.contains(pos)) {
+                // Already judged, and waiting its turn to go. Looking again here would look with no
+                // exclusion set at all, so it would find a neighbour that is itself on its way out, call
+                // itself fed by it, and both would survive each other - the very circular reasoning the
+                // drain's three phases exist to break. A condemned cell is reprieved by being fed afresh,
+                // never by being asked a second time.
                 continue;
             }
             Block liquid = view.getBlock(pos);
@@ -434,6 +606,14 @@ public class LiquidFlowSolver {
         if (excluded != null && excluded.contains(candidate)) {
             return false;
         }
+        if (condemned.contains(candidate)) {
+            // A cell already sentenced feeds nothing, whoever is asking and whichever drain sentenced it.
+            // Taking a source away sets off one drain per neighbour, one after another, and each used to
+            // see the cells the previous ones had condemned as perfectly good feeders - because they are
+            // still standing, now that the taking away waits its turn. Whole rings were reprieved by water
+            // that was itself on its way out.
+            return false;
+        }
         // A sideways neighbour with somewhere to fall spends its whole flow downwards and feeds nobody.
         return fromAbove || !canFall(candidate, liquid);
     }
@@ -481,16 +661,83 @@ public class LiquidFlowSolver {
             recompute(pending, liquid, distances);
         }
 
-        // Phase C: apply. Beyond the reach the liquid goes; otherwise its distance is corrected.
-        Map<Vector3ic, Block> removals = Maps.newLinkedHashMap();
+        // Phase C: apply. Beyond the reach the liquid is condemned; otherwise its distance is corrected.
+        //
+        // Only the condemning happens now. The whole truth is worked out in one pass - that is what keeps a
+        // column from leaving an orphan puddle behind, and it is exactly what the drain's three phases are
+        // for - but the taking away is let out a ring at a time, so a tide is seen to go out rather than
+        // found already gone.
+        //
+        // The rank is the distance already stored, not the one phase B recomputed: with the source gone
+        // every condemned cell recomputes to UNREACHED, whereas the stored value is literally how many
+        // steps from the source this cell is. The far edge carries the largest, so it goes first, and the
+        // pool empties inwards over the same time it took to fill.
+        List<Vector3i> doomed = Lists.newArrayList();
         int limit = liquid.getFlowRange() + 1;
+        int furthest = 0;
         for (Vector3i cell : pending) {
             int distance = overflowed ? UNREACHED : distances.getOrDefault(cell, UNREACHED);
             if (distance > limit) {
-                removals.put(new Vector3i(cell), view.getAir());
+                doomed.add(cell);
+                furthest = Math.max(furthest, view.getFlow(cell));
             } else if (distance != view.getFlow(cell)) {
+                // A distance is not something anyone can see, so correcting one waits for nothing.
                 view.setFlow(cell, distance);
             }
+        }
+        long now = clock.getAsLong();
+        long step = flowDelayMillis(liquid);
+        for (Vector3i cell : doomed) {
+            long dueAt = now + (furthest - view.getFlow(cell)) * step;
+            if (condemned.add(new Vector3i(cell))) {
+                removalSchedule.add(new Removal(new Vector3i(cell), liquid, dueAt));
+            }
+        }
+        if (overflowed) {
+            logger.debug("Liquid drain at {} outgrew {} cells; cleared the lot and let it flood back.",
+                    root, MAX_REMOVAL_COMPONENT);
+        }
+    }
+
+    /**
+     * Takes away the condemned cells whose moment has come.
+     * <p>
+     * The world moves while a tide goes out - a source put back, a space filled in - so what was condemned a
+     * moment ago is only taken away if it is still unfed now. That is why nothing here hunts down and
+     * cancels a schedule when a block changes: the schedule is an intention, and this check is the truth.
+     * <p>
+     * Feeders still condemned do not count. Without that the bottom of a draining column would see the top -
+     * same liquid, same distance, since falling costs nothing - declare itself fed and survive the top's
+     * going, as an orphan puddle. It is phase B's reasoning, held open across passes now that the removals
+     * are spread across passes.
+     */
+    private void applyDueRemovals(long now, Budget budget) {
+        Map<Vector3ic, Block> removals = Maps.newLinkedHashMap();
+        Removal head;
+        while ((head = removalSchedule.peek()) != null && head.dueAt <= now) {
+            if (!budget.stage(head.liquid, head.pos)) {
+                break; // Nothing is dropped: it keeps its place and goes next pass.
+            }
+            removalSchedule.poll();
+            if (!condemned.contains(head.pos)) {
+                continue; // Reprieved while it waited, and this entry is the husk it left behind.
+            }
+            if (!view.isRelevant(head.pos) || !view.getBlock(head.pos).equals(head.liquid)
+                    || view.getFlow(head.pos) == 0) {
+                condemned.remove(head.pos);
+                continue;
+            }
+            int best = bestFeederValue(head.pos, head.liquid, condemned);
+            if (best <= head.liquid.getFlowRange() + 1) {
+                condemned.remove(head.pos);
+                view.setFlow(head.pos, best);
+                enqueueFlow(head.pos, best, head.liquid);
+                continue; // Fed again, and so reprieved.
+            }
+            // Stays condemned until the blocks actually land. The batch is written in one go at the end, so
+            // a cell struck off here would still be standing when the next one asks who feeds it - and one
+            // doomed cell would reprieve the next, all the way back along the column.
+            removals.put(new Vector3i(head.pos), view.getAir());
         }
         if (removals.isEmpty()) {
             return;
@@ -503,19 +750,18 @@ public class LiquidFlowSolver {
         view.setBlocks(removals);
         for (Vector3ic cell : removals.keySet()) {
             view.setFlow(cell, 0);
+            condemned.remove(cell);
         }
-        // Whatever still stands next to the freed space may now run into it.
+        // Whatever still stands next to the freed space may now run into it - but not a cell on its way out,
+        // which would run straight back in and the tide would never go out at all.
         for (Vector3ic cell : removals.keySet()) {
             for (Side side : Side.allSides()) {
                 Vector3i neighbour = side.getAdjacentPos(cell, new Vector3i());
-                if (view.isRelevant(neighbour) && isFlowLiquid(view.getBlock(neighbour))) {
+                if (view.isRelevant(neighbour) && !condemned.contains(neighbour)
+                        && isFlowLiquid(view.getBlock(neighbour))) {
                     enqueueFlow(neighbour, view.getFlow(neighbour));
                 }
             }
-        }
-        if (overflowed) {
-            logger.debug("Liquid drain at {} outgrew {} cells; cleared the lot and let it flood back.",
-                    root, MAX_REMOVAL_COMPONENT);
         }
     }
 
@@ -581,6 +827,37 @@ public class LiquidFlowSolver {
      * What one pass is allowed to write. The costly unit is the block written, not the cell visited: each
      * write dirties up to eight chunks for re-meshing and queues a change for four batch propagators.
      */
+    /**
+     * A position waiting out its dwell before it may run. The distance is only the bucket it will land in
+     * once due; what it actually spreads is read back from the world when its turn comes.
+     */
+    private static final class Waiting {
+        private final Vector3i pos;
+        private final long dueAt;
+        private final int value;
+
+        Waiting(Vector3i pos, long dueAt, int value) {
+            this.pos = pos;
+            this.dueAt = dueAt;
+            this.value = value;
+        }
+    }
+
+    /**
+     * A cell a drain has condemned, and the moment it is to go.
+     */
+    private static final class Removal {
+        private final Vector3i pos;
+        private final Block liquid;
+        private final long dueAt;
+
+        Removal(Vector3i pos, Block liquid, long dueAt) {
+            this.pos = pos;
+            this.liquid = liquid;
+            this.dueAt = dueAt;
+        }
+    }
+
     private static final class Budget {
         private int placements;
         private int litPlacements;

@@ -7,6 +7,7 @@ import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terasology.engine.core.Time;
 import org.terasology.engine.entitySystem.entity.EntityRef;
 import org.terasology.engine.entitySystem.systems.BaseComponentSystem;
 import org.terasology.engine.entitySystem.systems.RegisterMode;
@@ -46,6 +47,8 @@ public class LiquidFlowSystem extends BaseComponentSystem implements UpdateSubsc
     private ExtraBlockDataManager extraDataManager;
     @In
     private ChunkProvider chunkProvider;
+    @In
+    private Time time;
 
     private LiquidWorldView view;
     private LiquidFlowSolver solver;
@@ -61,17 +64,26 @@ public class LiquidFlowSystem extends BaseComponentSystem implements UpdateSubsc
     public void initialise() {
         int slot = extraDataManager.getSlotNumber(LiquidExtraDataSystem.FLOW_FIELD);
         view = new WorldProviderLiquidView(worldProvider, slot, blockManager);
-        solver = new LiquidFlowSolver(view);
+        // The game clock, not the frame's delta: a liquid's pace is a pace in the world's time, so it must
+        // not follow the frame rate, and it must stop when the world does.
+        solver = new LiquidFlowSolver(view, time::getGameTimeInMs);
         seeder = new LiquidSeeder(chunkProvider, solver, view);
     }
 
+    /**
+     * @param delta deliberately unread. What paces the solver is the game clock it was handed, so that a
+     *         liquid crosses a block in the same time whatever the frame rate.
+     */
     @Override
     public void update(float delta) {
         if (draining || solver == null) {
             return;
         }
-        if (solver.isIdle() && seeder.isIdle()) {
-            return; // A sea at rest costs nothing at all.
+        if (seeder.isIdle() && !solver.hasWorkDue()) {
+            // A sea at rest costs nothing at all - and neither does one that is merely still thickening.
+            // Asking isIdle() here would pay a monitored, empty pass on every frame of the second and a
+            // fifth that lava spends dwelling on each block it takes.
+            return;
         }
         draining = true;
         PerformanceMonitor.startActivity("Liquid Flow");
