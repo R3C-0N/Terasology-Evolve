@@ -127,9 +127,10 @@ public class LiquidFlowSolverTest {
     }
 
     @Test
-    @DisplayName("Range already spent sideways is not handed back by a drop")
-    public void rangeSpentSidewaysIsNotRestoredByADrop() {
-        // A ledge seven steps wide, then a cliff. At the foot only one sideways step is left.
+    @DisplayName("A drop hands the whole range back")
+    public void aDropRestoresTheWholeRange() {
+        // A ledge seven steps wide, then a cliff down to a floor. Whatever the water spent walking the
+        // ledge, it lands at the foot with a clean slate.
         for (int x = 0; x <= 7; x++) {
             view.put(x, 0, 0, stone);
         }
@@ -138,12 +139,32 @@ public class LiquidFlowSolverTest {
         solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
         settle();
 
-        // Seven steps along the ledge bring it to eight at x=7, the eighth step over the lip brings it to
-        // nine - the last value the range allows - and the whole fall carries that nine down. At the foot
-        // there is nothing left to spend, against the eight steps a fresh source would have had.
-        assertEquals(water, view.at(8, -5, 0), "the water should reach the foot of the drop");
-        assertEquals(9, view.flowAt(8, -5, 0), "and arrive with its range wholly spent");
-        assertEquals(air, view.at(9, -5, 0), "so it must not spread at the bottom");
+        assertEquals(1, view.flowAt(8, -5, 0), "the fall should reset the count to one");
+        assertEquals(water, view.at(8 + WATER_RANGE, -5, 0), "and the full range run again at the foot");
+        assertEquals(air, view.at(8 + WATER_RANGE + 1, -5, 0), "but no further than the full range");
+    }
+
+    @Test
+    @DisplayName("A single step down is enough to start the reach over")
+    public void oneStepDownStartsTheReachOver() {
+        // A shelf three wide on a floor one block lower - the shape of a terrace. The lava walks the shelf,
+        // steps off, drops a single block, and must then have its whole reach back. The shelf runs the
+        // width of the region on purpose: a shelf one block wide in z lets the lava walk round the end
+        // instead of over the lip, and the test then proves nothing.
+        for (int x = 0; x <= 2; x++) {
+            for (int z = -20; z <= 20; z++) {
+                view.put(x, 0, z, stone);
+            }
+        }
+        floor(-1, 20);
+        view.put(0, 1, 0, lava, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        settle();
+
+        assertEquals(lava, view.at(3, 0, 0), "it should drop off the step");
+        assertEquals(1, view.flowAt(3, 0, 0), "landing with its reach restored");
+        assertEquals(lava, view.at(3 + LAVA_RANGE, 0, 0), "and run its whole range again");
+        assertEquals(air, view.at(3 + LAVA_RANGE + 1, 0, 0), "but no further");
     }
 
     @Test

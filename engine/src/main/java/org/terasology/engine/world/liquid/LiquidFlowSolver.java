@@ -22,14 +22,18 @@ import java.util.Set;
 /**
  * Works out where a liquid runs to, and where it drains back from.
  * <p>
- * The liquid occupies exactly those positions within {@code flowRange} of a source, under a shortest-path
- * distance where falling costs nothing, stepping sideways costs one, and rising is impossible. A source
- * carries the distance nought, and because an untouched per-block data field reads nought everywhere, every
- * block of liquid the world generator laid down is a source without a single write.
+ * What each position holds is the number of sideways steps taken <em>since the last fall</em>: stepping
+ * sideways costs one, falling hands the whole reach back, and rising is impossible. A source carries
+ * nought, and because an untouched per-block data field reads nought everywhere, every block of liquid the
+ * world generator laid down is a source without a single write.
  * <p>
- * The distance stored is one more than the number of sideways steps. That offset is what stops the sea
- * copying itself downwards forever: without it the block under a source would inherit nought, become a
- * source in its turn, and never dry up.
+ * The distance stored is one more than that count. The offset is what stops the sea copying itself
+ * downwards forever: without it the block under a source would inherit nought, become a source in its turn,
+ * and never dry up.
+ * <p>
+ * Because a fall resets the count, the reach no longer bounds how far a liquid travels - only how far it
+ * travels on the level. Down a slope of single steps it runs as long as the slope does, which is the point:
+ * lava that stops dead at the lip of a step is not lava.
  * <p>
  * It holds no reference to the engine beyond {@link Block} and {@link Side}, so it can be driven by a plain
  * map in a test.
@@ -143,9 +147,17 @@ public class LiquidFlowSolver {
         return block.isReplacementAllowed() && !block.isLiquid();
     }
 
+    /**
+     * The distance a neighbour takes from this one.
+     * <p>
+     * A fall does not merely cost nothing, it hands the whole reach back: whatever the liquid had spent
+     * getting to the lip, it lands with a clean slate and runs its full range again. Keeping the spent
+     * distance instead made a liquid that had already walked its range freeze on the edge of a one block
+     * step, close enough to fall and unable to, because reaching the drop needed one sideways move it could
+     * no longer afford. On broken ground that stopped almost everything.
+     */
     private static int childValue(int value, boolean downwards) {
-        int base = Math.max(1, value);
-        return downwards ? base : base + 1;
+        return downwards ? 1 : Math.max(1, value) + 1;
     }
 
     private static Vector3i below(Vector3ic pos) {
@@ -163,9 +175,10 @@ public class LiquidFlowSolver {
      * The second clause is not decoration. Asking only whether the space below is free makes the rule
      * undo itself: the moment the liquid has filled that space, the block above stops falling and spreads,
      * so a source over a drop ends up building a waterfall and a pancake on top of it. A position whose
-     * own fall already stands below it is still falling.
+     * own fall already stands below it - that is, a column of the same liquid freshly reset to one - is
+     * still falling.
      */
-    private boolean canFall(Vector3ic pos, Block liquid, int value) {
+    private boolean canFall(Vector3ic pos, Block liquid) {
         Vector3i down = below(pos);
         if (!view.isRelevant(down)) {
             return false;
@@ -174,7 +187,7 @@ public class LiquidFlowSolver {
         if (isFlowPassable(standing)) {
             return true;
         }
-        return standing.equals(liquid) && flowAt(down) == childValue(value, true);
+        return standing.equals(liquid) && flowAt(down) == childValue(0, true);
     }
 
     /**
@@ -275,7 +288,7 @@ public class LiquidFlowSolver {
             }
             int value = flowAt(q);
             spreadTo(below(q), q, liquid, value, true, budget);
-            if (!budget.isSpent() && !canFall(q, liquid, value)) {
+            if (!budget.isSpent() && !canFall(q, liquid)) {
                 for (Side side : Side.horizontalSides()) {
                     spreadTo(side.getAdjacentPos(q, new Vector3i()), q, liquid, value, false, budget);
                     if (budget.isSpent()) {
@@ -406,7 +419,7 @@ public class LiquidFlowSolver {
             return false;
         }
         // A sideways neighbour with somewhere to fall spends its whole flow downwards and feeds nobody.
-        return fromAbove || !canFall(candidate, liquid, view.getFlow(candidate));
+        return fromAbove || !canFall(candidate, liquid);
     }
 
     /**
@@ -432,7 +445,7 @@ public class LiquidFlowSolver {
                 overflowed = true;
                 break;
             }
-            if (!canFall(q, liquid, value)) {
+            if (!canFall(q, liquid)) {
                 for (Side side : Side.horizontalSides()) {
                     if (!collectDependants(q, liquid, value, side.getAdjacentPos(q, new Vector3i()), false,
                             pending, stack)) {
@@ -518,7 +531,7 @@ public class LiquidFlowSolver {
             Vector3i q = deque.pollFirst();
             int value = distances.get(q);
             relax(q, below(q), true, value, pending, distances, deque);
-            if (!canFall(q, liquid, value)) {
+            if (!canFall(q, liquid)) {
                 for (Side side : Side.horizontalSides()) {
                     relax(q, side.getAdjacentPos(q, new Vector3i()), false, value, pending, distances, deque);
                 }
