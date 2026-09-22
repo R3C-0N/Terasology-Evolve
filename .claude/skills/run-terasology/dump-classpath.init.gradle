@@ -11,7 +11,12 @@ gradle.projectsEvaluated {
     pc.tasks.register('dumpRunSpec') {
         dependsOn pc.configurations.named('natives')
         dependsOn pc.configurations.named('modules')
-        dependsOn pc.tasks.named('classes')
+        // Depend on the classpath itself, not just on :facades:PC:classes. The classpath names
+        // one jar per project dependency (engine, and every :subsystems:* project), and a
+        // FileCollection carries the tasks that build its files - so this builds them all. With
+        // only 'classes', a freshly added subsystem is dumped into the classpath as a jar path
+        // that was never built, and the game dies at startup with NoClassDefFoundError.
+        dependsOn pc.sourceSets.main.runtimeClasspath
         doLast {
             def cp = pc.sourceSets.main.runtimeClasspath.files.collect { it.absolutePath }
             new File(rootProject.projectDir, 'build/run-classpath.txt').text = cp.join(File.pathSeparator)

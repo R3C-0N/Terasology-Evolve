@@ -38,6 +38,7 @@ import org.terasology.engine.rendering.nui.layers.mainMenu.savedGames.GameProvid
 import org.terasology.splash.SplashScreen;
 import org.terasology.splash.SplashScreenBuilder;
 import org.terasology.subsystem.discordrpc.DiscordRPCSubSystem;
+import org.terasology.subsystem.inspect.InspectSubsystem;
 import picocli.CommandLine;
 import picocli.CommandLine.Option;
 
@@ -124,6 +125,10 @@ public final class Terasology implements Callable<Integer> {
 
     @Option(names = "--server-port", description = "Change the server port")
     private Integer serverPort;
+
+    @Option(names = "--inspect-port",
+            description = "Ouvre le canal d'inspection HTTP sur 127.0.0.1:<port>. Absent, rien n'ecoute.")
+    private Integer inspectPort;
 
     @Option(names = "--override-default-config", description = "Override default config")
     private Path overrideConfigPath;
@@ -296,6 +301,9 @@ public final class Terasology implements Callable<Integer> {
         if (serverPort != null) {
             System.setProperty(ConfigurationSubsystem.SERVER_PORT_PROPERTY, serverPort.toString());
         }
+        if (inspectPort != null) {
+            System.setProperty(InspectSubsystem.PORT_PROPERTY, inspectPort.toString());
+        }
         if (overrideConfigPath != null) {
             System.setProperty(Config.PROPERTY_OVERRIDE_DEFAULT_CONFIG, overrideConfigPath.toString());
         }
@@ -316,6 +324,10 @@ public final class Terasology implements Callable<Integer> {
             builder.add(new DiscordRPCSubSystem());
         }
         builder.add(new HibernationSubsystem());
+        // Hors du if/else : un serveur sans ecran merite d'etre inspectable autant qu'un client.
+        if (inspectPort != null) {
+            builder.add(new InspectSubsystem());
+        }
     }
 
     @SuppressWarnings({"PMD.SystemPrintln", "PMD.AvoidPrintStackTrace"})

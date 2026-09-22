@@ -63,6 +63,7 @@ dependencies {
 
     implementation(project(":engine"))
     implementation(project(":subsystems:DiscordRPC"))
+    implementation(project(":subsystems:Inspect"))
     implementation("io.projectreactor:reactor-core:3.4.7")
 
     // TODO: Consider whether we can move the CR dependency back here from the engine, where it is referenced from the main menu
