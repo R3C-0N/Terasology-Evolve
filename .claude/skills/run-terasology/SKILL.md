@@ -75,6 +75,18 @@ python .claude/skills/run-terasology/driver.py launch --load-last-game   # strai
 python .claude/skills/run-terasology/driver.py launch --load-last-game --debug   # + F3 overlay
 ```
 
+**Testing a change to world generation needs a fresh world, and `--create-last-game`
+is the trap.** An already-generated chunk never runs a new provider again, so the
+only honest check is a world built from scratch: pass `--create-last-game` through
+`--`. But it recreates the world with the **default generator from `config.cfg`**,
+not the one the game it copies was played with — so it will hand you
+`CoreWorlds:facetedsimplex` while the save it came from says `CubeWorlds:cubeworld`.
+The flat generator has neither the cave provider nor the ore provider in its chain,
+so the symptom is a solid, hollow-free, ore-free underground that looks exactly like
+a broken generator. Set `worldGeneration.defaultGenerator` to `CubeWorlds:cubeworld`
+before any such session, and read the new save's `worlds.main.worldGenerator` to
+confirm what you actually got.
+
 `launch` starts `java` directly off the dumped classpath — not through Gradle —
 so the driver owns the PID and can close it cleanly. It returns once the window
 exists *and* has had 8 s to paint. It also attaches to a game somebody else
