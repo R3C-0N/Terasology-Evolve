@@ -754,12 +754,22 @@ public class LiquidFlowSolver {
         }
         // Whatever still stands next to the freed space may now run into it - but not a cell on its way out,
         // which would run straight back in and the tide would never go out at all.
+        //
+        // And it is asked both questions, not one. Spreading is the hopeful half; the other half is whether
+        // the cell that just vanished was the only thing feeding this one. Asking only the first is how a
+        // pool at the foot of a waterfall outlives the waterfall: the fall drains, the pool is invited to
+        // run into the space it left, and nobody ever puts it to the question - so it stands there for good,
+        // carrying a perfectly good distance to a source that is no longer there. A source is not asked: it
+        // does not dry up, and that is what keeps a generated sea free.
         for (Vector3ic cell : removals.keySet()) {
             for (Side side : Side.allSides()) {
                 Vector3i neighbour = side.getAdjacentPos(cell, new Vector3i());
                 if (view.isRelevant(neighbour) && !condemned.contains(neighbour)
                         && isFlowLiquid(view.getBlock(neighbour))) {
                     enqueueFlow(neighbour, view.getFlow(neighbour));
+                    if (view.getFlow(neighbour) != 0) {
+                        enqueueCheck(neighbour);
+                    }
                 }
             }
         }
