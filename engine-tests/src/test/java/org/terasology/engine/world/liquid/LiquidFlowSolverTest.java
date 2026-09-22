@@ -495,6 +495,35 @@ public class LiquidFlowSolverTest {
     }
 
     @Test
+    @DisplayName("A source poured from a height takes its whole waterfall with it")
+    public void aWaterfallDoesNotOutliveItsSource() {
+        // The shape a player actually builds: a spring up on a ledge, a fall, and a pool spreading at the
+        // foot of it. A flat pool is the easy case - every ring carries a different distance, so the drain
+        // can walk them in order. A fall carries one distance from top to bottom, because falling hands the
+        // whole reach back, and that is the case where a cell can be told it is fed by the very cell above
+        // that is itself on its way out.
+        floor(0, 20);
+        view.put(0, 10, 0, water, 0);
+        solver.enqueueFlow(new Vector3i(0, 10, 0), 0);
+        settle();
+
+        assertEquals(water, view.at(0, 5, 0), "the fall should have formed");
+        assertEquals(water, view.at(WATER_RANGE, 1, 0), "and pooled across the floor");
+        long poured = view.count(water);
+
+        view.put(0, 10, 0, stone, 0);
+        solver.enqueueCheck(new Vector3i(0, 9, 0));
+        for (Side side : Side.horizontalSides()) {
+            solver.enqueueCheck(side.getAdjacentPos(new Vector3i(0, 10, 0), new Vector3i()));
+        }
+        settle();
+
+        assertEquals(0, view.count(water),
+                "the spring was taken away and " + view.count(water) + " of " + poured
+                        + " blocks of water stayed behind");
+    }
+
+    @Test
     @DisplayName("One pass writes no more than its budget allows")
     public void onePassKeepsToItsBudget() {
         // Deliberately a liquid with no viscosity: with a thick one, a single pass would write the four
