@@ -237,6 +237,39 @@ in `.mcp.json` — exposing all of the above as eleven `tera_*` tools. Use those
 when they are available; `curl` stays valid and equivalent. Standard library
 only, so there is nothing to install.
 
+## The JVM debugger — and the one rule that matters
+
+`driver.py launch --jdwp` opens a JDWP port on 127.0.0.1:5005, and `.mcp.json`
+declares a second MCP server giving 47 `jdwp_*` tools. Setup and the download are
+in `tools/mcp/README.md` (the 24 MB jar is not versioned).
+
+**Attaching is free** — measured, `last_tick_ms` stays at 14-18. What is not free
+is a logpoint being *hit*:
+
+| | `last_tick_ms` |
+|---|---|
+| Idle, nothing set | 18 |
+| Attached, nothing set | 14-18 |
+| Logpoint set, line not reached | 5 |
+| **Logpoint hit twice** | **2542, 2945** |
+
+**About 1.5 s of frozen game thread per hit**, and it is not amortised compile
+cost — two separate runs gave the same figures. So:
+
+> **Only ever put a logpoint on a path crossed a handful of times.** Never in a
+> hot loop. `LiquidFlowSolver.processAdds` visits thousands of cells a second;
+> two hits there froze the game for three seconds and made the inspection port
+> answer 503.
+
+Also: **the expression evaluator cannot see private methods.** `canFall(q, liquid)`
+fails to compile — the synthetic class it generates has no access. Stick to
+locals and accessible members. `"q=" + q + " value=" + value` works and gives the
+value *at the moment the solver visits the cell*, which no state query can.
+
+For liquid-propagation questions, `/slice` and `/block` answer better and for
+free. Keep the debugger for what only it does: a cold path, an exception's locals
+at the throw site, a rare case reached once.
+
 **Prefer `curl …/console` to `driver.py console` whenever the port is open.**
 Measured on `showView`: **5177 ms through the keyboard, 23 ms through the port**,
 byte-identical output. The keyboard path also carries every gotcha below — a

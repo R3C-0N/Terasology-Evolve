@@ -402,8 +402,18 @@ def cmd_launch(a):
     # ran at 2 FPS, full GC on every frame. The official launcher gives it 3 GB;
     # this machine has 8 GB, so 2560M leaves room for the OS. TERA_XMX overrides.
     xmx = os.environ.get("TERA_XMX", "2560M")
-    args = [java, "-Xmx" + xmx, "-XX:MaxDirectMemorySize=512M", "@" + str(argfile),
-            MAIN_CLASS, "--homedir=.", "--no-splash", "--no-crash-report"]
+    args = [java, "-Xmx" + xmx, "-XX:MaxDirectMemorySize=512M"]
+    # The JDWP flag goes here and not into run-args.txt, which is rewritten with only -cp on
+    # every launch. Three details that are not interchangeable: -agentlib:jdwp, not the legacy
+    # -Xrunjdwp the Gradle `debug` task still uses; the address pinned to 127.0.0.1 rather than
+    # a bare port, so nobody later "fixes" it to *; and suspend=n, without which the JVM waits
+    # for a debugger before main and the window-wait loop below burns its whole timeout.
+    jdwp = os.environ.get("TERA_JDWP") or getattr(a, "jdwp", None)
+    if jdwp:
+        args.append("-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,"
+                    "address=127.0.0.1:" + str(jdwp))
+    args += ["@" + str(argfile),
+             MAIN_CLASS, "--homedir=.", "--no-splash", "--no-crash-report"]
     if a.load_last_game:
         args.append("--load-last-game")
     args.extend(a.extra)
@@ -758,6 +768,9 @@ def main():
     lc.add_argument("--timeout", type=float, default=120)
     lc.add_argument("--settle", type=float, default=8.0,
                     help="seconds to wait after the window appears")
+    lc.add_argument("--jdwp", nargs="?", const="5005", default=None, metavar="PORT",
+                    help="open a JDWP debug port on 127.0.0.1 (default 5005) for the "
+                         "debugger MCP server; TERA_JDWP sets it too")
     lc.add_argument("extra", nargs="*", help="extra engine args, after --")
     lc.set_defaults(func=cmd_launch)
 

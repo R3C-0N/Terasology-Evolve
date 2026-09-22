@@ -121,3 +121,6 @@ local.properties
 # Python (outils de generation, pilote d agent)
 __pycache__/
 *.pyc
+
+# Le jar du debogueur MCP : 24,7 Mo, telecharge a la demande (voir tools/mcp/README.md)
+/tools/mcp/*.jar

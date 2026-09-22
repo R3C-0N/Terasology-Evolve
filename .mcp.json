@@ -6,6 +6,18 @@
       "env": {
         "TERA_INSPECT_PORT": "17888"
       }
+    },
+    "jdwp": {
+      "command": "C:\\Program Files\\Microsoft\\jdk-17.0.20.101-hotspot\\bin\\java.exe",
+      "args": [
+        "--add-modules", "jdk.jdi,jdk.attach",
+        "-DJVM_JDWP_PORT=5005",
+        "-jar", "tools/mcp/mcp-jdwp-java-2.10.1.jar"
+      ],
+      "env": {
+        "MCP_TIMEOUT": "30000",
+        "MCP_TOOL_TIMEOUT": "120000"
+      }
     }
   }
 }
