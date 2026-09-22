@@ -91,7 +91,7 @@ public final class TerrainLegend {
      * L'air n'a pas de predicat : il n'existe ni {@code Block.isInvisible()} ni discriminateur de
      * famille. Un bloc traversable et non ciblable est du vide pour ce qui nous occupe.
      */
-    private static boolean isEmpty(Block block) {
+    public static boolean isEmpty(Block block) {
         return block.isPenetrable() && !block.isTargetable();
     }
 

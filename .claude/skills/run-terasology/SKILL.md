@@ -213,6 +213,7 @@ curl -X POST -d "look 42 10" http://127.0.0.1:17888/console
 | `POST /console` | Runs one command and returns its output. Also `GET /console?cmd=…` |
 | `GET /slice` | A cross-section of the world as characters — `axis=x\|y\|z`, `w`, `h`. **Use this instead of a screenshot** for anything about block layout, caves, or liquids |
 | `GET /cube` | The dense neighbourhood, layers in descending Y. `r` ≤ 8 |
+| `GET /surface` | Top-down map: material and height per column, heights in base 36. `r` ≤ 24 |
 | `GET /block` | One cell, in the exact vocabulary of the `liquidFlow` command |
 
 **The grids centre on the player by default, never on the aimed block** — water
@@ -223,7 +224,8 @@ Three characters are reserved and the distinction carries the whole point: `.`
 empty, `?` **unreadable** (no ready chunk covers it), `~` liquid. Liquid flow
 comes back as a **second grid**, cropped to the rows that hold liquid and omitted
 when there is none — `0` is a permanent source, and a fall resets the count to 1.
-Measured cost: `/slice` 24×16 is 0.40 ms, 48×32 is 0.80 ms, `/cube?r=4` 0.90 ms.
+Measured cost: `/slice` 24×16 is 0.40 ms, 48×32 is 0.80 ms, `/cube?r=4` 0.90 ms,
+`/surface?r=24` 2.20 ms for 82,793 probes.
 
 A cap that would be exceeded is **refused with 400, never silently clamped**.
 

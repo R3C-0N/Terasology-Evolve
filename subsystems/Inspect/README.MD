@@ -27,6 +27,7 @@ Sans `--inspect-port`, rien n'écoute : pas de port, pas de thread.
 | `POST /console` | Exécute une commande et rend sa sortie. Aussi `GET /console?cmd=…` |
 | `GET /slice` | Une coupe du monde en caractères. `axis=x\|y\|z`, `w`, `h`, `flow=0` |
 | `GET /cube` | Le voisinage dense, couches en Y décroissant. `r` ≤ 8 |
+| `GET /surface` | La vue de dessus : matière et hauteur de chaque colonne. `r` ≤ 24, `from`, `depth` |
 | `GET /block` | Le forage sur une case, dans le vocabulaire exact de `liquidFlow` |
 
 ## Les grilles de terrain
@@ -64,9 +65,16 @@ rayon aurait été réduit en silence répondrait à une question que personne n
 posée. `/cube?r=8` est donc refusé sur la taille estimée du corps, calculée
 *avant* l'échantillonnage.
 
+`/surface` a son propre échantillonneur : il ne rend pas une case par bloc mais
+**une valeur par colonne**, avec sortie anticipée dès que toutes sont résolues.
+Son plafond par défaut est `min(plafond chargé, ancreY + 48)` et non le seul
+plafond chargé — sinon un joueur enfoui à deux cents blocs verrait la surface du
+monde au lieu de ce qui l'entoure.
+
 Mesuré sur ce dépôt : `/slice` 24×16 **0,40 ms** médiane, 48×32 **0,80 ms**,
-`/cube?r=4` **0,90 ms**, `last_tick_ms` à 4. Le parcours groupe par chunk —
-une recherche par chunk au lieu d'une par bloc — et n'alloue que ses deux
+`/cube?r=4` **0,90 ms**, `/surface?r=8` **1,35 ms**, `/surface?r=24`
+**2,20 ms pour 82 793 sondes**, `last_tick_ms` entre 2 et 4. Le parcours groupe
+par chunk — une recherche par chunk au lieu d'une par bloc — et n'alloue que ses
 tableaux de résultat.
 
 Codes de refus, et la distinction est le but : **503** le thread de jeu n'a pas

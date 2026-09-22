@@ -99,6 +99,8 @@ public final class InspectServer {
                     bridge.call(context -> TerrainRoutes.cube(context, query(exchange)))));
             server.createContext("/block", exchange -> respond(exchange,
                     bridge.call(context -> TerrainRoutes.block(context, query(exchange)))));
+            server.createContext("/surface", exchange -> respond(exchange,
+                    bridge.call(context -> TerrainRoutes.surface(context, query(exchange)))));
             server.start();
             logger.info("Canal d'inspection ouvert sur http://127.0.0.1:{} (console {})",
                     port, allowConsole ? "autorisee" : "fermee");

@@ -41,6 +41,8 @@ public final class TerrainRoutes {
     private static final int SLICE_MAX_W = 64;
     private static final int SLICE_MAX_H = 48;
     private static final int CUBE_MAX_R = 8;
+    private static final int SURFACE_MAX_R = 24;
+    private static final int SURFACE_MAX_DEPTH = 256;
 
     private TerrainRoutes() {
     }
@@ -164,6 +166,97 @@ public final class TerrainRoutes {
         } catch (BadParam e) {
             return e.response;
         }
+    }
+
+    /**
+     * La vue de dessus : la premiere surface de chaque colonne, plus une grille de hauteurs.
+     * <p>
+     * Le plafond par defaut est {@code min(plafond charge, ancreY + 48)} et non le seul plafond
+     * charge : un joueur enfoui a deux cents blocs sous celui-ci verrait sinon la surface du
+     * monde plutot que ce qui l'entoure.
+     */
+    public static InspectResponse surface(Context context, Map<String, String> params) {
+        try {
+            long began = System.nanoTime();
+            Vector3i anchor = new Vector3i();
+            GridSpec.Anchor kind = resolveAnchor(context, params, anchor);
+            int r = intParam(params, "r", 8, 1, SURFACE_MAX_R);
+            int depth = intParam(params, "depth", 64, 1, SURFACE_MAX_DEPTH);
+            int width = 2 * r + 1;
+
+            WorldProvider world = context.get(WorldProvider.class);
+            if (world == null) {
+                return InspectResponse.text(409, "error=no-world reason=aucun monde\n");
+            }
+            int loadedTop = Integer.MIN_VALUE;
+            for (var region : world.getRelevantRegions()) {
+                loadedTop = Math.max(loadedTop, region.maxY());
+            }
+            int from = intParam(params, "from",
+                    loadedTop == Integer.MIN_VALUE ? anchor.y + 48
+                            : Math.min(loadedTop, anchor.y + 48),
+                    Integer.MIN_VALUE, Integer.MAX_VALUE);
+
+            int columns = width * width;
+            checkBudget(columns * depth, 320 + 24 * 28 + 2 * width * (width + 7), "r");
+
+            SurfaceSample sample = SurfaceSample.read(context, anchor.x - r, anchor.z - r,
+                    width, from, depth);
+
+            TerrainLegend legend = new TerrainLegend();
+            int hmin = Integer.MAX_VALUE;
+            int hmax = Integer.MIN_VALUE;
+            for (int i = 0; i < columns; i++) {
+                if (sample.height(i) != SurfaceSample.NO_HEIGHT) {
+                    hmin = Math.min(hmin, sample.height(i));
+                    hmax = Math.max(hmax, sample.height(i));
+                }
+            }
+
+            StringBuilder mat = new StringBuilder(TerrainLegend.ruler(5, width));
+            StringBuilder hgt = new StringBuilder(TerrainLegend.ruler(5, width));
+            for (int row = 0; row < width; row++) {
+                mat.append(String.format(Locale.ROOT, "%4d ", anchor.z - r + row));
+                hgt.append(String.format(Locale.ROOT, "%4d ", anchor.z - r + row));
+                for (int col = 0; col < width; col++) {
+                    int i = row * width + col;
+                    Block block = sample.surface(i);
+                    mat.append(block == null && !sample.seen(i)
+                            ? TerrainLegend.UNREADABLE : legend.charFor(block));
+                    hgt.append(sample.height(i) == SurfaceSample.NO_HEIGHT ? '-'
+                            : Character.forDigit((sample.height(i) - hmin) % 36, 36));
+                }
+                mat.append('\n');
+                hgt.append('\n');
+            }
+
+            StringBuilder out = new StringBuilder();
+            out.append(String.format(Locale.ROOT,
+                    "surface anchor=%s pos=%d,%d,%d r=%d from=%d depth=%d ms=%.1f%n",
+                    spec(kind), anchor.x, anchor.y, anchor.z, r, from, depth,
+                    ms(began, System.nanoTime())));
+            out.append(String.format(Locale.ROOT,
+                    "grid rows=z %d..%d asc  cols=x %d..%d asc  columns=%d probes=%d chunks=%d/%d%n",
+                    anchor.z - r, anchor.z + r, anchor.x - r, anchor.x + r,
+                    columns, sample.probes(), sample.chunksLoaded(), sample.chunksTotal()));
+            out.append(String.format(Locale.ROOT, "stats found=%d%% y=%s%n",
+                    Math.round(100f * sample.resolved() / columns),
+                    hmin == Integer.MAX_VALUE ? "aucune" : hmin + ".." + hmax));
+            out.append("legend . rien trouve  ? unloaded")
+               .append(legend.legendLine().substring("legend . air  ? unloaded".length()));
+            out.append("top\n").append(mat);
+            if (hmin != Integer.MAX_VALUE) {
+                out.append(String.format(Locale.ROOT, "height  base36 de (y - %d)  -=rien%n", hmin));
+                out.append(hgt);
+            }
+            return InspectResponse.ok(out.toString());
+        } catch (BadParam e) {
+            return e.response;
+        }
+    }
+
+    private static String spec(GridSpec.Anchor kind) {
+        return kind.name().toLowerCase(Locale.ROOT);
     }
 
     /**
