@@ -53,6 +53,14 @@ public class InspectSubsystem implements EngineSubsystem {
      */
     public static final String PORT_PROPERTY = "org.terasology.inspectPort";
 
+    /**
+     * Ouvre {@code POST /console}, qui execute une commande sans passer par le clavier. Separe du
+     * port parce que c'est un canal d'<em>ecriture</em> : la route court-circuite le controle de
+     * permission, et le registre des commandes etant ouvert, on ne peut pas la rendre inoffensive
+     * en filtrant une liste. Allumee, tout processus local pilote le monde.
+     */
+    public static final String ALLOW_CONSOLE_PROPERTY = "org.terasology.inspectAllowConsole";
+
     private static final Logger logger = LoggerFactory.getLogger(InspectSubsystem.class);
 
     private final InspectBridge bridge = new InspectBridge();
@@ -75,7 +83,7 @@ public class InspectSubsystem implements EngineSubsystem {
             logger.debug("Canal d'inspection eteint : {} n'est pas defini.", PORT_PROPERTY);
             return;
         }
-        server = new InspectServer(bridge, port);
+        server = new InspectServer(bridge, port, Boolean.getBoolean(ALLOW_CONSOLE_PROPERTY));
         server.start();
     }
 

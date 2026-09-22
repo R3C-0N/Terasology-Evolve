@@ -130,6 +130,10 @@ public final class Terasology implements Callable<Integer> {
             description = "Ouvre le canal d'inspection HTTP sur 127.0.0.1:<port>. Absent, rien n'ecoute.")
     private Integer inspectPort;
 
+    @Option(names = "--inspect-allow-console",
+            description = "Autorise POST /console sur le canal d'inspection : ecriture dans le monde.")
+    private boolean inspectAllowConsole;
+
     @Option(names = "--override-default-config", description = "Override default config")
     private Path overrideConfigPath;
 
@@ -303,6 +307,9 @@ public final class Terasology implements Callable<Integer> {
         }
         if (inspectPort != null) {
             System.setProperty(InspectSubsystem.PORT_PROPERTY, inspectPort.toString());
+        }
+        if (inspectAllowConsole) {
+            System.setProperty(InspectSubsystem.ALLOW_CONSOLE_PROPERTY, "true");
         }
         if (overrideConfigPath != null) {
             System.setProperty(Config.PROPERTY_OVERRIDE_DEFAULT_CONFIG, overrideConfigPath.toString());

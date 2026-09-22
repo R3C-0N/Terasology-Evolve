@@ -11,15 +11,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.engine.context.Context;
 import org.terasology.engine.input.cameraTarget.CameraTargetSystem;
+import org.terasology.engine.logic.console.Console;
+import org.terasology.engine.logic.console.commandSystem.ConsoleCommand;
 import org.terasology.engine.logic.players.LocalPlayer;
 import org.terasology.engine.world.WorldProvider;
+import org.terasology.gestalt.naming.Name;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -49,13 +55,15 @@ public final class InspectServer {
 
     private final InspectBridge bridge;
     private final int port;
+    private final boolean allowConsole;
     private final long startedNanos = System.nanoTime();
 
     private HttpServer server;
 
-    public InspectServer(InspectBridge bridge, int port) {
+    public InspectServer(InspectBridge bridge, int port, boolean allowConsole) {
         this.bridge = bridge;
         this.port = port;
+        this.allowConsole = allowConsole;
     }
 
     /**
@@ -83,8 +91,11 @@ public final class InspectServer {
 
             server.createContext("/health", this::handleHealth);
             server.createContext("/view", this::handleView);
+            server.createContext("/commands", this::handleCommands);
+            server.createContext("/console", this::handleConsole);
             server.start();
-            logger.info("Canal d'inspection ouvert sur http://127.0.0.1:{}", port);
+            logger.info("Canal d'inspection ouvert sur http://127.0.0.1:{} (console {})",
+                    port, allowConsole ? "autorisee" : "fermee");
         } catch (IOException e) {
             logger.warn("Canal d'inspection indisponible sur le port {} : {}", port, e.toString());
             server = null;
@@ -150,6 +161,97 @@ public final class InspectServer {
     }
 
     /**
+     * Liste les commandes enregistrees, filtrables par {@code ?q=}. Rend la surface de la console
+     * decouvrable sans documentation, et sans avoir a la tenir a jour.
+     */
+    private void handleCommands(HttpExchange exchange) throws IOException {
+        String filter = query(exchange).getOrDefault("q", "").toLowerCase(Locale.ROOT);
+        respond(exchange, bridge.call(context -> {
+            Console console = context.get(Console.class);
+            if (console == null) {
+                return InspectResponse.text(409, "error=no-console reason=aucune console\n");
+            }
+            List<ConsoleCommand> commands = new ArrayList<>(console.getCommands());
+            commands.sort(ConsoleCommand.COMPARATOR);
+            StringBuilder out = new StringBuilder();
+            int shown = 0;
+            for (ConsoleCommand command : commands) {
+                String usage = command.getUsage();
+                if (!filter.isEmpty() && !usage.toLowerCase(Locale.ROOT).contains(filter)) {
+                    continue;
+                }
+                out.append(usage);
+                if (!command.getDescription().isEmpty()) {
+                    out.append("  -- ").append(command.getDescription());
+                }
+                out.append('\n');
+                shown++;
+            }
+            out.append(String.format(Locale.ROOT, "-- %d commandes sur %d%n", shown, commands.size()));
+            return InspectResponse.ok(out.toString());
+        }));
+    }
+
+    /**
+     * Execute une commande de console sans passer par le clavier.
+     * <p>
+     * {@code Console.execute} ne rend qu'un booleen ; on resout donc la commande et on l'appelle
+     * directement, ce qui rend sa chaine. Le destinataire <em>doit</em> etre
+     * {@code getClientEntity()} : {@code ConsoleImpl} dereference {@code ClientComponent} sans
+     * test de nullite.
+     * <p>
+     * <b>Deux consequences de ce raccourci, assumees.</b> Il court-circuite le controle de
+     * permission — on ne peut donc pas rendre cette route inoffensive en filtrant une liste,
+     * puisque le registre des commandes est ouvert : d'ou le drapeau et la loopback. Et il
+     * court-circuite le routage {@code isRunOnServer}, sans effet en solo ou le client local fait
+     * autorite, mais qui laisserait une commande serveur sans effet sur un client distant.
+     */
+    private void handleConsole(HttpExchange exchange) throws IOException {
+        if (!allowConsole) {
+            respond(exchange, InspectResponse.notFound("/console"));
+            return;
+        }
+        String line;
+        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            line = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8).trim();
+        } else {
+            line = query(exchange).getOrDefault("cmd", "").trim();
+        }
+        if (line.isEmpty()) {
+            respond(exchange, InspectResponse.badParam("cmd", "commande vide"));
+            return;
+        }
+        final String command = line;
+        respond(exchange, bridge.call(context -> runConsole(context, command)));
+    }
+
+    private static InspectResponse runConsole(Context context, String line) {
+        Console console = context.get(Console.class);
+        LocalPlayer localPlayer = context.get(LocalPlayer.class);
+        if (console == null || localPlayer == null || !localPlayer.isValid()) {
+            return InspectResponse.text(409, "error=no-player reason=aucun joueur local\n");
+        }
+        // L'analyse de la ligne appartient au moteur : elle gere les guillemets, qu'un split sur
+        // les espaces casserait.
+        ConsoleCommand command = console.getCommand(new Name(console.processCommandName(line)));
+        if (command == null) {
+            return InspectResponse.text(404, String.format(
+                    "error=unknown-command name=%s%n", console.processCommandName(line)));
+        }
+        try {
+            String result = command.execute(console.processParameters(line),
+                    localPlayer.getClientEntity());
+            // Une methode sans valeur de retour ressort en "null" a travers String.valueOf.
+            if (result == null || result.isBlank() || "null".equals(result)) {
+                return InspectResponse.ok("ok\n");
+            }
+            return InspectResponse.ok(result.endsWith("\n") ? result : result + "\n");
+        } catch (Exception e) {
+            return InspectResponse.error(e);
+        }
+    }
+
+    /**
      * Ecrit la reponse, plafonnee, avec un pied de page qui dit toujours la taille et si elle a ete
      * coupee — une troncature silencieuse se lirait comme un monde qui s'arrete.
      */
@@ -173,8 +275,8 @@ public final class InspectServer {
     }
 
     /**
-     * Decoupe la chaine de requete en paires. Suffit aux parametres scalaires des routes a venir ;
-     * rien ici n'est encode en pourcentage.
+     * Decoupe et decode la chaine de requete. Le decodage n'est pas optionnel : une commande passee
+     * en {@code ?cmd=} porte des espaces.
      */
     static Map<String, String> query(HttpExchange exchange) {
         Map<String, String> params = new HashMap<>();
@@ -185,7 +287,8 @@ public final class InspectServer {
         for (String pair : raw.split("&")) {
             int eq = pair.indexOf('=');
             if (eq > 0) {
-                params.put(pair.substring(0, eq), pair.substring(eq + 1));
+                params.put(URLDecoder.decode(pair.substring(0, eq), StandardCharsets.UTF_8),
+                        URLDecoder.decode(pair.substring(eq + 1), StandardCharsets.UTF_8));
             }
         }
         return params;
