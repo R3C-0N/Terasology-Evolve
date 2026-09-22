@@ -16,6 +16,11 @@ exits. Keys and mouse go in through Win32 `SendInput`; screenshots are a
 `BitBlt` of the window's client area; the player position comes back as text
 through the in-game console and the log.
 
+**There is now a second, much faster way in:** launch with `--inspect-port` and
+query the game over HTTP — no keystrokes, no stolen foreground, ~20 ms instead of
+~5 s. See «The inspection port» below, and prefer it for anything that only reads
+state or runs a console command.
+
 All paths below are relative to `Terasology-Evolve/`. Run every command from
 there.
 
@@ -47,7 +52,13 @@ dependencies and compile. `--clean` is accepted and forces a full rebuild.
 
 The classpath dump comes from a Gradle init script kept next to the driver,
 `dump-classpath.init.gradle`, which registers `:facades:PC:dumpRunSpec` without
-touching any of the project's own build files.
+touching any of the project's own build files. That task depends on
+`sourceSets.main.runtimeClasspath` rather than on `:facades:PC:classes`, and the
+difference is load-bearing: the classpath names one jar per project dependency —
+the engine and every `:subsystems:*` — and only the FileCollection carries the
+tasks that build them. With `classes` alone, a newly added subsystem was written
+into the classpath as a jar path that had never been built, and the game died at
+startup with `NoClassDefFoundError`.
 
 To force one compilation unit to re-run (Gradle hashes content, so `touch` is
 not enough):
@@ -97,7 +108,7 @@ running.
 | Type into a field | `driver.py type "SkillSmoke"` |
 | Turn the camera | `driver.py move 600 0 --steps 30` (relative, in mickeys) |
 | Toolbar wheel | `driver.py scroll -2` |
-| Console command | `driver.py console ghost` · `driver.py console "teleport 20 55 20"` |
+| Console command | `driver.py console ghost` — **slow (~5 s); prefer `curl -X POST -d ghost http://127.0.0.1:17888/console` when the port is open** |
 | **Aim, absolutely** | `driver.py console "look 180 30"` — yaw then pitch, in degrees |
 | **Read the whole view** | `driver.py console showView` → one `key=value` line |
 | Player position | `driver.py where` |
@@ -162,16 +173,66 @@ thumbnail beside a save is an empty rectangle. Use `driver.py shot`.
 
 ### Reading state back
 
-Two channels, in order of preference:
+Three channels, in order of preference:
 
-1. **The console, through the log.** `ConsoleImpl` mirrors every console message
-   into `logs/<run>/Terasology-<world>.log`. `driver.py where` uses this:
+1. **The inspection port — use this.** See the next section. It answers in
+   ~20 ms instead of ~5 s, does not touch the keyboard, and does not steal the
+   foreground window.
+2. **The console, through the log.** The fallback for a game launched without
+   `--inspect-port`. `ConsoleImpl` mirrors every console message into
+   `logs/<run>/Terasology-<world>.log`. `driver.py where` uses this:
    `showPosition` → `Your Position: ( 1,361E+1  2,141E+1  1,537E+1)`. Also
    useful: `debugTarget` (the block under the crosshair), `showMovement`,
    `help`. Numbers come out in the French locale, comma-separated.
-2. **A screenshot.** `shot --hud` crops to the four F3 lines — FPS, active
-   entities, current target, position, world time — which is usually all you
-   need and much smaller to look at than the full 1280×800 frame.
+3. **A screenshot.** Still the only way to answer anything about what the game
+   *looks* like. `shot --hud` crops to the four F3 lines — FPS, active entities,
+   current target, position, world time — which is usually all you need and much
+   smaller to look at than the full 1280×800 frame.
+
+## The inspection port — the fast channel
+
+`subsystems/Inspect/` opens a small HTTP server on the loopback when the game is
+launched with `--inspect-port`. It answers with plain text, from the game thread,
+without a single keystroke.
+
+```bash
+python .claude/skills/run-terasology/driver.py launch --load-last-game -- \
+    --inspect-port=17888 --inspect-allow-console
+
+curl http://127.0.0.1:17888/health
+curl http://127.0.0.1:17888/view
+curl "http://127.0.0.1:17888/commands?q=look"
+curl -X POST -d "look 42 10" http://127.0.0.1:17888/console
+```
+
+| Route | What it answers |
+|---|---|
+| `GET /health` | `ok state=… last_tick_ms=… queue=… uptime_s=…`. Answered on the HTTP thread, so it still replies when the game thread does not — this is the liveness probe |
+| `GET /view` | The `showView` line: position, direction, yaw, pitch, targeted block |
+| `GET /commands` | Every registered console command with its usage and description; `?q=` filters. 121 commands unfiltered overrun the 8 KiB cap, so filter |
+| `POST /console` | Runs one command and returns its output. Also `GET /console?cmd=…` |
+
+**Prefer `curl …/console` to `driver.py console` whenever the port is open.**
+Measured on `showView`: **5177 ms through the keyboard, 23 ms through the port**,
+byte-identical output. The keyboard path also carries every gotcha below — a
+console left open inverting later calls, a NUI screen swallowing the key — and
+the port carries none of them.
+
+Three things to know:
+
+- **`/console` needs `--inspect-allow-console` and returns 404 without it.** The
+  route resolves the command and calls it directly, which **bypasses the
+  permission check**; the command registry is open, so `teleport`, `giveBlock`
+  and `ghost` are all reachable. Never add this flag to the `smoke` path.
+- **The refusals are distinct on purpose:** `503` the game thread did not drain
+  in time (busy, loading, shutting down), `409` it drained but there is no world
+  or no player, `400` bad parameter, `404` unknown command or closed route.
+  A `409 no-player` while a world loads is normal — poll it.
+- **Losing focus costs about 80 ms per call.** `HibernationSubsystem` sleeps the
+  main loop 100 ms/frame when the window is not focused, and the channel drains
+  once per frame. Measured: `last_tick_ms` 18 focused, 93 unfocused. Still sixty
+  times faster than the keyboard, and it is the normal case — the whole point is
+  not to steal the foreground.
 
 The debug overlay is off by default. `launch --debug` turns it on; `driver.py
 debug on|off` sets it for the next launch. Do not press `f3` blind — see below.

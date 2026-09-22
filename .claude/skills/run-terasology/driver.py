@@ -599,9 +599,11 @@ def console_output(command, keyname="f1", wait=1.0, open_wait=2.5,
                    char_delay=0.06):
     """Run a console command and return the lines it wrote to the log.
 
-    ConsoleImpl mirrors every console message into logs/<run>/Terasology-<world>.log,
-    which is the only text channel out of a running game - everything else needs
-    a screenshot to read.
+    ConsoleImpl mirrors every console message into logs/<run>/Terasology-<world>.log.
+    This was once the only text channel out of a running game; it is now the
+    fallback. A game launched with --inspect-port answers the same question over
+    HTTP in ~20 ms rather than ~5 s, without touching the keyboard - see the
+    inspection port section of SKILL.md.
     """
     log = newest_log()
     offset = log.stat().st_size if log else 0
