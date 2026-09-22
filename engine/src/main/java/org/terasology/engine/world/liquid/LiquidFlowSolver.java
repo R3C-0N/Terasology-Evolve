@@ -132,6 +132,16 @@ public class LiquidFlowSolver {
     private final Map<Vector3ic, Integer> stagedValues = Maps.newLinkedHashMap();
 
     /**
+     * Cells this pass has decided have set into stone, and what each has become.
+     * <p>
+     * They are held apart from {@link #staged} because they go out the other way round - blocks first, then
+     * distances - and because what follows them is the bookkeeping of a cell taken away rather than one laid
+     * down. Reads see through this map as they see through the other, so a cell that set early in the pass is
+     * not still read as liquid when its own turn comes round.
+     */
+    private final Map<Vector3ic, Block> cooling = Maps.newLinkedHashMap();
+
+    /**
      * Positions that have somewhere to go but have not yet dwelt long enough to go there, soonest first.
      * <p>
      * The buckets are untouched by this: a position waits here, then moves there, and the ordering that
@@ -164,6 +174,11 @@ public class LiquidFlowSolver {
     private final LongSupplier clock;
 
     private boolean warnedFullQueue;
+
+    /**
+     * Names a block definition asked to set into that no block answers to, so each is complained of once.
+     */
+    private final Set<String> warnedUnknownBlocks = Sets.newHashSet();
 
     public LiquidFlowSolver(LiquidWorldView view) {
         this(view, System::currentTimeMillis);
@@ -205,6 +220,28 @@ public class LiquidFlowSolver {
      */
     public static boolean isFlowPassable(Block block) {
         return block.isReplacementAllowed() && !block.isLiquid();
+    }
+
+    /**
+     * Whether this liquid is one a colder liquid sets, without asking the world anything.
+     * <p>
+     * It is the first question of the rule and it is a field read, which is what makes the rule free for every
+     * liquid that does not take part: water names nothing, so water never looks at a neighbour on its account.
+     */
+    public static boolean canCool(Block block) {
+        return block.getCoolsInto() != null;
+    }
+
+    /**
+     * Whether this block is a liquid cold enough to set {@code hot}.
+     * <p>
+     * The two must differ. The warmth test alone would be enough for any sane pair of definitions, but a liquid
+     * declaring a threshold at or above its own warmth would otherwise set the instant two of its own cells
+     * touched, and a sea would turn to stone from the inside out - a mistake in a text file that would read as
+     * a mistake in this class.
+     */
+    public static boolean cools(Block neighbour, Block hot) {
+        return neighbour.isLiquid() && !neighbour.equals(hot) && neighbour.getWarmth() <= hot.getCooledBelow();
     }
 
     /**
@@ -254,6 +291,10 @@ public class LiquidFlowSolver {
      * The block at this position as this pass has it, staged writes included.
      */
     private Block blockAt(Vector3ic pos) {
+        Block set = cooling.get(pos);
+        if (set != null) {
+            return set;
+        }
         Block pending = staged.get(pos);
         return pending != null ? pending : view.getBlock(pos);
     }
@@ -445,6 +486,11 @@ public class LiquidFlowSolver {
             if (!isFlowLiquid(liquid)) {
                 continue;
             }
+            if (coolAt(q, liquid, budget)) {
+                // It has set where it stood. It runs nowhere, and what fed it is put to the question when the
+                // batch lands.
+                continue;
+            }
             int value = flowAt(q);
             spreadTo(below(q), q, liquid, value, true, budget);
             if (!budget.isSpent() && !canFall(q, liquid)) {
@@ -456,7 +502,93 @@ public class LiquidFlowSolver {
                 }
             }
         }
+        flushCooling();
         flush();
+    }
+
+    /**
+     * Sets this cell into stone if a cold enough liquid stands against it, and says whether it did.
+     * <p>
+     * A source and a run are asked for different blocks: a source is inexhaustible and is worth the harder
+     * stone, so a definition may name one for each. The budget is asked as for any other placement - lava is
+     * lit, so a cell setting costs a full flood of light and comes out of the small budget - and a refusal is
+     * a refusal to set now, not a refusal to set: the cell keeps its place in the queue and is asked again.
+     */
+    private boolean coolAt(Vector3ic pos, Block liquid, Budget budget) {
+        if (!canCool(liquid)) {
+            return false;
+        }
+        boolean source = flowAt(pos) == 0;
+        String name = source ? liquid.getSourceCoolsInto() : liquid.getCoolsInto();
+        if (name == null) {
+            return false;
+        }
+        boolean touched = false;
+        for (Side side : Side.allSides()) {
+            Vector3i neighbour = side.getAdjacentPos(pos, new Vector3i());
+            if (view.isRelevant(neighbour) && cools(blockAt(neighbour), liquid)) {
+                touched = true;
+                break;
+            }
+        }
+        if (!touched) {
+            return false;
+        }
+        Block into = view.resolve(name);
+        if (into == null) {
+            warnUnknownBlock(name, liquid);
+            return false;
+        }
+        if (!budget.stage(liquid, pos)) {
+            enqueueReady(pos, flowAt(pos));
+            budget.spend();
+            return true; // Not this pass, but it is not to run either: it is standing against the cold.
+        }
+        cooling.put(new Vector3i(pos), into);
+        return true;
+    }
+
+    /**
+     * Writes the cells that have set, and puts what fed them to the question.
+     * <p>
+     * The blocks go first and the distances after, which is the order of {@link #applyDueRemovals} and the
+     * opposite of {@link #flush}. It has to be: turned round, a snapshot taken between the two writes would
+     * catch living liquid at nought - a source, saved as one, and immortal when the world comes back.
+     */
+    private void flushCooling() {
+        if (cooling.isEmpty()) {
+            return;
+        }
+        selfWrites.addAll(cooling.keySet());
+        view.setBlocks(cooling);
+        for (Vector3ic cell : cooling.keySet()) {
+            view.setFlow(cell, 0);
+            condemned.remove(cell);
+        }
+        // What stood next to this cell has lost a neighbour, and it matters both ways round: it may now run
+        // into a space this one has vacated - it has not, stone is not a space, but a cell that was waiting on
+        // it is owed the ask - and, far more to the point, this cell may have been the only thing feeding it.
+        // A source that sets takes its whole tongue with it, and nothing else would ever notice.
+        for (Vector3ic cell : cooling.keySet()) {
+            for (Side side : Side.allSides()) {
+                Vector3i neighbour = side.getAdjacentPos(cell, new Vector3i());
+                if (view.isRelevant(neighbour) && !condemned.contains(neighbour)
+                        && isFlowLiquid(view.getBlock(neighbour))) {
+                    enqueueFlow(neighbour, view.getFlow(neighbour));
+                    if (view.getFlow(neighbour) != 0) {
+                        enqueueCheck(neighbour);
+                    }
+                }
+            }
+        }
+        cooling.clear();
+    }
+
+    private void warnUnknownBlock(String name, Block liquid) {
+        if (warnedUnknownBlocks.add(name)) {
+            logger.warn("{} is to set into '{}', and no block answers to that name. It will not set, and the"
+                    + " rule is off for it until the name is corrected.", liquid.getURI(), name);
+        }
     }
 
     private void spreadTo(Vector3i target, Vector3i from, Block liquid, int value, boolean downwards,
@@ -528,8 +660,33 @@ public class LiquidFlowSolver {
         }
         selfWrites.addAll(staged.keySet());
         view.setBlocks(staged);
+        wakeWhatThisCools();
         staged.clear();
         stagedValues.clear();
+    }
+
+    /**
+     * Asks again of any hotter liquid the cells just laid down are cold enough to set.
+     * <p>
+     * The rule has two sides and only one of them looks after itself. Lava running up against standing water
+     * is caught by the lava's own turn, because a cell that has just been placed is queued. Water running up
+     * against standing lava is caught by nothing at all: the change these writes raise is marked as this
+     * solver's own and skipped, so the lava stands there for good, against water, liquid. It was found by a
+     * test that laid the two sources far enough apart for the water to arrive second.
+     */
+    private void wakeWhatThisCools() {
+        for (Map.Entry<Vector3ic, Block> entry : staged.entrySet()) {
+            for (Side side : Side.allSides()) {
+                Vector3i neighbour = side.getAdjacentPos(entry.getKey(), new Vector3i());
+                if (!view.isRelevant(neighbour)) {
+                    continue;
+                }
+                Block standing = view.getBlock(neighbour);
+                if (canCool(standing) && cools(entry.getValue(), standing)) {
+                    enqueueFlow(neighbour, view.getFlow(neighbour), standing);
+                }
+            }
+        }
     }
 
     // ---------------------------------------------------------------- losing support

@@ -6,6 +6,7 @@ package org.terasology.engine.world.liquid;
 import org.joml.Vector3i;
 import org.joml.Vector3ic;
 import org.terasology.engine.math.Side;
+import org.terasology.engine.world.block.Block;
 import org.terasology.engine.world.chunks.Chunk;
 import org.terasology.engine.world.chunks.ChunkProvider;
 import org.terasology.engine.world.chunks.Chunks;
@@ -80,7 +81,7 @@ public class LiquidSeeder {
                         }
                         chunk.chunkToWorldPosition(x, cursor.y, z, world);
                         int flow = view.getFlow(world);
-                        if (hasSomewhereToGo(world)) {
+                        if (hasSomethingToDo(world, chunk.getBlock(x, cursor.y, z))) {
                             solver.enqueueFlow(world, flow);
                         }
                         if (flow != 0) {
@@ -103,7 +104,18 @@ public class LiquidSeeder {
         }
     }
 
-    private boolean hasSomewhereToGo(Vector3ic pos) {
+    /**
+     * Whether this cell is worth queueing at all: it has somewhere to run, or something cold against it.
+     * <p>
+     * The second half is not an afterthought. The first filter passes over exactly the cells hemmed in on every
+     * side, and a lava sea generated hard against an aquifer is hemmed in by that very water - so without this
+     * the rule would hold for every contact a player makes and for none the world was born with, which reads
+     * as a rule that works by chance.
+     * <p>
+     * It costs the sea nothing: {@link LiquidFlowSolver#canCool} is a field read, and water names no block to
+     * set into, so no neighbour is ever looked at on the water's account.
+     */
+    private boolean hasSomethingToDo(Vector3ic pos, Block liquid) {
         Vector3i down = new Vector3i(pos.x(), pos.y() - 1, pos.z());
         if (view.isRelevant(down) && LiquidFlowSolver.isFlowPassable(view.getBlock(down))) {
             return true;
@@ -111,6 +123,16 @@ public class LiquidSeeder {
         for (Side side : Side.horizontalSides()) {
             Vector3i neighbour = side.getAdjacentPos(pos, new Vector3i());
             if (view.isRelevant(neighbour) && LiquidFlowSolver.isFlowPassable(view.getBlock(neighbour))) {
+                return true;
+            }
+        }
+        return LiquidFlowSolver.canCool(liquid) && touchedByColder(pos, liquid);
+    }
+
+    private boolean touchedByColder(Vector3ic pos, Block liquid) {
+        for (Side side : Side.allSides()) {
+            Vector3i neighbour = side.getAdjacentPos(pos, new Vector3i());
+            if (view.isRelevant(neighbour) && LiquidFlowSolver.cools(view.getBlock(neighbour), liquid)) {
                 return true;
             }
         }

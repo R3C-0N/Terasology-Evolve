@@ -24,6 +24,7 @@ public class FakeLiquidWorldView implements LiquidWorldView {
 
     private final Map<Vector3i, Block> blocks = Maps.newHashMap();
     private final Map<Vector3i, Integer> flows = Maps.newHashMap();
+    private final Map<String, Block> byName = Maps.newHashMap();
     private final BlockRegion relevant;
     private final Block air;
 
@@ -111,6 +112,19 @@ public class FakeLiquidWorldView implements LiquidWorldView {
     @Override
     public Block getAir() {
         return air;
+    }
+
+    @Override
+    public Block resolve(String blockUri) {
+        return byName.get(blockUri);
+    }
+
+    /**
+     * Gives a name to a block, so a liquid definition can say it sets into it. A name never declared here
+     * resolves to nothing, which is how a test spells a mistyped block definition.
+     */
+    public void declare(String blockUri, Block block) {
+        byName.put(blockUri, block);
     }
 
     public void put(int x, int y, int z, Block block) {

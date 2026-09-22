@@ -286,6 +286,9 @@ public class BlockFamilyDefinitionFormat extends AbstractAssetFileFormat<BlockFa
             setInt(data::setHardness, jsonObject, "hardness");
             setInt(data::setFlowRange, jsonObject, "flowRange");
             setByte(data::setViscosity, jsonObject, "viscosity");
+            setString(data::setCoolsInto, jsonObject, "coolsInto");
+            setString(data::setSourceCoolsInto, jsonObject, "sourceCoolsInto");
+            setByte(data::setCooledBelow, jsonObject, "cooledBelow");
             setBoolean(data::setAttachmentAllowed, jsonObject, "attachmentAllowed");
             setBoolean(data::setReplacementAllowed, jsonObject, "replacementAllowed");
             setBoolean(data::setSupportRequired, jsonObject, "supportRequired");

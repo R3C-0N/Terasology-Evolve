@@ -62,6 +62,9 @@ public final class Block {
     private int hardness = 3;
     private int flowRange;
     private byte viscosity;
+    private String coolsInto;
+    private String sourceCoolsInto;
+    private byte cooledBelow;
     private boolean supportRequired;
     private final boolean[] fullSide = new boolean[Side.values().length];
     private BlockSounds sounds;
@@ -479,6 +482,72 @@ public final class Block {
      */
     public void setViscosity(byte viscosity) {
         this.viscosity = (byte) TeraMath.clamp(viscosity, 0, MAX_VISCOSITY);
+    }
+
+    /**
+     * @return the block this liquid sets into where it has run, or {@code null} if nothing sets it
+     */
+    public String getCoolsInto() {
+        return coolsInto;
+    }
+
+    /**
+     * Sets what this liquid becomes when a colder liquid touches it.
+     * <p>
+     * This is the whole of the rule: a liquid that names a block here sets into it the moment a liquid at or
+     * below {@link #getCooledBelow()} stands against any of its six faces, and a liquid that names nothing is
+     * never touched by the rule at all. Naming it on the block rather than in the solver is what lets a module
+     * add tar or magma without the engine knowing they exist.
+     * <p>
+     * The block named is not resolved here. Blocks are loaded one at a time and a family can name one that has
+     * not been read yet, so the name is kept as written and looked up when a block actually sets.
+     *
+     * @param coolsInto the URI of the block, as {@code Module:Block}, or {@code null} for a liquid nothing sets
+     */
+    public void setCoolsInto(String coolsInto) {
+        this.coolsInto = coolsInto;
+    }
+
+    /**
+     * @return the block a source of this liquid sets into, which is {@link #getCoolsInto()} unless it was given
+     *         one of its own
+     */
+    public String getSourceCoolsInto() {
+        return sourceCoolsInto != null ? sourceCoolsInto : coolsInto;
+    }
+
+    /**
+     * Sets what a source of this liquid becomes, where that is to differ from what its run becomes.
+     * <p>
+     * A source is worth more than the tongue it feeds - it is inexhaustible - so it is worth a harder stone.
+     * Leaving this unset is the ordinary case and gives the two the same block.
+     *
+     * @param sourceCoolsInto the URI of the block, or {@code null} to set into {@link #getCoolsInto()}
+     */
+    public void setSourceCoolsInto(String sourceCoolsInto) {
+        this.sourceCoolsInto = sourceCoolsInto;
+    }
+
+    /**
+     * @return the warmth at or under which a neighbouring liquid sets this one, on the nought to fifteen scale
+     *         of {@link #getWarmth()}
+     */
+    public byte getCooledBelow() {
+        return cooledBelow;
+    }
+
+    /**
+     * Sets how cold a liquid has to be to set this one.
+     * <p>
+     * It must stay under this block's own {@link #getWarmth()}, and that is not a matter of taste: a liquid that
+     * counted as cold enough to set itself would set the instant two of its cells touched, and a sea would
+     * turn to stone from the inside out. Lava declares seven, which is the warmth at which a liquid stops
+     * burning whoever stands in it, so the rule reads as it sounds - what does not burn sets.
+     *
+     * @param cooledBelow the warmth that sets this liquid, nought to fifteen
+     */
+    public void setCooledBelow(byte cooledBelow) {
+        this.cooledBelow = (byte) TeraMath.clamp(cooledBelow, 0, Chunks.MAX_LIGHT);
     }
 
     /**

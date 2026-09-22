@@ -32,6 +32,9 @@ public class LiquidFlowSolverTest {
     private static final int WATER_RANGE = 8;
     private static final int LAVA_RANGE = 4;
 
+    private static final String BASALT_URI = "Test:Basalt";
+    private static final String OBSIDIAN_URI = "Test:Obsidian";
+
     /**
      * A clock the test winds on by hand, in milliseconds. The solver is paced by this and by nothing else,
      * so a test that never winds it sees a liquid that never moves - which is itself an assertion, below.
@@ -60,6 +63,16 @@ public class LiquidFlowSolverTest {
     private Block lava;
     /** A liquid with no thickness at all, for the tests that are about the budget and not about the pace. */
     private Block ether;
+    /**
+     * Lava that has been told what it sets into, which the plain {@link #lava} deliberately has not.
+     * <p>
+     * The two are kept apart on purpose. What stops water and lava trading places for ever is a predicate that
+     * knows nothing of either, and the test that holds it needs a hot liquid the setting rule never touches -
+     * otherwise the water would simply turn the lava to stone and the invariant would go untested.
+     */
+    private Block molten;
+    private Block basalt;
+    private Block obsidian;
     private FakeLiquidWorldView view;
     private FakeClock clock;
     private LiquidFlowSolver solver;
@@ -89,7 +102,22 @@ public class LiquidFlowSolverTest {
         ether.setFlowRange(WATER_RANGE);
         ether.setViscosity((byte) 0);
 
+        basalt = new Block();
+        obsidian = new Block();
+
+        molten = new Block();
+        molten.setLiquid(true);
+        molten.setReplacementAllowed(true);
+        molten.setFlowRange(LAVA_RANGE);
+        molten.setViscosity((byte) 10);
+        molten.setWarmth((byte) 15);
+        molten.setCoolsInto(BASALT_URI);
+        molten.setSourceCoolsInto(OBSIDIAN_URI);
+        molten.setCooledBelow((byte) 7);
+
         view = new FakeLiquidWorldView(new BlockRegion(-40, -40, -40, 40, 40, 40), air);
+        view.declare(BASALT_URI, basalt);
+        view.declare(OBSIDIAN_URI, obsidian);
         clock = new FakeClock();
         solver = new LiquidFlowSolver(view, clock::get);
     }
@@ -116,6 +144,25 @@ public class LiquidFlowSolverTest {
         for (int pass = 0; pass < 200 && solver.hasWorkDue(); pass++) {
             solver.update();
             solver.clearSelfWrites();
+        }
+    }
+
+    /**
+     * The whole of what the setting rule promises, said once: when everything has come to rest, there is
+     * nowhere left in the world where the hot liquid touches the cold one.
+     */
+    private void assertNoLavaAgainstWater() {
+        for (int x = -20; x <= 20; x++) {
+            for (int z = -20; z <= 20; z++) {
+                if (!molten.equals(view.at(x, 1, z))) {
+                    continue;
+                }
+                for (Side side : Side.allSides()) {
+                    Vector3i neighbour = side.getAdjacentPos(new Vector3i(x, 1, z), new Vector3i());
+                    assertNotEquals(water, view.getBlock(neighbour),
+                            "lava left standing against water at " + x + ", 1, " + z);
+                }
+            }
         }
     }
 
@@ -537,5 +584,213 @@ public class LiquidFlowSolverTest {
         assertTrue(view.getWrites() <= LiquidFlowSolver.MAX_PLACEMENTS_PER_PASS,
                 "one pass wrote " + view.getWrites() + " blocks");
         assertTrue(view.getWrites() > 0, "one pass wrote nothing at all");
+    }
+
+    @Test
+    @DisplayName("Lava that has run sets into stone where the water touches it")
+    public void flowingLavaMeetingWaterTurnsToBasalt() {
+        floor(0, 20);
+        view.put(-6, 1, 0, water, 0);
+        view.put(0, 1, 0, molten, 0);
+        solver.enqueueFlow(new Vector3i(-6, 1, 0), 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        settle();
+
+        // Where the fronts meet is a race between two paces and is not worth asserting. What the rule
+        // promises is the state it leaves: stone was made, the far side of the disc the water never touched
+        // is still lava, and nowhere in the world does lava stand against water.
+        assertEquals(water, view.at(-6, 1, 0), "the cold liquid is never the one that changes");
+        assertTrue(view.count(basalt) > 0, "the two fronts met and nothing set");
+        assertTrue(view.count(molten) > 0, "the rule took lava the water never reached");
+        assertNoLavaAgainstWater();
+    }
+
+    @Test
+    @DisplayName("A source and its run set into blocks of their own")
+    public void aSourceAndItsRunSetIntoDifferentBlocks() {
+        floor(0, 20);
+        view.put(0, 1, 0, molten, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        settle();
+        assertEquals(molten, view.at(LAVA_RANGE, 1, 0), "the lava should have run its range first");
+
+        // A single cell of water, laid against the far end of the run and nowhere near the source.
+        view.put(LAVA_RANGE + 1, 1, 0, water, 0);
+        solver.enqueueFlow(new Vector3i(LAVA_RANGE, 1, 0), LAVA_RANGE + 1);
+        settle();
+
+        assertEquals(basalt, view.at(LAVA_RANGE, 1, 0), "a run sets into the block a run is given");
+        assertEquals(molten, view.at(0, 1, 0), "the source was never touched by anything cold");
+    }
+
+    @Test
+    @DisplayName("Only the hot liquid changes; the cold one is left alone")
+    public void theColdLiquidIsNeverTheOneThatChanges() {
+        floor(0, 20);
+        view.put(0, 1, 0, water, 0);
+        view.put(1, 1, 0, molten, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        solver.enqueueFlow(new Vector3i(1, 1, 0), 0);
+        settle();
+
+        assertEquals(water, view.at(0, 1, 0));
+        assertEquals(obsidian, view.at(1, 1, 0), "a source sets into the block a source is given");
+    }
+
+    @Test
+    @DisplayName("A liquid is never set by its own kind")
+    public void aLiquidIsNeverSetByItsOwnKind() {
+        floor(0, 20);
+        view.put(0, 1, 0, molten, 0);
+        view.put(1, 1, 0, molten, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        solver.enqueueFlow(new Vector3i(1, 1, 0), 0);
+        settle();
+
+        assertEquals(molten, view.at(0, 1, 0), "two cells of the same liquid must not set each other");
+        assertEquals(molten, view.at(1, 1, 0));
+    }
+
+    @Test
+    @DisplayName("A liquid warmer than the threshold does not set it")
+    public void aLiquidWarmerThanTheThresholdDoesNotSetIt() {
+        Block warmSpring = new Block();
+        warmSpring.setLiquid(true);
+        warmSpring.setReplacementAllowed(true);
+        warmSpring.setFlowRange(WATER_RANGE);
+        warmSpring.setWarmth((byte) 8); // One above what the molten rock declares it is set by.
+
+        floor(0, 20);
+        view.put(0, 1, 0, warmSpring, 0);
+        view.put(1, 1, 0, molten, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        solver.enqueueFlow(new Vector3i(1, 1, 0), 0);
+        settle();
+
+        assertEquals(molten, view.at(1, 1, 0), "cooledBelow should have kept this one liquid");
+    }
+
+    @Test
+    @DisplayName("A liquid that names no block never sets, whatever touches it")
+    public void aLiquidThatNamesNoBlockNeverSets() {
+        // This is the plain lava, and it is what makes the rule free for every liquid that does not take part.
+        floor(0, 20);
+        view.put(0, 1, 0, water, 0);
+        view.put(1, 1, 0, lava, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        solver.enqueueFlow(new Vector3i(1, 1, 0), 0);
+        settle();
+
+        assertEquals(lava, view.at(1, 1, 0));
+    }
+
+    @Test
+    @DisplayName("A liquid naming a block nobody knows stays liquid rather than vanishing")
+    public void anUnknownBlockLeavesTheLiquidAlone() {
+        // A block manager hands back air for a name it does not know. Believed, that would turn the lava into
+        // nothing at all - a rule that looks like it works and quietly deletes the world.
+        Block mistyped = new Block();
+        mistyped.setLiquid(true);
+        mistyped.setReplacementAllowed(true);
+        mistyped.setFlowRange(LAVA_RANGE);
+        mistyped.setWarmth((byte) 15);
+        mistyped.setCoolsInto("Test:NoSuchBlock");
+        mistyped.setCooledBelow((byte) 7);
+
+        floor(0, 20);
+        view.put(0, 1, 0, water, 0);
+        view.put(1, 1, 0, mistyped, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        solver.enqueueFlow(new Vector3i(1, 1, 0), 0);
+        settle();
+
+        assertEquals(mistyped, view.at(1, 1, 0), "an unknown name must leave the liquid exactly as it was");
+    }
+
+    @Test
+    @DisplayName("A tongue of lava meeting the sea seals itself and stops")
+    public void aTongueOfLavaMeetingTheSeaSealsItselfAndStops() {
+        // The rule has to come to rest on its own. What the lava leaves behind is stone, not a space, so the
+        // water cannot come on and the front seals at one block thick. Settling proves nothing by itself -
+        // an oscillation settles too - so the assertion is that a second round writes nothing at all.
+        floor(0, 20);
+        for (int x = 3; x <= 12; x++) {
+            for (int z = -12; z <= 12; z++) {
+                view.put(x, 1, z, water, 0);
+            }
+        }
+        view.put(0, 1, 0, molten, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        settle();
+
+        int before = view.getWrites();
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        settle();
+        assertEquals(before, view.getWrites(), "the front kept rewriting itself");
+    }
+
+    @Test
+    @DisplayName("What fed a source that set dries up behind it")
+    public void whatFedASourceThatSetDriesUp() {
+        // A source that sets is a source taken away, and the tongue it was feeding has to go with it. Nothing
+        // else would ever notice: the cells further out are perfectly good liquid carrying perfectly good
+        // distances to a source that is no longer there.
+        floor(0, 20);
+        view.put(0, 1, 0, molten, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        settle();
+        assertEquals(molten, view.at(0, 1, -LAVA_RANGE), "the run should be there to lose");
+
+        view.put(1, 1, 0, water, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        settle();
+
+        assertEquals(obsidian, view.at(0, 1, 0), "the source should have set");
+        assertEquals(air, view.at(0, 1, -LAVA_RANGE), "the far end of the run should have dried up");
+    }
+
+    @Test
+    @DisplayName("A cell that has set is never seen as living liquid at a source's distance")
+    public void aCellThatSetIsNeverCaughtCallingItselfASource() {
+        // The same window as aRunningLiquidIsNeverCaughtCallingItselfASource, and the reason the setting
+        // writes go out blocks first and distances after: turned round, a snapshot taken between the two
+        // would catch living lava at nought - which is what a source reads - and the save would come back
+        // with a spring that never dries up.
+        floor(0, 20);
+        Set<Vector3ic> sources = Sets.newHashSet(new Vector3i(0, 1, 0), new Vector3i(6, 1, 0));
+        view.put(0, 1, 0, molten, 0);
+        view.put(6, 1, 0, water, 0);
+
+        List<Vector3ic> caught = Lists.newArrayList();
+        view.onBlocksWritten(() -> caught.addAll(view.livingLiquidsCallingThemselvesSources(sources)));
+
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        solver.enqueueFlow(new Vector3i(6, 1, 0), 0);
+        settle();
+
+        assertTrue(caught.isEmpty(), () -> caught.size() + " cells were living liquid at a source's distance "
+                + "while the solver was mid-write, the first at " + caught.get(0));
+    }
+
+    @Test
+    @DisplayName("Water arriving against lava that is already standing sets it")
+    public void waterArrivingAgainstStandingLavaSetsIt() {
+        // The cold side of the rule, and the one that looks after itself least. Lava running up against water
+        // is caught by the lava's own turn, because a cell just placed is queued. Water running up against
+        // lava that has long since come to rest is caught by nothing: the change the solver's own write raises
+        // is marked as its own and skipped, so the lava would stand there for good, liquid, against water.
+        floor(0, 20);
+        view.put(0, 1, 0, molten, 0);
+        solver.enqueueFlow(new Vector3i(0, 1, 0), 0);
+        settle();
+        assertEquals(molten, view.at(2, 1, 0), "the lava should have come to rest first");
+
+        // Now, and only now, a spring opens far enough away that the water arrives second.
+        view.put(6, 1, 0, water, 0);
+        solver.enqueueFlow(new Vector3i(6, 1, 0), 0);
+        settle();
+
+        assertTrue(view.count(basalt) > 0, "the water arrived and nothing set");
+        assertNoLavaAgainstWater();
     }
 }

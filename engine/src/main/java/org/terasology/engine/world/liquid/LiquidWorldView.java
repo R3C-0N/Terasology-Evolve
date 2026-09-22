@@ -45,4 +45,15 @@ public interface LiquidWorldView {
      * @return the block that stands for nothing at all, used to dry a position up
      */
     Block getAir();
+
+    /**
+     * Looks up a block by the name a block definition wrote, for the block a liquid sets into.
+     * <p>
+     * It sits here for the same reason {@link #getAir()} does: the solver knows {@link Block} and nothing else
+     * of the engine, so it cannot reach a block manager, and a test drives it from a plain map.
+     *
+     * @param blockUri the name as written, {@code Module:Block}
+     * @return the block, or {@code null} if no such block is registered
+     */
+    Block resolve(String blockUri);
 }

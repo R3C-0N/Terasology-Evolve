@@ -21,6 +21,9 @@ public class SectionDefinitionData {
     private int hardness = 0x3;
     private int flowRange;
     private byte viscosity;
+    private String coolsInto;
+    private String sourceCoolsInto;
+    private byte cooledBelow;
 
     private boolean attachmentAllowed = true;
     private boolean replacementAllowed;
@@ -75,6 +78,9 @@ public class SectionDefinitionData {
         this.hardness = other.hardness;
         this.flowRange = other.flowRange;
         this.viscosity = other.viscosity;
+        this.coolsInto = other.coolsInto;
+        this.sourceCoolsInto = other.sourceCoolsInto;
+        this.cooledBelow = other.cooledBelow;
 
         this.attachmentAllowed = other.attachmentAllowed;
         this.replacementAllowed = other.replacementAllowed;
@@ -152,6 +158,30 @@ public class SectionDefinitionData {
 
     public void setViscosity(byte viscosity) {
         this.viscosity = viscosity;
+    }
+
+    public String getCoolsInto() {
+        return coolsInto;
+    }
+
+    public void setCoolsInto(String coolsInto) {
+        this.coolsInto = coolsInto;
+    }
+
+    public String getSourceCoolsInto() {
+        return sourceCoolsInto;
+    }
+
+    public void setSourceCoolsInto(String sourceCoolsInto) {
+        this.sourceCoolsInto = sourceCoolsInto;
+    }
+
+    public byte getCooledBelow() {
+        return cooledBelow;
+    }
+
+    public void setCooledBelow(byte cooledBelow) {
+        this.cooledBelow = cooledBelow;
     }
 
     public boolean isAttachmentAllowed() {
