@@ -221,8 +221,13 @@ public final class TerrainRoutes {
                 for (int col = 0; col < width; col++) {
                     int i = row * width + col;
                     Block block = sample.surface(i);
-                    mat.append(block == null && !sample.seen(i)
-                            ? TerrainLegend.UNREADABLE : legend.charFor(block));
+                    // Trois cas, et les confondre serait mentir : rien vu du tout, vu mais rien
+                    // trouve jusqu'au fond de la sonde, ou une surface.
+                    if (block != null) {
+                        mat.append(legend.charFor(block));
+                    } else {
+                        mat.append(sample.seen(i) ? '.' : TerrainLegend.UNREADABLE);
+                    }
                     hgt.append(sample.height(i) == SurfaceSample.NO_HEIGHT ? '-'
                             : Character.forDigit((sample.height(i) - hmin) % 36, 36));
                 }
@@ -336,7 +341,9 @@ public final class TerrainRoutes {
             out.append(String.format(Locale.ROOT, "%4d ", rows.coordAt(r)));
             for (int c = 0; c < cols.count(); c++) {
                 int index = (layer * rows.count() + r) * cols.count() + c;
-                out.append(legend.charFor(sample.block(index)));
+                Block cell = sample.block(index);
+                legend.count(cell);
+                out.append(legend.charFor(cell));
             }
             out.append('\n');
         }

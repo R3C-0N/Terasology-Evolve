@@ -51,21 +51,30 @@ public final class TerrainLegend {
     private int solid;
 
     /**
-     * Le caractere de ce bloc, en l'attribuant si c'est la premiere rencontre. Met a jour les
-     * compteurs au passage.
+     * Compte ce bloc dans les statistiques. Separe de {@link #charFor(Block)} a dessein : une route
+     * qui rend une grille derivee — la vue de dessus, ou chaque case est une colonne entiere et non
+     * un bloc — attribue des caracteres sans que ses cases soient comptables comme du volume. Les
+     * melanger faisait mentir les pourcentages sans que rien ne le signale.
      */
-    public char charFor(Block block) {
+    public void count(Block block) {
         if (block == null) {
             unreadable++;
-            return UNREADABLE;
-        }
-        if (block.isLiquid()) {
+        } else if (block.isLiquid()) {
             liquid++;
         } else if (isEmpty(block)) {
             air++;
-            return AIR;
         } else {
             solid++;
+        }
+    }
+
+    /** Le caractere de ce bloc, en l'attribuant si c'est la premiere rencontre. */
+    public char charFor(Block block) {
+        if (block == null) {
+            return UNREADABLE;
+        }
+        if (!block.isLiquid() && isEmpty(block)) {
+            return AIR;
         }
         Character existing = chars.get(block);
         if (existing != null) {
@@ -109,18 +118,35 @@ public final class TerrainLegend {
         return out.append('\n').toString();
     }
 
+    /**
+     * Les quatre parts somment toujours a 100 : trois sont arrondies et la quatrieme, la plus
+     * grosse, prend le reste. Quatre arrondis independants donnaient « 53 % + 48 % », et un total
+     * qui ne tombe pas juste ruine le seul usage de cette ligne — juger la fiabilite de la grille
+     * sans lire chaque case.
+     */
     public String statsLine(int cells) {
         if (cells <= 0) {
             return "stats cells=0\n";
         }
+        int[] parts = {solid, air, liquid, unreadable};
+        int[] pct = new int[4];
+        int biggest = 0;
+        for (int i = 0; i < 4; i++) {
+            pct[i] = Math.round(100f * parts[i] / cells);
+            if (parts[i] > parts[biggest]) {
+                biggest = i;
+            }
+        }
+        int sum = 0;
+        for (int i = 0; i < 4; i++) {
+            if (i != biggest) {
+                sum += pct[i];
+            }
+        }
+        pct[biggest] = 100 - sum;
         return String.format(Locale.ROOT,
                 "stats solid=%d%% air=%d%% liquid=%d%% unloaded=%d%%%n",
-                percent(solid, cells), percent(air, cells),
-                percent(liquid, cells), percent(unreadable, cells));
-    }
-
-    private static int percent(int part, int total) {
-        return Math.round(100f * part / total);
+                pct[0], pct[1], pct[2], pct[3]);
     }
 
     public int unreadableCount() {
