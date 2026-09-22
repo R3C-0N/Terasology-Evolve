@@ -29,6 +29,9 @@ Sans `--inspect-port`, rien n'écoute : pas de port, pas de thread.
 | `GET /cube` | Le voisinage dense, couches en Y décroissant. `r` ≤ 8 |
 | `GET /surface` | La vue de dessus : matière et hauteur de chaque colonne. `r` ≤ 24, `from`, `depth` |
 | `GET /block` | Le forage sur une case, dans le vocabulaire exact de `liquidFlow` |
+| `GET /stats` | Images par seconde, tas, entités, chunks, heure du monde, moyennes de performance |
+| `GET /entities` | Une ligne par entité : identifiant, prefab, position, **noms** de composants. `r=`, `with=`, `limit=` |
+| `GET /entity/…` | Toutes les valeurs. Identifiant, ou les alias `player`, `client`, `target` |
 
 ## Les grilles de terrain
 
@@ -96,6 +99,37 @@ monde. C'est acceptable pour un harnais de développement, pas ailleurs.
 **À savoir :** le raccourci contourne aussi le routage `isRunOnServer`. Sans
 effet en solo, où le client local fait autorité ; sur un client distant, une
 commande serveur resterait sans effet.
+
+## Les entités, et les pièges qu'elles cachent
+
+Deux étages, et c'est l'étagement qui tient le volume : `/entities` ne donne que
+les **noms** des composants, `/entity/…` leurs valeurs.
+
+**Ni `toFullDescription()` ni `dumpEntities`** : tous deux rendent un delta contre
+le prefab, donc un composant égal à ses valeurs par défaut **disparaît** — on
+conclurait qu'il n'est pas là. La sérialisation passe par Gson monté sur la
+`TypeHandlerLibrary`, ce qui rend `Vector3f`, `Name`, `BlockUri`, `Block` et
+`Prefab` en scalaires, et chaque `EntityRef` en **identifiant nu** — donc aucun
+risque de récursion.
+
+Trois détails qui ne sont pas cosmétiques :
+
+- **`serializeNulls()` est obligatoire.** `EntityRefTypeHandler` rend nul dès
+  qu'une référence n'est pas persistante ; sans ce réglage le champ *disparaît*,
+  et un lien qui existe se lirait comme un lien absent.
+- **Gson supprime en silence toute `Map` dont la clé n'est pas une chaîne.** La
+  route le dit en pied, sinon un composant paraîtrait plus vide qu'il n'est.
+- **`getEntity(identifiantAbsent)` écrit une ERREUR dans le journal du jeu** à
+  chaque appel : `contains()` d'abord, toujours.
+
+**`PerformanceMonitor` est éteint par défaut, et pas par configuration** — son
+instance statique est un moniteur nul dont les cartes restent vides à jamais, et
+le seul `setEnabled` du dépôt est la bascule F4 de l'incrustation. `/stats` dit
+donc `perf=disabled` franchement plutôt que d'émettre un bloc vide ; `?perf=on`
+l'allume, et la prochaine bascule F4 le remettra à zéro.
+
+Effet de bord utile : `/stats` rend `paused=true`, là où `SKILL.md` explique que
+la pause ne se détecte qu'en comparant deux captures d'écran à trois secondes.
 
 ## Trois choses à savoir avant d'y toucher
 

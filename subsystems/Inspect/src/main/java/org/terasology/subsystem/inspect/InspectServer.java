@@ -101,6 +101,13 @@ public final class InspectServer {
                     bridge.call(context -> TerrainRoutes.block(context, query(exchange)))));
             server.createContext("/surface", exchange -> respond(exchange,
                     bridge.call(context -> TerrainRoutes.surface(context, query(exchange)))));
+            server.createContext("/stats", exchange -> respond(exchange,
+                    bridge.call(context -> StatsRoute.stats(context, query(exchange)))));
+            server.createContext("/entities", exchange -> respond(exchange,
+                    bridge.call(context -> EntityRoutes.entities(context, query(exchange)))));
+            server.createContext("/entity", exchange -> respond(exchange,
+                    bridge.call(context -> EntityRoutes.entity(context, suffix(exchange, "/entity"),
+                            query(exchange)))));
             server.start();
             logger.info("Canal d'inspection ouvert sur http://127.0.0.1:{} (console {})",
                     port, allowConsole ? "autorisee" : "fermee");
@@ -286,6 +293,15 @@ public final class InspectServer {
      * Decoupe et decode la chaine de requete. Le decodage n'est pas optionnel : une commande passee
      * en {@code ?cmd=} porte des espaces.
      */
+    /** Ce qui suit le prefixe de la route : {@code /entity/player} rend {@code player}. */
+    static String suffix(HttpExchange exchange, String prefix) {
+        String path = exchange.getRequestURI().getPath();
+        if (path.length() <= prefix.length() + 1) {
+            return "";
+        }
+        return path.substring(prefix.length() + 1);
+    }
+
     static Map<String, String> query(HttpExchange exchange) {
         Map<String, String> params = new HashMap<>();
         String raw = exchange.getRequestURI().getRawQuery();

@@ -215,6 +215,9 @@ curl -X POST -d "look 42 10" http://127.0.0.1:17888/console
 | `GET /cube` | The dense neighbourhood, layers in descending Y. `r` ≤ 8 |
 | `GET /surface` | Top-down map: material and height per column, heights in base 36. `r` ≤ 24 |
 | `GET /block` | One cell, in the exact vocabulary of the `liquidFlow` command |
+| `GET /stats` | FPS, heap, entity count, chunks, world time — **and `paused=true`**, which otherwise only shows as two identical screenshots |
+| `GET /entities` | One line per entity: id, prefab, position, component **names**. `r=`, `with=`, `limit=` |
+| `GET /entity/…` | Every component value. An id, or the aliases `player`, `client`, `target` |
 
 **The grids centre on the player by default, never on the aimed block** — water
 and lava are `targetable: false`, so the crosshair ray goes straight through a
