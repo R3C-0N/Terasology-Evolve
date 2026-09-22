@@ -25,6 +25,49 @@ Sans `--inspect-port`, rien n'écoute : pas de port, pas de thread.
 | `GET /view` | `pos=… dir=… yaw=… pitch=… block=… uri=…` |
 | `GET /commands` | Les commandes enregistrées, filtrables par `?q=` |
 | `POST /console` | Exécute une commande et rend sa sortie. Aussi `GET /console?cmd=…` |
+| `GET /slice` | Une coupe du monde en caractères. `axis=x\|y\|z`, `w`, `h`, `flow=0` |
+| `GET /cube` | Le voisinage dense, couches en Y décroissant. `r` ≤ 8 |
+| `GET /block` | Le forage sur une case, dans le vocabulaire exact de `liquidFlow` |
+
+## Les grilles de terrain
+
+Sans paramètre, tout se centre sur **le joueur** — jamais sur la visée : l'eau et
+la lave sont `targetable: false`, donc le réticule traverse une mare et atterrit
+sur le solide derrière. `at=target` demande la visée, `x=`/`y=`/`z=` surchargent
+individuellement.
+
+```
+slice axis=z plane=-45 anchor=explicit pos=-40,42,-45 w=16 h=10 ms=0.3 sample=0.1
+stats solid=69% air=28% liquid=4% unloaded=0%
+legend . air  ? unloaded  # CoreAssets:Grass  A CoreAssets:Dirt  ~ CoreAssets:Water
+  45 ####..........##
+  44 AAAA####..####AA
+  43 AAAAAAAA~~AAAAAA
+  42 AAAAAAAAA~AAAAAA
+flow  0=source  liquid_cells=6 sources=1 max_flow=2
+  43 ........02......
+  42 .........1......
+```
+
+Trois caractères sont réservés et leur distinction porte tout : `.` vide, `?`
+**illisible**, `~` liquide. « Je ne sais pas » et « il n'y a rien » sont deux
+réponses différentes ; les confondre ferait halluciner des grottes.
+
+**L'écoulement est une seconde grille**, rognée aux lignes qui portent du
+liquide, et omise quand il n'y en a pas. Y mêler les chiffres détruirait la
+*forme* de la coulée, seule raison de regarder une image. La lecture ci-dessus se
+dit : la source vaut `0`, le pas latéral `2`, et la colonne de chute revient à
+`1` — une chute rend toute la portée.
+
+**Un plafond dépassé est refusé en 400, jamais raboté** : une grille dont le
+rayon aurait été réduit en silence répondrait à une question que personne n'a
+posée. `/cube?r=8` est donc refusé sur la taille estimée du corps, calculée
+*avant* l'échantillonnage.
+
+Mesuré sur ce dépôt : `/slice` 24×16 **0,40 ms** médiane, 48×32 **0,80 ms**,
+`/cube?r=4` **0,90 ms**, `last_tick_ms` à 4. Le parcours groupe par chunk —
+une recherche par chunk au lieu d'une par bloc — et n'alloue que ses deux
+tableaux de résultat.
 
 Codes de refus, et la distinction est le but : **503** le thread de jeu n'a pas
 vidé la file à temps, **409** il l'a vidée mais aucun monde n'est chargé, **400**

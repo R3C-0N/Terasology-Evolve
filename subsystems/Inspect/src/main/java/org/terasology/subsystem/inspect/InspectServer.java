@@ -93,6 +93,12 @@ public final class InspectServer {
             server.createContext("/view", this::handleView);
             server.createContext("/commands", this::handleCommands);
             server.createContext("/console", this::handleConsole);
+            server.createContext("/slice", exchange -> respond(exchange,
+                    bridge.call(context -> TerrainRoutes.slice(context, query(exchange)))));
+            server.createContext("/cube", exchange -> respond(exchange,
+                    bridge.call(context -> TerrainRoutes.cube(context, query(exchange)))));
+            server.createContext("/block", exchange -> respond(exchange,
+                    bridge.call(context -> TerrainRoutes.block(context, query(exchange)))));
             server.start();
             logger.info("Canal d'inspection ouvert sur http://127.0.0.1:{} (console {})",
                     port, allowConsole ? "autorisee" : "fermee");
