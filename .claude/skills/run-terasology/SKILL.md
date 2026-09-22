@@ -232,6 +232,11 @@ Measured cost: `/slice` 24×16 is 0.40 ms, 48×32 is 0.80 ms, `/cube?r=4` 0.90 m
 
 A cap that would be exceeded is **refused with 400, never silently clamped**.
 
+**There is also an MCP server** — `.claude/mcp/terasology_inspect.py`, declared
+in `.mcp.json` — exposing all of the above as eleven `tera_*` tools. Use those
+when they are available; `curl` stays valid and equivalent. Standard library
+only, so there is nothing to install.
+
 **Prefer `curl …/console` to `driver.py console` whenever the port is open.**
 Measured on `showView`: **5177 ms through the keyboard, 23 ms through the port**,
 byte-identical output. The keyboard path also carries every gotcha below — a

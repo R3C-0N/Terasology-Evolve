@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "terasology": {
+      "command": "python",
+      "args": [".claude/mcp/terasology_inspect.py"],
+      "env": {
+        "TERA_INSPECT_PORT": "17888"
+      }
+    }
+  }
+}

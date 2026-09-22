@@ -10,6 +10,8 @@
 !.github
 # Les skills d'agent versionnes avec le fork
 !/.claude
+# Le serveur MCP du canal d'inspection, meme intention : outillage d'agent du fork
+!/.mcp.json
 
 # Ignore generated code
 /engine/src/jmh/generated

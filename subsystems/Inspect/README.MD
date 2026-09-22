@@ -131,6 +131,28 @@ l'allume, et la prochaine bascule F4 le remettra à zéro.
 Effet de bord utile : `/stats` rend `paused=true`, là où `SKILL.md` explique que
 la pause ne se détecte qu'en comparant deux captures d'écran à trois secondes.
 
+## L'enveloppe MCP
+
+`.claude/mcp/terasology_inspect.py`, déclaré par `.mcp.json` à la racine : un
+outil par route, onze en tout. **Bibliothèque standard seule** — c'est la
+propriété que `driver.py` tient déjà, et la perdre imposerait un `pip install`
+sur une machine où rien ne le garantit. Le serveur parle donc JSON-RPC 2.0 sur
+stdio directement.
+
+Ce qu'il apporte sur `curl` : les schémas d'outils arrivent dans le contexte,
+donc les routes sont découvrables sans lire ce fichier ; et plus de piège de
+guillemets entre PowerShell et Git Bash, qui coexistent ici. Ce qu'il n'apporte
+pas : ni parallélisme ni vitesse — `curl http://127.0.0.1:17888/view` reste
+parfaitement valable.
+
+**Piège Windows payé :** `sys.stdout` prend l'encodage de la console, cp1252 sur
+cette machine, et ce fork a des noms de blocs français. « Acier ouvragé » perdait
+son accent entre un serveur qui envoie pourtant de l'UTF-8 correct et le client.
+Les deux flux sont reconfigurés en UTF-8 au démarrage.
+
+Jeu éteint, chaque outil rend la ligne de commande à taper pour le lancer, pas
+une erreur : un jeu éteint est un état normal, pas une panne.
+
 ## Trois choses à savoir avant d'y toucher
 
 **Ne jamais ajouter de classe ECS ici.** Pas de `@RegisterSystem`, pas de
