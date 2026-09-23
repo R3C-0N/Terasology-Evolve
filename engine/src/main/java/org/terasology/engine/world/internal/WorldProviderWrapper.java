@@ -50,9 +50,19 @@ public class WorldProviderWrapper extends AbstractWorldProviderDecorator impleme
         return base.getLight(pos.x(), pos.y(), pos.z());
     }
 
+    /**
+     * HALF_UP, like its three neighbours, and not FLOOR.
+     * <p>
+     * A block at integer y owns the span [y - 0.5, y + 0.5], so truncating a float position answers with the
+     * block <em>below</em> for the whole lower half of every block. {@code getBlock}, {@code getSunlight} and
+     * {@code getTotalLight} all round; this one did not, and the difference showed up as entities rendered
+     * pitch black underground: a creature whose centre sits under its block's midline was lit by the rock
+     * beneath its feet, where the block light is zero. Tall creatures happened to clear the midline and were
+     * lit correctly, which is why it read as "some meshes are broken" rather than as a rounding mistake.
+     */
     @Override
     public byte getLight(Vector3fc pos) {
-        return getLight(new Vector3i(pos, RoundingMode.FLOOR));
+        return getLight(new Vector3i(pos, RoundingMode.HALF_UP));
     }
 
     @Override
