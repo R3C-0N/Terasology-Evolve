@@ -38,7 +38,8 @@
   },
   "Health": {
     "maxHealth": 200,
-    "currentHealth": 200
+    "currentHealth": 200,
+    "destroyEntityOnNoHealth": true
   },
   "BaseRegen": {
     "regenRate": 2,
@@ -54,5 +55,11 @@
   "RigidBody": {
     "kinematic": true,
     "mass": 1
+  },
+  "DropGrammar": {
+    "itemDrops": [
+      "2-4*Bestiaire:boisEnchante",
+      "0.2|1*CoreAssets:Amber"
+    ]
   }
 }

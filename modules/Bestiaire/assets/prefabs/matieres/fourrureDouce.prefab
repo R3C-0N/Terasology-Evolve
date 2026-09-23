@@ -1,0 +1,10 @@
+{
+    "parent": "engine:iconItem",
+    "DisplayName": {
+        "name": "Fourrure très douce"
+    },
+    "Item": {
+        "icon": "Bestiaire:butin#fourrureDouce",
+        "stackId": "Bestiaire:fourrureDouce"
+    }
+}

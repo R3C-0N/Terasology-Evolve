@@ -1,0 +1,10 @@
+{
+    "parent": "engine:iconItem",
+    "DisplayName": {
+        "name": "Crocs effilés"
+    },
+    "Item": {
+        "icon": "Bestiaire:butin#crocsEffiles",
+        "stackId": "Bestiaire:crocsEffiles"
+    }
+}

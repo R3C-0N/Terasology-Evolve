@@ -37,7 +37,8 @@
   },
   "Health": {
     "maxHealth": 120,
-    "currentHealth": 120
+    "currentHealth": 120,
+    "destroyEntityOnNoHealth": true
   },
   "BaseRegen": {
     "regenRate": 2,
@@ -53,5 +54,10 @@
   "RigidBody": {
     "kinematic": true,
     "mass": 1
+  },
+  "DropGrammar": {
+    "itemDrops": [
+      "1-2*Bestiaire:cornesMassives"
+    ]
   }
 }

@@ -1,0 +1,15 @@
+{
+  "texture": "Bestiaire:butin",
+  "textureSize": [128, 64],
+  "grid": {
+    "tileSize": [16, 16],
+    "gridDimensions": [8, 4],
+    "gridOffset": [0, 0],
+    "tileNames": [
+      "fourrure", "crocsEffiles", "viandeLoup", "cuirEpais", "defenses", "viandeSanglier", "griffesOurs", "viandeOurs",
+      "viandeCerf", "peauFine", "boisDeCerf", "viandeMouflon", "cornesMouflon", "laine", "viandeLapin", "fourrureDouce",
+      "viandeVache", "viandeFaisan", "plumes", "viandeLezard", "pocheVenin", "glandeAcide", "sangVisqueux", "crocsIncandescents",
+      "cendresDemoniaques", "cornesMassives", "boisEnchante", "lianesEpineuses", "petalesMagiques", "viandePure", "boisCristallins", ""
+    ]
+  }
+}

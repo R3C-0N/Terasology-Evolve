@@ -37,7 +37,8 @@
   },
   "Health": {
     "maxHealth": 50,
-    "currentHealth": 50
+    "currentHealth": 50,
+    "destroyEntityOnNoHealth": true
   },
   "BaseRegen": {
     "regenRate": 2,
@@ -53,5 +54,11 @@
   "RigidBody": {
     "kinematic": true,
     "mass": 1
+  },
+  "DropGrammar": {
+    "itemDrops": [
+      "1-2*Bestiaire:crocsIncandescents",
+      "1-3*Bestiaire:cendresDemoniaques"
+    ]
   }
 }

@@ -51,7 +51,8 @@
   },
   "Health": {
     "maxHealth": 100,
-    "currentHealth": 100
+    "currentHealth": 100,
+    "destroyEntityOnNoHealth": true
   },
   "BaseRegen": {
     "regenRate": 1,
@@ -67,5 +68,13 @@
   "RigidBody": {
     "kinematic": true,
     "mass": 1
+  },
+  "DropGrammar": {
+    "itemDrops": [
+      "4-6*Bestiaire:viandeVache",
+      "2-3*CoreAssets:Bone",
+      "1-2*CoreAssets:Hide",
+      "2-3*Bestiaire:cuirEpais"
+    ]
   }
 }

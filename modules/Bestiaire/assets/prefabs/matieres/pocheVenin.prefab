@@ -1,0 +1,10 @@
+{
+    "parent": "engine:iconItem",
+    "DisplayName": {
+        "name": "Poches de venin"
+    },
+    "Item": {
+        "icon": "Bestiaire:butin#pocheVenin",
+        "stackId": "Bestiaire:pocheVenin"
+    }
+}

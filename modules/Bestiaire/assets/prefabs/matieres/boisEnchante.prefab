@@ -1,0 +1,10 @@
+{
+    "parent": "engine:iconItem",
+    "DisplayName": {
+        "name": "Bois enchanté"
+    },
+    "Item": {
+        "icon": "Bestiaire:butin#boisEnchante",
+        "stackId": "Bestiaire:boisEnchante"
+    }
+}

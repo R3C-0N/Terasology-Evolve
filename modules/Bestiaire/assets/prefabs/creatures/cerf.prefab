@@ -47,7 +47,8 @@
   },
   "Health": {
     "maxHealth": 60,
-    "currentHealth": 60
+    "currentHealth": 60,
+    "destroyEntityOnNoHealth": true
   },
   "BaseRegen": {
     "regenRate": 1,
@@ -63,5 +64,14 @@
   "RigidBody": {
     "kinematic": true,
     "mass": 1
+  },
+  "DropGrammar": {
+    "itemDrops": [
+      "2-4*Bestiaire:viandeCerf",
+      "1-2*CoreAssets:Bone",
+      "1*CoreAssets:Hide",
+      "1-2*Bestiaire:peauFine",
+      "0.5|1-2*Bestiaire:boisDeCerf"
+    ]
   }
 }

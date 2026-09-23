@@ -54,7 +54,8 @@
   },
   "Health": {
     "maxHealth": 30,
-    "currentHealth": 30
+    "currentHealth": 30,
+    "destroyEntityOnNoHealth": true
   },
   "BaseRegen": {
     "regenRate": 1,
@@ -70,5 +71,11 @@
   "RigidBody": {
     "kinematic": true,
     "mass": 1
+  },
+  "DropGrammar": {
+    "itemDrops": [
+      "1-2*Bestiaire:viandeLezard",
+      "0.5|1*Bestiaire:pocheVenin"
+    ]
   }
 }

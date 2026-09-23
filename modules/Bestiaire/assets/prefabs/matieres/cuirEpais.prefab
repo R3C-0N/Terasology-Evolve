@@ -1,0 +1,10 @@
+{
+    "parent": "engine:iconItem",
+    "DisplayName": {
+        "name": "Cuir épais"
+    },
+    "Item": {
+        "icon": "Bestiaire:butin#cuirEpais",
+        "stackId": "Bestiaire:cuirEpais"
+    }
+}

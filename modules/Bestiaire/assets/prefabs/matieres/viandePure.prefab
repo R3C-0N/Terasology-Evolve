@@ -1,0 +1,10 @@
+{
+    "parent": "engine:iconItem",
+    "DisplayName": {
+        "name": "Viande pure de cerf de cristal"
+    },
+    "Item": {
+        "icon": "Bestiaire:butin#viandePure",
+        "stackId": "Bestiaire:viandePure"
+    }
+}

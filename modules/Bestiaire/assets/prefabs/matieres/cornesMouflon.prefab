@@ -1,0 +1,10 @@
+{
+    "parent": "engine:iconItem",
+    "DisplayName": {
+        "name": "Cornes de mouflon"
+    },
+    "Item": {
+        "icon": "Bestiaire:butin#cornesMouflon",
+        "stackId": "Bestiaire:cornesMouflon"
+    }
+}

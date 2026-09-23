@@ -53,7 +53,8 @@
   },
   "Health": {
     "maxHealth": 26,
-    "currentHealth": 26
+    "currentHealth": 26,
+    "destroyEntityOnNoHealth": true
   },
   "BaseRegen": {
     "regenRate": 1,
@@ -69,5 +70,10 @@
   "RigidBody": {
     "kinematic": true,
     "mass": 1
+  },
+  "DropGrammar": {
+    "itemDrops": [
+      "0.7|1-2*Bestiaire:glandeAcide"
+    ]
   }
 }

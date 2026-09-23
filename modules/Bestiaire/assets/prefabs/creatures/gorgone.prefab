@@ -37,7 +37,8 @@
   },
   "Health": {
     "maxHealth": 60,
-    "currentHealth": 60
+    "currentHealth": 60,
+    "destroyEntityOnNoHealth": true
   },
   "BaseRegen": {
     "regenRate": 1,
@@ -53,5 +54,11 @@
   "RigidBody": {
     "kinematic": true,
     "mass": 1
+  },
+  "DropGrammar": {
+    "itemDrops": [
+      "1-3*Bestiaire:lianesEpineuses",
+      "0.6|1-2*Bestiaire:petalesMagiques"
+    ]
   }
 }
