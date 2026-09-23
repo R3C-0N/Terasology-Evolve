@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 package org.terasology.bestiaire;
 
-import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.terasology.engine.entitySystem.entity.EntityManager;
 import org.terasology.engine.entitySystem.entity.EntityRef;
@@ -11,7 +10,6 @@ import org.terasology.engine.entitySystem.systems.RegisterMode;
 import org.terasology.engine.entitySystem.systems.RegisterSystem;
 import org.terasology.engine.entitySystem.systems.UpdateSubscriberSystem;
 import org.terasology.engine.logic.location.LocationComponent;
-import org.terasology.engine.physics.components.shapes.BoxShapeComponent;
 import org.terasology.engine.registry.In;
 import org.terasology.engine.world.WorldProvider;
 import org.terasology.gestalt.entitysystem.event.ReceiveEvent;
@@ -26,14 +24,12 @@ import java.util.Random;
  * <p>
  * There is no behaviour tree here and that is a choice. Terasology has one — {@code Behaviors} — but it buys
  * an editor and a vocabulary for decisions this creature does not make: it has no target, no goal and no
- * memory, only a heading and a clock. Two states in fifty lines say what four nodes would say, and the day a
- * hostile creature needs to chase something is the day the tree earns its keep.
+ * memory, only a heading and a clock. Two states in fifty lines say what four nodes would say.
  * <p>
- * The body is kinematic (see {@link GravityAuthoritySystem}), so walking is moving the
- * {@link LocationComponent} and nothing else. Only x and z are touched here; the fall is left to gravity,
- * which runs over the same entities and reads the same ground. The one exception is the step: a creature that
- * walked into a slope and waited for gravity to lift it would spend that frame inside the hill, and the
- * probe would then answer "buried" rather than "climbing".
+ * The hostile half arrived and the tree still did not earn its keep: {@link HuntAuthoritySystem} is the
+ * creature that <em>does</em> have a target, and it is a second system rather than a second branch here.
+ * Only one of the two moves an animal in a given frame, and {@link ChaseComponent} is which. The legs
+ * themselves are shared and belong to neither — they are in {@link Stride}.
  * <p>
  * <strong>The heading and the body are two different angles.</strong> The heading is picked at once and the
  * body swings round to it; without that gap an animal that changes its mind pivots on the spot, which reads
@@ -42,9 +38,6 @@ import java.util.Random;
  */
 @RegisterSystem(RegisterMode.AUTHORITY)
 public class WanderAuthoritySystem extends BaseComponentSystem implements UpdateSubscriberSystem {
-
-    /** How far above the destination's floor the liquid probe sits. */
-    private static final float SONDE_LIQUIDE = 0.25f;
 
     /** How long a heading picked because the way was barred is kept, in seconds. */
     private static final float DEMI_TOUR = 0.5f;
@@ -78,6 +71,13 @@ public class WanderAuthoritySystem extends BaseComponentSystem implements Update
             if (wander == null || location == null) {
                 continue;
             }
+            if (creature.hasComponent(ChaseComponent.class)) {
+                // Une bete qui chasse a ses jambes ailleurs (HuntAuthoritySystem). Deux systemes qui
+                // deplacent la meme entite dans la meme image ne se partagent pas le mouvement : ils se
+                // l'arrachent, et le loup qui charge derive de cote a chaque cap tire au sort.
+                humeurs.remove(creature);
+                continue;
+            }
             Humeur humeur = humeurs.computeIfAbsent(creature, e -> naitre(location));
 
             humeur.panique = Math.max(0f, humeur.panique - delta);
@@ -88,7 +88,7 @@ public class WanderAuthoritySystem extends BaseComponentSystem implements Update
             }
 
             boolean affole = humeur.panique > 0f;
-            humeur.corps = virer(humeur.corps, humeur.cap,
+            humeur.corps = Stride.virer(humeur.corps, humeur.cap,
                     (affole ? wander.turnRatePanic : wander.turnRate) * delta);
 
             boolean bouge = humeur.marche || affole;
@@ -119,7 +119,9 @@ public class WanderAuthoritySystem extends BaseComponentSystem implements Update
     @ReceiveEvent
     public void onDamaged(OnDamagedEvent event, EntityRef creature, WanderComponent wander) {
         LocationComponent location = creature.getComponent(LocationComponent.class);
-        if (location == null) {
+        if (location == null || creature.hasComponent(PredatorComponent.class)) {
+            // Un predateur porte les deux temperaments, et le coup ne le fait pas fuir : il le retourne.
+            // C'est HuntAuthoritySystem qui recoit le meme evenement et lui designe son frappeur.
             return;
         }
         Humeur humeur = humeurs.computeIfAbsent(creature, e -> naitre(location));
@@ -165,58 +167,15 @@ public class WanderAuthoritySystem extends BaseComponentSystem implements Update
         }
     }
 
-    /**
-     * One stride. Returns {@code false} when the way is barred and the animal should turn instead.
-     * <p>
-     * A single probe answers both questions a step asks. {@link Ground#under} climbs out of whatever is solid
-     * at the destination, so a floor that comes back far above the feet <em>is</em> the wall, and one that
-     * comes back far below is the ledge.
-     */
+    /** One stride towards the heading the body has swung to. Returns {@code false} when the way is barred. */
     private boolean avancer(EntityRef creature, LocationComponent location, Vector3f position,
                             Humeur humeur, WanderComponent wander, float pas) {
-        BoxShapeComponent box = creature.getComponent(BoxShapeComponent.class);
-        float demiHauteur = box == null ? 0.5f : box.extents.y / 2f;
-        float pieds = position.y - demiHauteur;
-
-        float x = position.x + (float) Math.sin(humeur.corps) * pas;
-        float z = position.z + (float) Math.cos(humeur.corps) * pas;
-
-        float sol = Ground.under(worldProvider, x, pieds, z);
-        if (Float.isNaN(sol) || sol - pieds > wander.stepUp || pieds - sol > wander.dropMax) {
-            return false;
-        }
-        if (Ground.liquide(worldProvider, x, sol + SONDE_LIQUIDE, z)) {
-            return false;
-        }
-
-        position.x = x;
-        position.z = z;
-        if (sol > pieds) {
-            position.y += sol - pieds;
-        }
-        location.setWorldPosition(position);
-        location.setWorldRotation(new Quaternionf().rotationY(humeur.corps));
-        creature.saveComponent(location);
-        return true;
+        return Stride.avancer(worldProvider, creature, location, position, humeur.corps, humeur.corps,
+                pas, wander.stepUp, wander.dropMax);
     }
 
     private void tourner(EntityRef creature, LocationComponent location, Humeur humeur) {
-        location.setWorldRotation(new Quaternionf().rotationY(humeur.corps));
-        creature.saveComponent(location);
-    }
-
-    /** Moves {@code de} towards {@code vers} by at most {@code max} degrees, the short way round. */
-    private static float virer(float de, float vers, float max) {
-        float ecart = vers - de;
-        float tour = (float) (Math.PI * 2);
-        ecart -= tour * Math.floor((ecart + Math.PI) / tour);
-        float limite = max * (float) Math.PI / 180f;
-        if (ecart > limite) {
-            ecart = limite;
-        } else if (ecart < -limite) {
-            ecart = -limite;
-        }
-        return de + ecart;
+        Stride.tourner(creature, location, humeur.corps);
     }
 
     private float ecart(float min, float max) {

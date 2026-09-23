@@ -375,7 +375,42 @@ FAISAN = {
     ],
 }
 
-CREATURES = [MANNEQUIN, CERF, MOUFLON, MOUFLON_TONDU, LAPIN, VACHE, FAISAN]
+LOUP = {
+    "id": "loup",
+    "nom": "Loup",
+    "monde": "base",
+    "hostile": True,
+    "desc": "Chasse en meute à la lisière des forêts et attaque quand il se sent en nombre.",
+    "mat": {
+        "poil": {"motif": "poil", "pal": ["#55565b", "#76777c", "#9a9b9e"],
+                 "bas": ["#a8a39a", "#c2bdb2", "#d6d1c6"]},
+        "crin": {"motif": "poil", "pal": ["#66676b", "#8a8b8e", "#b0b1b2"],
+                 "bas": ["#a8a39a", "#c2bdb2", "#d6d1c6"]},
+        "museau": {"motif": "poil", "pal": ["#9a958c", "#b3aea4", "#cbc6bc"]},
+    },
+    "c": {"oeil": "#e0a63c", "truffe": "#1c1818", "sombre": "#3a3a3e",
+          "bouche": "#2a2224", "clair": "#c8c4bc"},
+    "parts": [
+        P("corps", [6, 6, 9], [0, -11, -2.5], None, m="poil"),
+        P("criniere", [8, 8, 7], [0, -12, 4], None, m="crin"),
+        *pattes({"x": 2, "zf": 4.5, "zb": -5.5, "w": 2, "h": 8, "m": "poil", "amp": 22}),
+        P("tete", [6, 6, 5], [0, -13, 7.5], [0, 0, 2.5], m="crin",
+          a={"ax": "x", "amp": 3, "v": 0.5},
+          f=[oeilD(1, 2), oeilD(4, 2), oeilD(1, 1, 1, "sombre"), oeilD(4, 1, 1, "sombre")],
+          c=[P("museau", [3, 3, 4], [0, 1.5, 5], [0, 0, 2], m="museau",
+               f=[["devant", 1, 0, 1, 1, "truffe"], ["dessus", 1, 3, 1, 1, "truffe"],
+                  ["devant", 0, 2, 3, 1, "bouche"], ["cotes", 0, 2, 4, 1, "bouche"]]),
+             P("oreilleD", [2, 2, 1], [-2, -3, 1], [0, -1, 0], m="crin",
+               f=[["devant", 0, 1, 2, 1, "sombre"]]),
+             P("oreilleG", [2, 2, 1], [2, -3, 1], [0, -1, 0], m="crin",
+               f=[["devant", 0, 1, 2, 1, "sombre"]])]),
+        P("queue", [2, 8, 2], [0, -13, -7], [0, 4, 0], m="crin", r=[-55, 0, 0],
+          a={"ax": "z", "amp": 14, "v": 1.4}, f=[["tour", 0, 6, 99, 2, "clair"]]),
+    ],
+}
+
+CREATURES = [MANNEQUIN, CERF, MOUFLON, MOUFLON_TONDU, LAPIN, VACHE, FAISAN,
+             LOUP]
 PAR_ID = {c["id"]: c for c in CREATURES}
 
 

@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : loup",
+    "description": "Posé au sol, fait apparaître un loup."
+  },
+  "Item": {
+    "icon": "Bestiaire:loupIcone",
+    "stackId": "Bestiaire:loupTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:loup"
+  }
+}

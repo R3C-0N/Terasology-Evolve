@@ -1,0 +1,56 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:loup",
+    "material": "Bestiaire:loupPeau",
+    "animation": "Bestiaire:loup#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Loup",
+    "description": "Chasse en meute à la lisière des forêts et attaque quand il se sent en nombre."
+  },
+  "Creature": {
+    "species": "loup",
+    "item": "Bestiaire:loupTotem"
+  },
+  "Wander": {
+    "speed": 1.7,
+    "pauseMin": 1,
+    "pauseMax": 4,
+    "walkMin": 2,
+    "walkMax": 7,
+    "turnCalm": 110,
+    "turnRate": 260
+  },
+  "Predator": {
+    "sight": 16,
+    "giveUp": 24,
+    "chaseSpeed": 4.2,
+    "turnRate": 400,
+    "reach": 1.9,
+    "bite": 6,
+    "cadence": 1.2,
+    "dropMax": 4
+  },
+  "Health": {
+    "maxHealth": 40,
+    "currentHealth": 40
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 20
+  },
+  "BoxShape": {
+    "extents": [
+      0.45,
+      1.0125,
+      1.7228
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}
