@@ -1,0 +1,33 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:mannequin",
+    "material": "Bestiaire:mannequinPeau",
+    "animation": "Bestiaire:mannequin#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Mannequin d'entraînement"
+  },
+  "Creature": {
+    "species": "mannequin",
+    "item": "Bestiaire:mannequinObjet"
+  },
+  "Health": {
+    "maxHealth": 200,
+    "currentHealth": 200,
+    "destroyEntityOnNoHealth": false
+  },
+  "BaseRegen": {
+    "regenRate": 25,
+    "waitBeforeRegen": 3
+  },
+  "BoxShape": {
+    "extents": [1.35, 2.025, 0.675]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 0
+  }
+}

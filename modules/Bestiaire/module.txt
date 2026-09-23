@@ -1,0 +1,17 @@
+{
+    "id": "Bestiaire",
+    "version": "1.0.0",
+    "displayName": "Bestiaire",
+    "description": "Les créatures du bestiaire, les objets qui les font apparaître, et les dégâts qu'on leur inflige. La première est le mannequin d'entraînement : il encaisse sans riposter.",
+    "dependencies": [
+        {
+            "id": "Health",
+            "minVersion": "2.0.0-SNAPSHOT"
+        },
+        {
+            "id": "Inventory",
+            "minVersion": "1.2.1"
+        }
+    ],
+    "serverSideOnly": false
+}

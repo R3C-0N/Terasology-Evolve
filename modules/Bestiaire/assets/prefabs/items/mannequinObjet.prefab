@@ -1,0 +1,16 @@
+{
+    "parent": "engine:iconItem",
+    "DisplayName": {
+        "name": "Mannequin d'entraînement",
+        "description": "Se pose au sol comme un bloc et se ramasse à la main."
+    },
+    "Item": {
+        "icon": "Bestiaire:mannequinIcone",
+        "stackId": "Bestiaire:mannequinObjet",
+        "maxStackSize": 16,
+        "consumedOnUse": true
+    },
+    "Spawner": {
+        "creature": "Bestiaire:mannequin"
+    }
+}
