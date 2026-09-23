@@ -33,7 +33,29 @@
     "reach": 1.7,
     "bite": 10,
     "cadence": 1.8,
-    "dropMax": 4
+    "dropMax": 4,
+    "garde": 10,
+    "portee": 18
+  },
+  "Habitat": {
+    "biomes": [
+      "CoreWorlds:PLAINS",
+      "CoreWorlds:FOREST"
+    ],
+    "densite": 0.5,
+    "groupeMin": 1,
+    "groupeMax": 2,
+    "ecart": 3,
+    "plafond": 2,
+    "heureDe": 0.3,
+    "heureA": 0.7,
+    "ciel": 12
+  },
+  "Home": {
+    "suit": 0,
+    "tire": 90,
+    "franc": 6,
+    "laisse": 14
   },
   "Health": {
     "maxHealth": 55,

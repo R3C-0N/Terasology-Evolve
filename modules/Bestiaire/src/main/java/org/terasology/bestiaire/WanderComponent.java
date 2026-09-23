@@ -59,6 +59,27 @@ public class WanderComponent implements Component<WanderComponent> {
      * against it — which is exactly what the first mouflon did. A character gets over the same step by
      * jumping; a quadruped steps onto it.
      */
+    /**
+     * How far a mere presence frightens it, in blocks. 0 means nothing does, and that is the default.
+     * <p>
+     * The blow of {@code OnDamagedEvent} is not the only thing that starts a flight any more: a deer bolts at
+     * the sound of footsteps, and a pheasant pulls away faster the closer one gets. <strong>The flight speed
+     * is graded by how near the intruder is</strong>, never a flat dash — at five and a half to seven and a
+     * half blocks a second against a sprint of four and a half, a peaceful animal that went straight to its
+     * top speed on sight would be uncatchable for ever, and the meat, bone and hide the design asks of it
+     * would be unreachable. Graded, it only reaches its top speed with somebody on top of it.
+     */
+    public float peur;
+
+    /**
+     * What that radius is worth when the intruder is crouching.
+     * <p>
+     * The deer's own card has said it from the first day — <em>"flees at the slightest sound; one gets near
+     * it by staying crouched"</em> — and this is the line that makes it true. It is also the whole answer to
+     * "then nothing can ever be caught": stalk, and fifteen blocks of dread become six.
+     */
+    public float discretion = 0.4f;
+
     public float stepUp = 1.05f;
     public float dropMax = 3f;
 
@@ -77,6 +98,8 @@ public class WanderComponent implements Component<WanderComponent> {
         this.turnPanic = other.turnPanic;
         this.turnRate = other.turnRate;
         this.turnRatePanic = other.turnRatePanic;
+        this.peur = other.peur;
+        this.discretion = other.discretion;
         this.stepUp = other.stepUp;
         this.dropMax = other.dropMax;
     }

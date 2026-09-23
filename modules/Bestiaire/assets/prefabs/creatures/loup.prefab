@@ -32,7 +32,30 @@
     "reach": 1.9,
     "bite": 6,
     "cadence": 1.2,
-    "dropMax": 4
+    "dropMax": 4,
+    "meute": 20,
+    "cercle": 5
+  },
+  "Habitat": {
+    "biomes": [
+      "CoreWorlds:FOREST",
+      "CoreWorlds:SNOW",
+      "CoreWorlds:TAIGA"
+    ],
+    "densite": 0.6,
+    "groupeMin": 3,
+    "groupeMax": 4,
+    "ecart": 4,
+    "plafond": 4,
+    "heureDe": 0.7,
+    "heureA": 0.3,
+    "ciel": 10
+  },
+  "Home": {
+    "suit": 0,
+    "tire": 110,
+    "franc": 6,
+    "laisse": 16
   },
   "Health": {
     "maxHealth": 40,

@@ -29,6 +29,26 @@
     "turnRate": 90,
     "turnRatePanic": 260
   },
+  "Habitat": {
+    "biomes": [
+      "CoreWorlds:PLAINS"
+    ],
+    "densite": 1.0,
+    "groupeMin": 3,
+    "groupeMax": 5,
+    "ecart": 4,
+    "plafond": 5
+  },
+  "Home": {
+    "suit": 0.5,
+    "tire": 60,
+    "franc": 10,
+    "laisse": 24
+  },
+  "Graze": {
+    "period": 60,
+    "regrow": 1200
+  },
   "Health": {
     "maxHealth": 100,
     "currentHealth": 100

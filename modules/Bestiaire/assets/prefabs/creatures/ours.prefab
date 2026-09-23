@@ -34,7 +34,28 @@
     "bite": 14,
     "cadence": 2.0,
     "dropMax": 4,
-    "onlyWhenStruck": true
+    "garde": 12,
+    "portee": 22
+  },
+  "Habitat": {
+    "biomes": [
+      "CoreWorlds:FOREST",
+      "CoreWorlds:MOUNTAINS",
+      "CoreWorlds:TAIGA"
+    ],
+    "densite": 0.2,
+    "groupeMin": 1,
+    "groupeMax": 1,
+    "plafond": 1,
+    "eau": 12,
+    "ombre": 4,
+    "exige": 1
+  },
+  "Home": {
+    "suit": 0,
+    "tire": 90,
+    "franc": 6,
+    "laisse": 14
   },
   "Health": {
     "maxHealth": 110,

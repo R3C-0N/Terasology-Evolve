@@ -24,4 +24,12 @@ public interface Bestiary {
 
     /** Species names, sorted, for a message that has to tell the player what exists. */
     Collection<String> species();
+
+    /**
+     * The creatures the world may lay down by itself — those carrying a {@link HabitatComponent}.
+     * <p>
+     * Asked of the bestiary rather than re-read from the prefabs, because this is what the bestiary is for: a
+     * species joins the wild by gaining a component on its prefab, never by a line in the spawner.
+     */
+    Collection<Prefab> sauvages();
 }

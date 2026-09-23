@@ -25,7 +25,25 @@
     "pauseMax": 3,
     "dashMin": 0.4,
     "dashMax": 1.2,
-    "turnCalm": 90
+    "turnCalm": 90,
+    "peur": 15
+  },
+  "Habitat": {
+    "biomes": [
+      "CoreWorlds:FOREST"
+    ],
+    "densite": 1.0,
+    "groupeMin": 3,
+    "groupeMax": 5,
+    "ecart": 4,
+    "plafond": 4,
+    "ciel": 10
+  },
+  "Home": {
+    "suit": 0.5,
+    "tire": 60,
+    "franc": 10,
+    "laisse": 24
   },
   "Health": {
     "maxHealth": 60,

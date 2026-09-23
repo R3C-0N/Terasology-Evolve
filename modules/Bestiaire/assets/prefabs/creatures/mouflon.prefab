@@ -15,7 +15,32 @@
     "species": "mouflon",
     "item": "Bestiaire:mouflonTotem"
   },
-  "Wander": {},
+  "Wander": {
+    "peur": 6,
+    "panicSpeed": 2.2
+  },
+  "Habitat": {
+    "biomes": [
+      "CoreWorlds:MOUNTAINS"
+    ],
+    "densite": 1.0,
+    "groupeMin": 4,
+    "groupeMax": 7,
+    "ecart": 4,
+    "plafond": 7,
+    "melange": "mouflonTondu",
+    "chanceMelange": 0.25
+  },
+  "Home": {
+    "suit": 0.5,
+    "tire": 60,
+    "franc": 10,
+    "laisse": 24
+  },
+  "Graze": {
+    "period": 60,
+    "regrow": 1200
+  },
   "Health": {
     "maxHealth": 40,
     "currentHealth": 40
@@ -25,7 +50,11 @@
     "waitBeforeRegen": 20
   },
   "BoxShape": {
-    "extents": [0.5625, 1.0125, 1.125]
+    "extents": [
+      0.5625,
+      1.0125,
+      1.125
+    ]
   },
   "RigidBody": {
     "kinematic": true,

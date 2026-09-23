@@ -71,6 +71,39 @@ public class PredatorComponent implements Component<PredatorComponent> {
     public float cadence = 1.2f;
 
     /**
+     * How far it looks for a packmate of its own species, in blocks. 0 means it hunts alone.
+     * <p>
+     * A packmate with no prey adopts the one its neighbour has, which is the whole of "they hunt together":
+     * one wolf finding you commits the pack, and the pack is whoever happens to be within this radius. There
+     * is no roster and no leader, so nothing has to be kept, replicated or repaired when one of them dies.
+     */
+    public float meute;
+
+    /**
+     * The circle each member wants a station on, in blocks. 0 sends everyone straight at the prey.
+     * <p>
+     * <strong>Encircling is conditional, and it has to be</strong>, or it takes the pack's teeth out: a wolf
+     * running to a station is not closing, so it never reaches {@link #reach} and never bites. And at 4.2
+     * against a sprint of 4.5 no station on the far side is reachable at all. So the ring is taken only
+     * against a prey that has slowed down, the nearest wolf never takes one, and a station is abandoned after
+     * a few seconds whatever happens.
+     */
+    public float cercle;
+
+    /**
+     * How far from its home point it takes an interest at all, in blocks. 0 means the whole world.
+     * <p>
+     * The test is against the <em>point</em>, not against the beast, and that is the difference between
+     * territorial and short-sighted: a bear does not care that you are near it, it cares that you are on its
+     * land. It is also the whole of the boar's charge — its slow turn was already written, this is what
+     * starts it.
+     */
+    public float garde;
+
+    /** How far from that point it will follow a prey before breaking off and going home. 0 means forever. */
+    public float portee;
+
+    /**
      * Highest step it will climb and deepest drop it will take while hunting.
      * <p>
      * Bolder than the strolling limits of {@link WanderComponent} on purpose: an animal picking its way
@@ -90,6 +123,10 @@ public class PredatorComponent implements Component<PredatorComponent> {
         this.reach = other.reach;
         this.bite = other.bite;
         this.cadence = other.cadence;
+        this.meute = other.meute;
+        this.cercle = other.cercle;
+        this.garde = other.garde;
+        this.portee = other.portee;
         this.stepUp = other.stepUp;
         this.dropMax = other.dropMax;
     }

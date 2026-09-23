@@ -53,4 +53,11 @@ public class BestiarySystem extends BaseComponentSystem implements Bestiary {
     public Collection<String> species() {
         return List.copyOf(parEspece.keySet());
     }
+
+    @Override
+    public Collection<Prefab> sauvages() {
+        return parEspece.values().stream()
+                .filter(prefab -> prefab.hasComponent(HabitatComponent.class))
+                .toList();
+    }
 }

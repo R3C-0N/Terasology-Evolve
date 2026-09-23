@@ -28,7 +28,29 @@
     "turnCalm": 150,
     "turnRate": 320,
     "turnRatePanic": 1200,
-    "dropMax": 2
+    "dropMax": 2,
+    "peur": 8
+  },
+  "Habitat": {
+    "biomes": [
+      "CoreWorlds:PLAINS",
+      "CoreWorlds:FOREST"
+    ],
+    "densite": 1.2,
+    "groupeMin": 1,
+    "groupeMax": 2,
+    "ecart": 2,
+    "plafond": 3,
+    "couvert": [
+      "CoreAssets:TallGrass1",
+      "CoreAssets:TallGrass2",
+      "CoreAssets:TallGrass3"
+    ],
+    "ciel": 12
+  },
+  "Graze": {
+    "period": 90,
+    "regrow": 1200
   },
   "Health": {
     "maxHealth": 10,

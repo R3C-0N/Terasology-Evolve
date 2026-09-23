@@ -320,6 +320,19 @@ Other run targets exist in `facades/PC/build.gradle.kts`: `debug` (JDWP on 1044)
 
 ## Gotchas
 
+- **A dead character is not a character, and `healthMax` does not bring it
+  back.** Death removes `AliveCharacterComponent`; `healthMax` restores the
+  health bar and nothing else. Every system that asks "is this a living
+  character" then answers no, so creatures stop hunting, stop fearing and stop
+  reacting — and the measurement reads as a broken feature rather than as a
+  corpse. Check with `curl .../entity/player | grep AliveCharacter`, and
+  respawn by clicking **Réapparaître** at client pixel (640, 375).
+  **Better still, do not die:** `damageImmune physicalDamage` gives 100 %
+  resistance while leaving the character alive, located and huntable — beasts
+  still come, still bite, and nothing lands. It is the right setting for any
+  session that measures hostile behaviour. (`Physical` is *not* a valid name;
+  the type is `physicalDamage`.)
+
 - **Keys are sent as scancodes, never virtual key codes.** GLFW maps the
   scancode out of `lParam` through a table hardcoded to the US physical layout.
   This machine has a French layout: a virtual-key `W` would arrive as

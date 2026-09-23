@@ -209,7 +209,14 @@ public class LocalChunkProvider implements ChunkProvider {
             PerformanceMonitor.endActivity();
         } else {
             PerformanceMonitor.startActivity("Generating queued Entities");
-            generateQueuedEntities.remove(chunkPos).forEach(this::generateQueuedEntities);
+            // The queue only holds an entry for a chunk this run actually generated. A chunk can reach
+            // "ready" without one - it was generated, unloaded and came back, or the same position was asked
+            // for twice while the pipeline was busy - and the unguarded forEach then took the whole game down
+            // with a NullPointerException during ordinary play. Nothing to generate is not an error.
+            List<EntityStore> attente = generateQueuedEntities.remove(chunkPos);
+            if (attente != null) {
+                attente.forEach(this::generateQueuedEntities);
+            }
             PerformanceMonitor.endActivity();
 
             // send on activate

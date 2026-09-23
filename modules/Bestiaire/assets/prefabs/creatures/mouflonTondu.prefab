@@ -16,9 +16,22 @@
   },
   "Wander": {
     "speed": 1.3,
-    "panicSpeed": 5,
+    "panicSpeed": 2.2,
     "pauseMin": 2,
-    "pauseMax": 6
+    "pauseMax": 6,
+    "peur": 6
+  },
+  "Home": {
+    "suit": 0.5,
+    "tire": 60,
+    "franc": 10,
+    "laisse": 24
+  },
+  "Graze": {
+    "period": 45,
+    "meals": 6,
+    "becomes": "mouflon",
+    "regrow": 1200
   },
   "Health": {
     "maxHealth": 40,
