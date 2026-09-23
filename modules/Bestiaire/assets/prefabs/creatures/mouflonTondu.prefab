@@ -12,8 +12,7 @@
     "description": "Sa laine repousse en quelques jours ; il reste plus frileux en attendant."
   },
   "Creature": {
-    "species": "mouflonTondu",
-    "item": "Bestiaire:mouflonTonduTotem"
+    "species": "mouflonTondu"
   },
   "Wander": {
     "speed": 1.3,

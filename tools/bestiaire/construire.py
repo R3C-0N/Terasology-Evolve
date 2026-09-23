@@ -566,13 +566,19 @@ def rendre_icone(pieces, rects, atlas_w, atlas_h, pixels, taille, rx=-18, ry=-35
 
 
 def icone_objet(creature):
-    """L'icone de l'objet qui fait apparaitre la creature.
+    """L'icone de l'objet qui fait apparaitre la creature, ou `None`.
 
     La maquette derive cet objet au lieu de le modeler (`totem()`), et son atlas
     a son propre identifiant — `mouflon-totem`, `mannequin-objet` — donc son
     propre grain. Cet atlas ne sert qu'a l'icone : rien ne le pose dans le
     monde, et rien ne l'ecrit sur le disque.
+
+    Une creature peut refuser l'objet (`"objet": False`) : le mouflon tondu ne
+    s'invoque pas, il sortira d'une tonte. Peindre son icone quand meme
+    laisserait dans les assets une image que plus rien ne reclame.
     """
+    if creature.get("objet") is False:
+        return None, None
     objet = modeles.totem(creature)
     pieces, _ = aplatir(objet)
     atlas_w, atlas_h, pixels, rects = peinture.atlas(objet)
@@ -631,12 +637,16 @@ def construire(creature):
 
     octets = ecrire_gltf(gltf, cle, *geo, os, anim)
     ecrire_png(png, atlas_w, atlas_h, pixels)
-    ecrire_png(icone, ICONE, ICONE, image)
+    if image is not None:
+        ecrire_png(icone, ICONE, ICONE, image)
 
     print("%s : %d sommets, %d triangles, %d boites, %d os, %d o de tampon"
           % (gltf.name, len(geo[0]), len(geo[5]) // 3, len(pieces), len(os), octets))
     print("%s : atlas %dx%d" % (png.name, atlas_w, atlas_h))
-    print("%s : icone %dx%d de « %s »" % (icone.name, ICONE, ICONE, objet["nomObjet"]))
+    if image is None:
+        print("  pas d'objet d'apparition : aucune icone")
+    else:
+        print("%s : icone %dx%d de « %s »" % (icone.name, ICONE, ICONE, objet["nomObjet"]))
     print("  boite : %.4f x %.4f x %.4f bloc (%g x %g x %g texels)"
           % (pave["largeur"] * UNITE, pave["hauteur"] * UNITE, pave["profondeur"] * UNITE,
              pave["largeur"], pave["hauteur"], pave["profondeur"]))

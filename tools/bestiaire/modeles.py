@@ -244,6 +244,11 @@ MOUFLON_TONDU = {
     "nom": "Mouflon tondu",
     "monde": "paisible",
     "hostile": False,
+    # Pas de totem : un mouflon tondu ne s'invoque pas, il sort d'une tonte. Le
+    # jour ou la tonte existera, c'est elle qui le fabriquera a partir d'un
+    # mouflon laineux — un objet d'apparition ferait un second chemin vers le
+    # meme animal, et rendrait la tonte facultative avant qu'elle soit ecrite.
+    "objet": False,
     "desc": "Sa laine repousse en quelques jours ; il reste plus frileux en attendant.",
     "mat": {
         "tondu": {"motif": "laine", "pal": ["#b4a48a", "#c8baa0", "#d8ccb4"]},
