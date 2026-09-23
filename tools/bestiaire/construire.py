@@ -112,33 +112,40 @@ def aplatir(creature):
     return pieces, os
 
 
-def hauteur_texels(pieces):
-    """Hauteur totale en texels : les pieds sont a y = 0 et le haut est negatif."""
-    haut = 0.0
-    for p in pieces:
-        haut = min(haut, p["centre"][1] - p["s"][1] / 2.0)
-    return -haut
+def mesurer(creature):
+    """Le pave d'une creature : sa taille en texels et le centre a soustraire.
 
-
-def etendue(pieces):
-    """Boite englobante en texels : (largeur, hauteur, profondeur)."""
-    xs = [(p["centre"][0] - p["s"][0] / 2.0, p["centre"][0] + p["s"][0] / 2.0) for p in pieces]
-    zs = [(p["centre"][2] - p["s"][2] / 2.0, p["centre"][2] + p["s"][2] / 2.0) for p in pieces]
-    largeur = max(x[1] for x in xs) - min(x[0] for x in xs)
-    profondeur = max(z[1] for z in zs) - min(z[0] for z in zs)
-    return largeur, hauteur_texels(pieces), profondeur
+    C'est `boite()` de la maquette, dans ses deux clauses : la hauteur se compte
+    du sommet au PLAN DES PIEDS, jamais d'un extreme a l'autre — une patte qui
+    depasserait sous zero ne grandirait pas la bete —, et le pivot se recentre
+    en x et en z, jamais en y. Le mannequin est symetrique, donc ce recentrage
+    ne le bouge pas ; le mouflon a la tete en avant, et sans lui son pave de
+    physique deborderait de la croupe et lui manquerait le museau.
+    """
+    mn, mx = modeles.boite(creature["parts"])
+    hauteur = max(-mn[1], 1.0)
+    return {
+        "largeur": mx[0] - mn[0],
+        "hauteur": hauteur,
+        "profondeur": mx[2] - mn[2],
+        "cx": (mn[0] + mx[0]) / 2.0,
+        "cz": (mn[2] + mx[2]) / 2.0,
+        "demi": hauteur / 2.0,
+    }
 
 
 # --- geometrie ------------------------------------------------------------
 
 
-def construire_geometrie(creature, pieces, rects, atlas_w, atlas_h, demi_hauteur):
+def construire_geometrie(creature, pieces, rects, atlas_w, atlas_h, pave):
     """Les six faces de chaque boite, en blocs, avec leurs UV dans l'atlas."""
 
     def vers_jeu(x, y, z):
         """Maquette (texels, y vers le bas, pieds a zero) -> jeu (blocs, y vers
-        le haut, modele centre sur son milieu)."""
-        return (x * UNITE, (-y - demi_hauteur) * UNITE, z * UNITE)
+        le haut, modele centre sur son pave)."""
+        return ((x - pave["cx"]) * UNITE,
+                (-y - pave["demi"]) * UNITE,
+                (z - pave["cz"]) * UNITE)
 
     positions, normales, uvs, joints, poids, indices = [], [], [], [], [], []
     for piece in pieces:
@@ -451,15 +458,31 @@ def rendre_icone(pieces, rects, atlas_w, atlas_h, pixels, taille, rx=-18, ry=-35
 # --- entree ---------------------------------------------------------------
 
 
+def icone_objet(creature):
+    """L'icone de l'objet qui fait apparaitre la creature.
+
+    La maquette derive cet objet au lieu de le modeler (`totem()`), et son atlas
+    a son propre identifiant — `mouflon-totem`, `mannequin-objet` — donc son
+    propre grain. Cet atlas ne sert qu'a l'icone : rien ne le pose dans le
+    monde, et rien ne l'ecrit sur le disque.
+    """
+    objet = modeles.totem(creature)
+    pieces, _ = aplatir(objet)
+    atlas_w, atlas_h, pixels, rects = peinture.atlas(objet)
+    return objet, rendre_icone(pieces, rects, atlas_w, atlas_h, pixels, ICONE)
+
+
 def construire(creature):
     pieces, os_bruts = aplatir(creature)
-    largeur, hauteur, profondeur = etendue(pieces)
-    demi = hauteur / 2.0
+    pave = mesurer(creature)
+    demi = pave["demi"]
 
     # Les os portent leur pivot global (en blocs) et leur translation locale.
     os = []
     for nom, parent, noeud in os_bruts:
-        global_jeu = (noeud[0] * UNITE, (-noeud[1] - demi) * UNITE, noeud[2] * UNITE)
+        global_jeu = ((noeud[0] - pave["cx"]) * UNITE,
+                      (-noeud[1] - demi) * UNITE,
+                      (noeud[2] - pave["cz"]) * UNITE)
         anim = None
         for p in pieces:
             if p["n"] == nom and p["a"]:
@@ -472,8 +495,9 @@ def construire(creature):
     os = [tuple(o) for o in os]
 
     atlas_w, atlas_h, pixels, rects = peinture.atlas(creature)
-    geo = construire_geometrie(creature, pieces, rects, atlas_w, atlas_h, demi)
+    geo = construire_geometrie(creature, pieces, rects, atlas_w, atlas_h, pave)
     anim = animation(os)
+    objet, image = icone_objet(creature)
 
     cle = creature["id"]
     gltf = ASSETS / "skeletalMesh" / (cle + ".gltf")
@@ -482,14 +506,16 @@ def construire(creature):
 
     octets = ecrire_gltf(gltf, cle, *geo, os, anim)
     ecrire_png(png, atlas_w, atlas_h, pixels)
-    ecrire_png(icone, ICONE, ICONE, rendre_icone(pieces, rects, atlas_w, atlas_h, pixels, ICONE))
+    ecrire_png(icone, ICONE, ICONE, image)
 
     print("%s : %d sommets, %d triangles, %d boites, %d os, %d o de tampon"
           % (gltf.name, len(geo[0]), len(geo[5]) // 3, len(pieces), len(os), octets))
     print("%s : atlas %dx%d" % (png.name, atlas_w, atlas_h))
-    print("%s : icone %dx%d" % (icone.name, ICONE, ICONE))
-    print("  boite : %.3f x %.3f x %.3f bloc (%g x %g x %g texels)"
-          % (largeur * UNITE, hauteur * UNITE, profondeur * UNITE, largeur, hauteur, profondeur))
+    print("%s : icone %dx%d de « %s »" % (icone.name, ICONE, ICONE, objet["nomObjet"]))
+    print("  boite : %.4f x %.4f x %.4f bloc (%g x %g x %g texels)"
+          % (pave["largeur"] * UNITE, pave["hauteur"] * UNITE, pave["profondeur"] * UNITE,
+             pave["largeur"], pave["hauteur"], pave["profondeur"]))
+    print("  pivot : recentre de %g et %g texels en x et z" % (pave["cx"], pave["cz"]))
     if anim:
         print("  repos : %.4f s, %d os animes, %d pas" % (anim["duree"], len(anim["canaux"]), PAS))
 

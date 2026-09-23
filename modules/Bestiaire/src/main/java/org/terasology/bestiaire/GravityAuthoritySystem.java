@@ -14,7 +14,6 @@ import org.terasology.engine.physics.components.RigidBodyComponent;
 import org.terasology.engine.physics.components.shapes.BoxShapeComponent;
 import org.terasology.engine.registry.In;
 import org.terasology.engine.world.WorldProvider;
-import org.terasology.engine.world.block.Block;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -45,9 +44,6 @@ public class GravityAuthoritySystem extends BaseComponentSystem implements Updat
     private static final float GRAVITE = 28.0f;
     private static final float VITESSE_MAX = 64.0f;
 
-    /** How far a creature caught inside the ground is pushed back out, in blocks. */
-    private static final int EXTRACTION = 8;
-
     @In
     private EntityManager entityManager;
 
@@ -73,7 +69,7 @@ public class GravityAuthoritySystem extends BaseComponentSystem implements Updat
             float pieds = position.y - demiHauteur;
 
             // A block owns [p - 0.5, p + 0.5]. The ground may be under the feet, or around them.
-            float sol = solSous(position.x, pieds, position.z);
+            float sol = Ground.under(worldProvider, position.x, pieds, position.z);
             if (Float.isNaN(sol)) {
                 // Nothing readable underneath: the chunk is not loaded. Falling here would drop the creature
                 // through a world that simply has not arrived yet.
@@ -108,59 +104,5 @@ public class GravityAuthoritySystem extends BaseComponentSystem implements Updat
                 vitesses.put(creature, vitesse);
             }
         }
-    }
-
-    /**
-     * The height the feet belong at, or {@code NaN} when the world cannot answer.
-     * <p>
-     * Two cases, and forgetting the second is what buried the first mannequins up to the neck: the feet may be
-     * <em>inside</em> the ground — spawned there, or built around since — and looking only downwards then finds
-     * a floor below the one the creature is standing in, and lets it sink one block further. So the block
-     * holding the feet is read first, and while it is solid the answer climbs.
-     */
-    private float solSous(float x, float pieds, float z) {
-        Vector3f sonde = new Vector3f(x, 0, z);
-        int contenant = (int) Math.floor(pieds + 0.5f);
-
-        Boolean plein = solide(sonde, contenant);
-        if (plein == null) {
-            return Float.NaN;
-        }
-        if (plein) {
-            // Enfoui : on remonte jusqu'au-dessus de la derniere case pleine.
-            for (int y = contenant + 1; y <= contenant + EXTRACTION; y++) {
-                Boolean encore = solide(sonde, y);
-                if (encore == null) {
-                    return Float.NaN;
-                }
-                if (!encore) {
-                    return y - 0.5f;
-                }
-            }
-            return contenant + EXTRACTION + 0.5f;
-        }
-
-        int limite = contenant - (int) Math.ceil(VITESSE_MAX) - 1;
-        for (int y = contenant - 1; y > limite; y--) {
-            Boolean dessous = solide(sonde, y);
-            if (dessous == null) {
-                return Float.NaN;
-            }
-            if (dessous) {
-                return y + 0.5f;
-            }
-        }
-        // Rien jusqu'en bas : on continue de tomber, et l'image suivante regardera plus bas.
-        return limite + 0.5f;
-    }
-
-    /** {@code null} when no loaded chunk covers the cell — the world has not arrived yet. */
-    private Boolean solide(Vector3f sonde, int y) {
-        sonde.y = y;
-        if (!worldProvider.isBlockRelevant(sonde)) {
-            return null;
-        }
-        Block bloc = worldProvider.getBlock(sonde);
-        return bloc != null && !bloc.isPenetrable();
     }
 }

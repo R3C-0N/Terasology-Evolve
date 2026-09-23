@@ -1,0 +1,34 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:mouflon",
+    "material": "Bestiaire:mouflonPeau",
+    "animation": "Bestiaire:mouflon#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Mouflon laineux",
+    "description": "Vit sur les pentes rocheuses ; se tond pour sa laine au retour de l'été."
+  },
+  "Creature": {
+    "species": "mouflon",
+    "item": "Bestiaire:mouflonTotem"
+  },
+  "Wander": {},
+  "Health": {
+    "maxHealth": 40,
+    "currentHealth": 40
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 20
+  },
+  "BoxShape": {
+    "extents": [0.5625, 1.0125, 1.125]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

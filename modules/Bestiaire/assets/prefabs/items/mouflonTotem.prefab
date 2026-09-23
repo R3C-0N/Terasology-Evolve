@@ -1,0 +1,16 @@
+{
+    "parent": "engine:iconItem",
+    "DisplayName": {
+        "name": "Totem : mouflon laineux",
+        "description": "Posé au sol, fait apparaître un mouflon laineux."
+    },
+    "Item": {
+        "icon": "Bestiaire:mouflonIcone",
+        "stackId": "Bestiaire:mouflonTotem",
+        "maxStackSize": 16,
+        "consumedOnUse": true
+    },
+    "Spawner": {
+        "creature": "Bestiaire:mouflon"
+    }
+}

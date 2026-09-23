@@ -2,7 +2,7 @@
     "id": "Bestiaire",
     "version": "1.0.0",
     "displayName": "Bestiaire",
-    "description": "Les créatures du bestiaire, les objets qui les font apparaître, et les dégâts qu'on leur inflige. La première est le mannequin d'entraînement : il encaisse sans riposter.",
+    "description": "Les créatures du bestiaire, les totems qui les font apparaître, et les dégâts qu'on leur inflige. Le mannequin d'entraînement encaisse sans bouger ; le mouflon laineux se balade, et détale quand on le frappe.",
     "dependencies": [
         {
             "id": "Health",

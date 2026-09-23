@@ -12,7 +12,8 @@
   },
   "Creature": {
     "species": "mannequin",
-    "item": "Bestiaire:mannequinObjet"
+    "item": "Bestiaire:mannequinObjet",
+    "pickable": true
   },
   "Health": {
     "maxHealth": 200,

@@ -20,6 +20,10 @@ import org.terasology.module.inventory.systems.InventoryManager;
 /**
  * Picking a creature back up, bare-handed.
  * <p>
+ * Only creatures marked {@code pickable} answer to it, which today means the training ground's alone:
+ * there the object IS the creature. A totem is wood and stone and not the animal, so punching a mouflon
+ * cannot pocket it without the same gesture meaning two things depending on what it lands on.
+ * <p>
  * "Se ramasse à la main" is the design's own wording, and bare-handed is the whole test: anything held that is
  * an item — a pickaxe, a sword, a stack of dirt — hits instead. That keeps one gesture for two intents without
  * a mode, and it is why this runs at high priority and consumes the event: at default priority the damage
@@ -37,7 +41,7 @@ public class PickUpAuthoritySystem extends BaseComponentSystem {
     @Priority(EventPriority.PRIORITY_HIGH)
     @ReceiveEvent
     public void pickUp(AttackEvent event, EntityRef creature, CreatureComponent component) {
-        if (component.item == null || component.item.isEmpty()) {
+        if (!component.pickable || component.item == null || component.item.isEmpty()) {
             return;
         }
         if (event.getDirectCause().hasComponent(ItemComponent.class)) {
