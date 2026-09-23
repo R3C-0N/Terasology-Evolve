@@ -1,0 +1,43 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:mouflonTondu",
+    "material": "Bestiaire:mouflonTonduPeau",
+    "animation": "Bestiaire:mouflonTondu#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Mouflon tondu",
+    "description": "Sa laine repousse en quelques jours ; il reste plus frileux en attendant."
+  },
+  "Creature": {
+    "species": "mouflonTondu",
+    "item": "Bestiaire:mouflonTonduTotem"
+  },
+  "Wander": {
+    "speed": 1.3,
+    "panicSpeed": 5,
+    "pauseMin": 2,
+    "pauseMax": 6
+  },
+  "Health": {
+    "maxHealth": 40,
+    "currentHealth": 40
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 20
+  },
+  "BoxShape": {
+    "extents": [
+      0.54,
+      0.9281,
+      1.0125
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : vache",
+    "description": "Posé au sol, fait apparaître une vache."
+  },
+  "Item": {
+    "icon": "Bestiaire:vacheIcone",
+    "stackId": "Bestiaire:vacheTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:vache"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:faisan",
+    "material": "Bestiaire:faisanPeau",
+    "animation": "Bestiaire:faisan#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Faisan",
+    "description": "S’envole bruyamment des hautes herbes quand on s’en approche."
+  },
+  "Creature": {
+    "species": "faisan",
+    "item": "Bestiaire:faisanTotem"
+  },
+  "Wander": {
+    "speed": 1.0,
+    "panicSpeed": 6.5,
+    "panicDuration": 4,
+    "pauseMin": 0.8,
+    "pauseMax": 3,
+    "walkMin": 1,
+    "walkMax": 3.5,
+    "dashMin": 0.2,
+    "dashMax": 0.5,
+    "turnCalm": 140,
+    "turnRate": 300,
+    "turnRatePanic": 900,
+    "dropMax": 2
+  },
+  "Health": {
+    "maxHealth": 12,
+    "currentHealth": 12
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 20
+  },
+  "BoxShape": {
+    "extents": [
+      0.3937,
+      0.9185,
+      1.4164
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

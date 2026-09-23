@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : faisan",
+    "description": "Posé au sol, fait apparaître un faisan."
+  },
+  "Item": {
+    "icon": "Bestiaire:faisanIcone",
+    "stackId": "Bestiaire:faisanTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:faisan"
+  }
+}

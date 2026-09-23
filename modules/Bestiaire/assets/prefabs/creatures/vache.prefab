@@ -1,0 +1,51 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:vache",
+    "material": "Bestiaire:vachePeau",
+    "animation": "Bestiaire:vache#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Vache",
+    "description": "Se trait avec un seau et suit quiconque tient une gerbe de blé."
+  },
+  "Creature": {
+    "species": "vache",
+    "item": "Bestiaire:vacheTotem"
+  },
+  "Wander": {
+    "speed": 0.8,
+    "panicSpeed": 3.2,
+    "panicDuration": 4,
+    "pauseMin": 3,
+    "pauseMax": 9,
+    "walkMin": 2,
+    "walkMax": 5,
+    "dashMin": 0.5,
+    "dashMax": 1.4,
+    "turnCalm": 70,
+    "turnRate": 90,
+    "turnRatePanic": 260
+  },
+  "Health": {
+    "maxHealth": 100,
+    "currentHealth": 100
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 20
+  },
+  "BoxShape": {
+    "extents": [
+      0.675,
+      1.4258,
+      1.62
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

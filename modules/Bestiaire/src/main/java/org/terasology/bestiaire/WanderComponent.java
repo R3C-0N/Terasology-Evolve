@@ -8,10 +8,12 @@ import org.terasology.gestalt.entitysystem.component.Component;
 /**
  * The whole behaviour of a peaceful animal: it strolls, and it bolts when struck.
  * <p>
- * The design gives the sixteen creatures of the bestiary two temperaments and no more — hostile or not — so
- * this component is deliberately <em>not</em> the mouflon's. Every animal of the {@code paisible} world wears
- * it, and what separates a rabbit from a cow is meant to be these numbers, not a second system. What is
- * hostile will need something else entirely: it has a target, and a target is a different problem.
+ * The design gives the nineteen creatures of the bestiary two temperaments and no more — hostile or not — so
+ * this component is deliberately <em>not</em> the mouflon's. All six animals of the {@code paisible} world
+ * wear it, and what separates a rabbit from a cow is exactly these numbers, not a second system: the cow
+ * ambles at 0.8 and turns at 90 degrees a second, the rabbit changes its mind every eighth of a second while
+ * fleeing. What is hostile will need something else entirely: it has a target, and a target is a different
+ * problem.
  * <p>
  * Everything is in blocks per second, seconds, and degrees. {@code @Replicate} is there for the client-side
  * gait, which reads {@link #speed} to know what a normal stride looks like for this animal.

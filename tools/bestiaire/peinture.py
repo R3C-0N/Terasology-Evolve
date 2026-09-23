@@ -230,7 +230,11 @@ def atlas(creature):
     """Peint l'atlas d'une creature.
 
     Rend `(largeur, hauteur, pixels, rects)` : `pixels` est un bytearray RGBA
-    ligne par ligne, `rects` donne `(x, y, w, h)` par `(nom de piece, face)`.
+    ligne par ligne, `rects` donne `(x, y, w, h)` par `(piece, face)`.
+
+    Les pieces sont reperees par IDENTITE, comme la `Map` de la maquette, et
+    non par leur nom : les deux bois d'un cerf portent les memes noms
+    d'andouiller, et une cle par nom n'en garderait qu'un sur deux.
     """
     cases = []
     for part in marche(creature["parts"]):
@@ -320,6 +324,6 @@ def atlas(creature):
                     poser(o["x"] + i, o["y"] + j,
                           (min(255, round(r * lum)), min(255, round(v * lum)), min(255, round(b * lum)), a))
 
-        rects[(part["n"], f)] = (o["x"], o["y"], o["w"], o["h"])
+        rects[(id(part), f)] = (o["x"], o["y"], o["w"], o["h"])
 
     return largeur, hauteur, pixels, rects

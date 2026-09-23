@@ -1,0 +1,49 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:cerf",
+    "material": "Bestiaire:cerfPeau",
+    "animation": "Bestiaire:cerf#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Cerf",
+    "description": "Fuit au moindre bruit ; on l’approche en restant accroupi."
+  },
+  "Creature": {
+    "species": "cerf",
+    "item": "Bestiaire:cerfTotem"
+  },
+  "Wander": {
+    "speed": 1.9,
+    "panicSpeed": 7.5,
+    "panicDuration": 9,
+    "walkMin": 3,
+    "walkMax": 8,
+    "pauseMin": 1,
+    "pauseMax": 3,
+    "dashMin": 0.4,
+    "dashMax": 1.2,
+    "turnCalm": 90
+  },
+  "Health": {
+    "maxHealth": 60,
+    "currentHealth": 60
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 20
+  },
+  "BoxShape": {
+    "extents": [
+      1.0526,
+      2.2786,
+      1.5075
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

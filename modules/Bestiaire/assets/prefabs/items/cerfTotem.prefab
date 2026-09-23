@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : cerf",
+    "description": "Posé au sol, fait apparaître un cerf."
+  },
+  "Item": {
+    "icon": "Bestiaire:cerfIcone",
+    "stackId": "Bestiaire:cerfTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:cerf"
+  }
+}

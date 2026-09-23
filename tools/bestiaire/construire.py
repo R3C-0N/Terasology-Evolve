@@ -32,7 +32,20 @@ DEUX REPERES, ET UNE SEULE BASCULE. La maquette compte en texels, y vers le
 BAS, pieds a zero. Le jeu compte en blocs, y vers le HAUT, et une entite est
 centree sur sa boite de collision -- sans quoi le maillage et le pave de
 physique ne pourraient pas partager une origine. La bascule se fait ici, une
-fois, dans `vers_jeu`.
+fois, dans `vers_jeu` pour les points et dans `bascule` pour les reperes.
+
+UNE PIECE QUI TOURNE TOURNE TOUT CE QUI PEND D'ELLE. `r` est une rotation du
+NOEUD, donc de la boite et de ses enfants : un bois de cerf est une chaine de
+six pieces dont chacune tourne dans le repere de sa mere. Trois consequences,
+et aucune n'est optionnelle :
+
+  * les six faces d'une boite ne sont plus alignees sur les axes -- normale,
+    `u` et `v` passent par la rotation du monde avant d'etre posees ;
+  * un os porte desormais une ROTATION de repos en plus de sa translation, et
+    sa matrice de liaison inverse cesse d'etre une simple translation ;
+  * l'animation d'un os tourne dans son repere a lui, donc le quaternion ecrit
+    dans le canal est celui du repos COMPOSE avec celui du balancement -- un
+    canal `rotation` remplace la pose de repos, il ne s'y ajoute pas.
 
 L'ICONE EST RENDUE, JAMAIS DESSINEE : c'est la regle du design system, et c'est
 la meme projection orthographique que la vignette de la maquette (`rx = -18`,
@@ -41,6 +54,7 @@ la meme projection orthographique que la vignette de la maquette (`rx = -18`,
 from __future__ import annotations
 
 import base64
+import fractions
 import json
 import math
 import pathlib
@@ -60,11 +74,11 @@ ICONE = 32                       # les icones d'equipement font 16 ; 32 rend un 
 
 # --- les six faces --------------------------------------------------------
 #
-# Pour chaque face : sa normale sortante dans le repere de la MAQUETTE (y vers
-# le bas), le vecteur du `u` de la texture et celui de son `v`. Ces trois
-# vecteurs sont ceux que `cube()` de la maquette construit par ses rotations
-# CSS -- les recopier est ce qui garantit qu'une texture ne parte pas de
-# travers sur les cotes.
+# Pour chaque face : sa normale sortante dans le repere LOCAL de la piece (y
+# vers le bas, comme la maquette), le vecteur du `u` de la texture et celui de
+# son `v`. Ces trois vecteurs sont ceux que `cube()` de la maquette construit
+# par ses rotations CSS -- les recopier est ce qui garantit qu'une texture ne
+# parte pas de travers sur les cotes.
 
 FACES = {
     "devant":  {"n": (0, 0, 1),  "u": (1, 0, 0),  "v": (0, 1, 0)},
@@ -84,31 +98,37 @@ def dims_face(s, f):
 
 
 def aplatir(creature):
-    """Rend la liste des pieces, chacune avec sa position absolue et son os.
+    """Rend la liste des pieces, chacune avec son repere absolu, et les os.
 
     Une piece porte l'os de la piece animee la plus proche au-dessus d'elle --
     c'est ce qui fait qu'une tete posee sur un poteau suit le poteau.
+
+    Tout est rendu dans le repere de la MAQUETTE : une piece porte `R`, la
+    matrice qui oriente sa boite, et `centre`, le milieu de cette boite. Un os
+    porte de meme `R` et le point `t` de son noeud.
     """
     pieces = []
-    os = [("racine", -1, (0.0, 0.0, 0.0))]
+    os = [{"nom": "racine", "parent": -1, "R": modeles.IDENTITE,
+           "t": (0.0, 0.0, 0.0), "a": None}]
 
-    def marcher(parts, base, index_os):
+    def marcher(parts, base, repere, index_os):
         for p in parts:
-            if p.get("r"):
-                raise NotImplementedError(
-                    "la piece « %s » tourne : le generateur ne porte pas encore les "
-                    "rotations de piece (aucune creature du monde d'entrainement n'en a)" % p["n"])
-            noeud = (base[0] + p["p"][0], base[1] + p["p"][1], base[2] + p["p"][2])
+            local = modeles.produit(repere, modeles.rotation(p.get("r")))
+            decale = modeles.appliquer(repere, p["p"])
+            noeud = (base[0] + decale[0], base[1] + decale[1], base[2] + decale[2])
             mien = index_os
             if p.get("a"):
-                os.append((p["n"], index_os, noeud))
+                os.append({"nom": p["n"], "parent": index_os, "R": local,
+                           "t": noeud, "a": p["a"]})
                 mien = len(os) - 1
-            centre = (noeud[0] + p["o"][0], noeud[1] + p["o"][1], noeud[2] + p["o"][2])
-            pieces.append({"n": p["n"], "s": p["s"], "centre": centre, "os": mien, "a": p.get("a")})
+            ecart = modeles.appliquer(local, p["o"])
+            centre = (noeud[0] + ecart[0], noeud[1] + ecart[1], noeud[2] + ecart[2])
+            pieces.append({"n": p["n"], "s": p["s"], "centre": centre, "R": local,
+                           "os": mien, "part": p})
             if p.get("c"):
-                marcher(p["c"], noeud, mien)
+                marcher(p["c"], noeud, local, mien)
 
-    marcher(creature["parts"], (0.0, 0.0, 0.0), 0)
+    marcher(creature["parts"], (0.0, 0.0, 0.0), modeles.IDENTITE, 0)
     return pieces, os
 
 
@@ -134,10 +154,55 @@ def mesurer(creature):
     }
 
 
+# --- la bascule de repere -------------------------------------------------
+#
+# Un point passe par `vers_jeu`. Un REPERE, lui, se conjugue : la maquette
+# compte y vers le bas, donc une rotation autour de x ou de z change de sens en
+# passant dans le jeu, et celle autour de y non. C'est la meme observation qui
+# donne le signe des angles d'animation, et elle n'est ecrite qu'ici.
+
+MIROIR = (1.0, -1.0, 1.0)
+
+
+def bascule(R):
+    """La matrice `R` de la maquette, vue depuis le repere du jeu."""
+    return tuple(tuple(MIROIR[i] * R[i][j] * MIROIR[j] for j in range(3)) for i in range(3))
+
+
+def quaternion_de(R):
+    """Le quaternion `(x, y, z, w)` d'une matrice de rotation orthonormee."""
+    trace = R[0][0] + R[1][1] + R[2][2]
+    if trace > 0:
+        s = math.sqrt(trace + 1.0) * 2
+        return ((R[2][1] - R[1][2]) / s, (R[0][2] - R[2][0]) / s,
+                (R[1][0] - R[0][1]) / s, 0.25 * s)
+    if R[0][0] > R[1][1] and R[0][0] > R[2][2]:
+        s = math.sqrt(1.0 + R[0][0] - R[1][1] - R[2][2]) * 2
+        return (0.25 * s, (R[0][1] + R[1][0]) / s, (R[0][2] + R[2][0]) / s,
+                (R[2][1] - R[1][2]) / s)
+    if R[1][1] > R[2][2]:
+        s = math.sqrt(1.0 + R[1][1] - R[0][0] - R[2][2]) * 2
+        return ((R[0][1] + R[1][0]) / s, 0.25 * s, (R[1][2] + R[2][1]) / s,
+                (R[0][2] - R[2][0]) / s)
+    s = math.sqrt(1.0 + R[2][2] - R[0][0] - R[1][1]) * 2
+    return ((R[0][2] + R[2][0]) / s, (R[1][2] + R[2][1]) / s, 0.25 * s,
+            (R[1][0] - R[0][1]) / s)
+
+
+def quaternion_produit(a, b):
+    """`a` puis `b` dans le repere tourne par `a` -- l'ordre de CSS."""
+    ax, ay, az, aw = a
+    bx, by, bz, bw = b
+    return (aw * bx + ax * bw + ay * bz - az * by,
+            aw * by - ax * bz + ay * bw + az * bx,
+            aw * bz + ax * by - ay * bx + az * bw,
+            aw * bw - ax * bx - ay * by - az * bz)
+
+
 # --- geometrie ------------------------------------------------------------
 
 
-def construire_geometrie(creature, pieces, rects, atlas_w, atlas_h, pave):
+def construire_geometrie(pieces, rects, atlas_w, atlas_h, pave):
     """Les six faces de chaque boite, en blocs, avec leurs UV dans l'atlas."""
 
     def vers_jeu(x, y, z):
@@ -151,15 +216,25 @@ def construire_geometrie(creature, pieces, rects, atlas_w, atlas_h, pave):
     for piece in pieces:
         cx, cy, cz = piece["centre"]
         w, h, d = piece["s"]
+        R = piece["R"]
         for nom, base in FACES.items():
             fw, fh = dims_face(piece["s"], nom)
-            rx, ry, rw, rh = rects[(piece["n"], nom)]
+            rx, ry, rw, rh = rects[(id(piece["part"]), nom)]
             u0, v0 = (rx + MARGE) / atlas_w, (ry + MARGE) / atlas_h
             u1, v1 = (rx + rw - MARGE) / atlas_w, (ry + rh - MARGE) / atlas_h
 
-            n, u, v = base["n"], base["u"], base["v"]
-            # Le centre de la face, puis son coin (u = 0, v = 0).
-            centre = (cx + n[0] * w / 2.0, cy + n[1] * h / 2.0, cz + n[2] * d / 2.0)
+            # La piece tourne, donc ses trois vecteurs de face tournent avec
+            # elle : ils sont lus dans le repere local puis portes dans le
+            # monde. Sans rotation, `R` vaut l'identite et rien ne change.
+            n = modeles.appliquer(R, base["n"])
+            u = modeles.appliquer(R, base["u"])
+            v = modeles.appliquer(R, base["v"])
+            # Le centre de la face, puis son coin (u = 0, v = 0). La demi-taille
+            # se prend sur la normale LOCALE, la boite restant un pave dans son
+            # propre repere.
+            demi = (base["n"][0] * w / 2.0, base["n"][1] * h / 2.0, base["n"][2] * d / 2.0)
+            ecart = modeles.appliquer(R, demi)
+            centre = (cx + ecart[0], cy + ecart[1], cz + ecart[2])
             coin = tuple(centre[i] - u[i] * fw / 2.0 - v[i] * fh / 2.0 for i in range(3))
             sommets = [
                 coin,
@@ -205,11 +280,19 @@ def construire_geometrie(creature, pieces, rects, atlas_w, atlas_h, pave):
 #
 # La maquette anime par `sin(t * 2pi * 0,9 * v + ph)`, en degres d'amplitude
 # `amp`, autour de l'axe `ax`. Un glTF n'interpole pas une formule : on
-# echantillonne la periode. Seize pas suffisent pour un balancement de trois
-# degres -- l'erreur d'une interpolation lineaire y est sous le vingtieme de
-# degre.
+# echantillonne la periode.
+#
+# LA DUREE EST CELLE OU TOUT RETOMBE JUSTE. Une piece dont la periode ne divise
+# pas la duree ferait un saut a la boucle -- un cerf balance la queue a 1,2 et
+# la tete a 0,4, dont les periodes ne sont pas dans un rapport entier. La duree
+# est donc le plus petit commun multiple : `0,9 D v` doit etre entier pour
+# chaque `v`, donc `0,9 D` est le PPCM des denominateurs des `v`.
+#
+# Et le nombre de pas suit le nombre de cycles, jamais la duree : seize pas
+# repartis sur six cycles de patte ne dessineraient plus une foulee.
 
-PAS = 16
+PAS_PAR_CYCLE = 16
+PAS_MAX = 512
 
 
 def quaternion(axe, degres):
@@ -220,36 +303,45 @@ def quaternion(axe, degres):
 
 def animation(os):
     """Le repos : une seule animation, tous les os animes dedans."""
-    animes = [(i, o) for i, o in enumerate(os) if o[3]]
+    animes = [(i, o) for i, o in enumerate(os) if o["a"]]
     if not animes:
         return None
-    periodes = [1.0 / (0.9 * (o[3].get("v") or 1)) for _, o in animes]
-    duree = max(periodes)
-    for p in periodes:
-        # Une piece dont la periode ne divise pas la duree ferait un saut a la
-        # boucle. Aucune creature n'est dans ce cas ; le jour ou, il faudra
-        # prendre le plus petit commun multiple.
-        rapport = duree / p
-        if abs(rapport - round(rapport)) > 1e-9:
-            raise NotImplementedError("periodes incommensurables : %.4f et %.4f" % (duree, p))
 
-    temps = [duree * i / PAS for i in range(PAS + 1)]
+    vitesses = [fractions.Fraction(o["a"].get("v") or 1).limit_denominator(1000)
+                for _, o in animes]
+    tours = 1
+    for v in vitesses:
+        d = v.denominator
+        tours = tours * d // math.gcd(tours, d)
+    duree = tours / 0.9
+    cycles = max(int(tours * v) for v in vitesses)
+    pas = PAS_PAR_CYCLE * cycles
+    if pas > PAS_MAX:
+        raise NotImplementedError("%d pas d'animation : les vitesses ne retombent "
+                                  "juste que trop tard" % pas)
+
+    temps = [duree * i / pas for i in range(pas + 1)]
     canaux = []
     for index, o in animes:
-        a = o[3]
+        a = o["a"]
         axe = a.get("ax", "x")
         if axe == "s":
             raise NotImplementedError("l'animation par etirement n'est pas portee")
-        angles = []
+        # Le canal REMPLACE la rotation de repos du noeud, il ne s'y ajoute
+        # pas : on compose donc a la main, repos d'abord, balancement ensuite —
+        # c'est l'ordre de la maquette, ou l'animation s'ecrit au bout de la
+        # transformation de la piece.
+        repos = o["repos"]
+        quats = []
         for t in temps:
             v = math.sin(t * 2 * math.pi * 0.9 * (a.get("v") or 1) + (a.get("ph") or 0))
             # y descend dans la maquette : une rotation autour de x ou de z
             # change de sens en passant dans le repere du jeu, pas celle
             # autour de y.
             signe = 1.0 if axe == "y" else -1.0
-            angles.append(signe * a["amp"] * v)
-        canaux.append((index, axe, angles))
-    return {"duree": duree, "temps": temps, "canaux": canaux}
+            quats.append(quaternion_produit(repos, quaternion(axe, signe * a["amp"] * v)))
+        canaux.append((index, quats))
+    return {"duree": duree, "temps": temps, "canaux": canaux, "pas": pas}
 
 
 # --- ecriture des fichiers ------------------------------------------------
@@ -313,10 +405,17 @@ def ecrire_gltf(chemin, nom, positions, normales, uvs, joints, poids, indices, o
     a_poi = accessor(struct.pack("<%df" % (n * 4), *[c for p in poids for c in p]), 5126, "VEC4", n)
     a_ind = accessor(struct.pack("<%dH" % len(indices), *indices), 5123, "SCALAR", len(indices))
 
+    # La matrice de liaison inverse est l'inverse COMPLET du repere de repos de
+    # l'os -- rotation transposee et translation ramenee avec elle. Elle etait
+    # une simple translation tant qu'aucun os ne tournait ; elle ne l'est plus.
     inverses = []
     for o in os:
-        g = o[2]
-        inverses.extend([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -g[0], -g[1], -g[2], 1])
+        R, p = o["monde"], o["point"]
+        colonnes = [R[j] for j in range(3)]
+        t = [-sum(R[k][i] * p[k] for k in range(3)) for i in range(3)]
+        for col in colonnes:
+            inverses.extend([col[0], col[1], col[2], 0.0])
+        inverses.extend([t[0], t[1], t[2], 1.0])
     a_inv = accessor(struct.pack("<%df" % len(inverses), *inverses), 5126, "MAT4", len(os))
 
     animations = []
@@ -325,17 +424,19 @@ def ecrire_gltf(chemin, nom, positions, normales, uvs, joints, poids, indices, o
                            5126, "SCALAR", len(anim["temps"]),
                            {"min": [anim["temps"][0]], "max": [anim["temps"][-1]]})
         samplers, canaux = [], []
-        for index, axe, angles in anim["canaux"]:
-            quats = [c for d in angles for c in quaternion(axe, d)]
-            a_rot = accessor(struct.pack("<%df" % len(quats), *quats), 5126, "VEC4", len(angles))
+        for index, quats in anim["canaux"]:
+            plats = [c for q in quats for c in q]
+            a_rot = accessor(struct.pack("<%df" % len(plats), *plats), 5126, "VEC4", len(quats))
             samplers.append({"input": a_temps, "interpolation": "LINEAR", "output": a_rot})
             canaux.append({"sampler": len(samplers) - 1, "target": {"node": 1 + index, "path": "rotation"}})
         animations.append({"name": "repos", "samplers": samplers, "channels": canaux})
 
     noeuds = [{"name": nom, "mesh": 0, "skin": 0, "children": [1]}]
     for i, o in enumerate(os):
-        noeud = {"name": o[0], "translation": list(o[4])}
-        enfants = [1 + j for j, o in enumerate(os) if o[1] == i]
+        noeud = {"name": o["nom"], "translation": list(o["translation"])}
+        if any(abs(c) > 1e-9 for c in o["rotation"][:3]):
+            noeud["rotation"] = list(o["rotation"])
+        enfants = [1 + j for j, e in enumerate(os) if e["parent"] == i]
         if enfants:
             noeud["children"] = enfants
         noeuds.append(noeud)
@@ -392,10 +493,15 @@ def rendre_icone(pieces, rects, atlas_w, atlas_h, pixels, taille, rx=-18, ry=-35
     for piece in pieces:
         cx, cy, cz = piece["centre"]
         w, h, d = piece["s"]
+        R = piece["R"]
         for nom, base in FACES.items():
             fw, fh = dims_face(piece["s"], nom)
-            n, u, v = base["n"], base["u"], base["v"]
-            centre = (cx + n[0] * w / 2.0, cy + n[1] * h / 2.0, cz + n[2] * d / 2.0)
+            n = modeles.appliquer(R, base["n"])
+            u = modeles.appliquer(R, base["u"])
+            v = modeles.appliquer(R, base["v"])
+            demi = (base["n"][0] * w / 2.0, base["n"][1] * h / 2.0, base["n"][2] * d / 2.0)
+            ecart = modeles.appliquer(R, demi)
+            centre = (cx + ecart[0], cy + ecart[1], cz + ecart[2])
             coin = tuple(centre[i] - u[i] * fw / 2.0 - v[i] * fh / 2.0 for i in range(3))
             o = _appliquer(M, coin)
             eu = _appliquer(M, tuple(coin[i] + u[i] for i in range(3)))
@@ -406,7 +512,8 @@ def rendre_icone(pieces, rects, atlas_w, atlas_h, pixels, taille, rx=-18, ry=-35
             if ex[0] * ey[1] - ex[1] * ey[0] <= 0.0001:
                 continue
             faces.append({"o": o, "ex": ex, "ey": ey, "fw": fw, "fh": fh,
-                          "r": rects[(piece["n"], nom)], "z": _appliquer(M, centre)[2]})
+                          "r": rects[(id(piece["part"]), nom)],
+                          "z": _appliquer(M, centre)[2]})
 
     xs, ys = [], []
     for f in faces:
@@ -472,30 +579,48 @@ def icone_objet(creature):
     return objet, rendre_icone(pieces, rects, atlas_w, atlas_h, pixels, ICONE)
 
 
+def squelette(os_bruts, pave):
+    """Porte les os dans le repere du jeu et en deduit leur pose locale.
+
+    Chaque os garde son repere de repos ABSOLU (`monde`, `point`) — c'est de
+    lui que sort la matrice de liaison inverse — et la pose relative a son
+    parent, qui est ce que le noeud glTF porte.
+    """
+    demi = pave["demi"]
+    os = []
+    for brut in os_bruts:
+        t = brut["t"]
+        os.append({
+            "nom": brut["nom"],
+            "parent": brut["parent"],
+            "a": brut["a"],
+            "monde": bascule(brut["R"]),
+            "point": ((t[0] - pave["cx"]) * UNITE,
+                      (-t[1] - demi) * UNITE,
+                      (t[2] - pave["cz"]) * UNITE),
+        })
+    for o in os:
+        parent = os[o["parent"]] if o["parent"] >= 0 else None
+        if parent is None:
+            R, p = modeles.IDENTITE, (0.0, 0.0, 0.0)
+        else:
+            R, p = parent["monde"], parent["point"]
+        ecart = tuple(o["point"][k] - p[k] for k in range(3))
+        o["translation"] = tuple(sum(R[k][i] * ecart[k] for k in range(3)) for i in range(3))
+        locale = tuple(tuple(sum(R[k][i] * o["monde"][k][j] for k in range(3))
+                             for j in range(3)) for i in range(3))
+        o["rotation"] = quaternion_de(locale)
+        o["repos"] = o["rotation"]
+    return os
+
+
 def construire(creature):
     pieces, os_bruts = aplatir(creature)
     pave = mesurer(creature)
-    demi = pave["demi"]
-
-    # Les os portent leur pivot global (en blocs) et leur translation locale.
-    os = []
-    for nom, parent, noeud in os_bruts:
-        global_jeu = ((noeud[0] - pave["cx"]) * UNITE,
-                      (-noeud[1] - demi) * UNITE,
-                      (noeud[2] - pave["cz"]) * UNITE)
-        anim = None
-        for p in pieces:
-            if p["n"] == nom and p["a"]:
-                anim = p["a"]
-        os.append([nom, parent, global_jeu, anim, (0.0, 0.0, 0.0)])
-    for i, o in enumerate(os):
-        parent = o[1]
-        base = os[parent][2] if parent >= 0 else (0.0, 0.0, 0.0)
-        o[4] = tuple(o[2][k] - base[k] for k in range(3))
-    os = [tuple(o) for o in os]
+    os = squelette(os_bruts, pave)
 
     atlas_w, atlas_h, pixels, rects = peinture.atlas(creature)
-    geo = construire_geometrie(creature, pieces, rects, atlas_w, atlas_h, pave)
+    geo = construire_geometrie(pieces, rects, atlas_w, atlas_h, pave)
     anim = animation(os)
     objet, image = icone_objet(creature)
 
@@ -517,7 +642,9 @@ def construire(creature):
              pave["largeur"], pave["hauteur"], pave["profondeur"]))
     print("  pivot : recentre de %g et %g texels en x et z" % (pave["cx"], pave["cz"]))
     if anim:
-        print("  repos : %.4f s, %d os animes, %d pas" % (anim["duree"], len(anim["canaux"]), PAS))
+        print("  repos : %.4f s, %d os animes, %d pas"
+              % (anim["duree"], len(anim["canaux"]), anim["pas"]))
+    return pave
 
 
 if __name__ == "__main__":

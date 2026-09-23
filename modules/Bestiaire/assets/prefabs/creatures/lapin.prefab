@@ -1,0 +1,52 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:lapin",
+    "material": "Bestiaire:lapinPeau",
+    "animation": "Bestiaire:lapin#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Lapin",
+    "description": "Détale en zigzag et se nourrit de trèfle au bord des champs."
+  },
+  "Creature": {
+    "species": "lapin",
+    "item": "Bestiaire:lapinTotem"
+  },
+  "Wander": {
+    "speed": 1.1,
+    "panicSpeed": 6.5,
+    "panicDuration": 5,
+    "pauseMin": 0.6,
+    "pauseMax": 2.5,
+    "walkMin": 0.8,
+    "walkMax": 3,
+    "dashMin": 0.12,
+    "dashMax": 0.35,
+    "turnCalm": 150,
+    "turnRate": 320,
+    "turnRatePanic": 1200,
+    "dropMax": 2
+  },
+  "Health": {
+    "maxHealth": 10,
+    "currentHealth": 10
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 20
+  },
+  "BoxShape": {
+    "extents": [
+      0.3375,
+      0.7909,
+      0.7031
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

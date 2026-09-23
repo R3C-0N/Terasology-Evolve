@@ -34,6 +34,45 @@ def P(n, s, p, o=None, **kw):
     return piece
 
 
+# --- rotations de piece ---------------------------------------------------
+#
+# `r` est le triplet de degres que la maquette passe a CSS, et l'ordre de ses
+# trois rotations est celui de `rot()` dans `bestiaire.js` :
+#
+#     rotateY(r[1]) rotateX(r[0]) rotateZ(r[2])
+#
+# donc la matrice est `Ry . Rx . Rz`, appliquee au repere de la MAQUETTE — x a
+# droite, y vers le BAS, z vers le spectateur. Les matrices ci-dessous sont
+# celles que la specification CSS ecrit, sans reinterpretation : c'est ce qui
+# fait qu'un bois de cerf pointe du meme cote en jeu et dans la maquette.
+
+
+def rotation(r):
+    """La matrice 3x3 d'un `r` de la maquette. `None` ou nul rend l'identite."""
+    if not r:
+        return IDENTITE
+    ax, ay, az = (math.radians(v) for v in (r[0], r[1], r[2]))
+    cx, sx = math.cos(ax), math.sin(ax)
+    cy, sy = math.cos(ay), math.sin(ay)
+    cz, sz = math.cos(az), math.sin(az)
+    mx = ((1, 0, 0), (0, cx, -sx), (0, sx, cx))
+    my = ((cy, 0, sy), (0, 1, 0), (-sy, 0, cy))
+    mz = ((cz, -sz, 0), (sz, cz, 0), (0, 0, 1))
+    return produit(produit(my, mx), mz)
+
+
+IDENTITE = ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
+
+
+def produit(a, b):
+    return tuple(tuple(sum(a[i][k] * b[k][j] for k in range(3)) for j in range(3))
+                 for i in range(3))
+
+
+def appliquer(m, p):
+    return tuple(sum(m[i][j] * p[j] for j in range(3)) for i in range(3))
+
+
 def pattes(o):
     """Les quatre pattes d'un quadrupede, telles que `pattes()` de la maquette.
 
@@ -67,6 +106,53 @@ def pattes(o):
 
 def oeilD(x, y, w=None, c=None):
     return ["devant", x, y, w or 1, 1, c or "oeil"]
+
+
+def boisCerf(m):
+    """Les deux bois d'un cervide, tels que `boisCerf()` de la maquette.
+
+    Six pieces par bois, chacune tournee dans le repere de sa mere : c'est le
+    premier modele du bestiaire qui ne tient pas sans les rotations de piece.
+    Les deux cotes portent les memes noms d'andouiller — la maquette les range
+    par objet et non par nom, et l'atlas d'ici fait de meme.
+    """
+    return [P("bois%d" % sg, [1, 5, 1], [sg * 1.5, -3.5, 0.5], [0, -2.5, 0], m=m,
+              r=[10, 0, sg * 25],
+              c=[P("andouiller1", [1, 3, 1], [0, -2, 0], [0, -1.5, 0], m=m, r=[-60, 0, 0]),
+                 P("merrain", [1, 5, 1], [0, -5, 0], [0, -2.5, 0], m=m, r=[0, 0, sg * 18],
+                   c=[P("andouiller2", [1, 3, 1], [0, -2, 0], [0, -1.5, 0], m=m, r=[-50, 0, 0]),
+                      P("andouiller3", [1, 3, 1], [0, -4, 0], [0, -1.5, 0], m=m, r=[0, 0, sg * 45]),
+                      P("pointe", [1, 3, 1], [0, -5, 0], [0, -1.5, 0], m=m, r=[18, 0, sg * -15])])])
+            for sg in (-1, 1)]
+
+
+def cervide():
+    """Le patron d'un cervide : corps, quatre pattes, cou coude, bois, queue.
+
+    Le cou est incline de -25 degres et la tete de +25 : la tete revient droite,
+    et c'est le coude du cou qui donne le port de tete. Sans rotation de piece
+    les deux se confondraient en un seul tuyau.
+    """
+    y = -16
+    return [
+        P("corps", [8, 8, 14], [0, y, 0], None, m="poil",
+          f=[["cotes", 0, 6, 99, 2, "ventre"]]),
+        *pattes({"x": 2.5, "zf": 5, "zb": -5, "w": 2, "h": 12, "m": "poil",
+                 "sabot": "sabot", "amp": 20}),
+        P("cou", [4, 9, 4], [0, y - 2, 6], [0, -4.5, 0], m="poil", r=[-25, 0, 0],
+          f=[["devant", 0, 3, 99, 99, "ventre"]],
+          c=[P("tete", [5, 5, 6], [0, -9, 0], [0, -1, 2], m="poil", r=[25, 0, 0],
+               a={"ax": "x", "amp": 5, "v": 0.4}, f=[["cotes", 2, 1, 1, 1, "oeil"]],
+               c=[P("museau", [3, 3, 3], [0, 0.5, 5], [0, 0, 1.5], m="museau",
+                    f=[["devant", 0, 0, 3, 1, "truffe"], ["dessus", 0, 2, 3, 1, "truffe"]]),
+                  P("oreilleD", [3, 2, 1], [-2.5, -3, 1], [-1.5, 0, 0], m="poil",
+                    r=[0, 0, -15], f=[["devant", 1, 0, 2, 1, "ventre"]]),
+                  P("oreilleG", [3, 2, 1], [2.5, -3, 1], [1.5, 0, 0], m="poil",
+                    r=[0, 0, 15], f=[["devant", 0, 0, 2, 1, "ventre"]])]
+                 + boisCerf("bois"))]),
+        P("queue", [2, 3, 1], [0, y - 3, -7.5], [0, 1.5, 0], m="blanc", r=[-20, 0, 0],
+          a={"ax": "z", "amp": 10, "v": 1.2}),
+    ]
 
 
 MANNEQUIN = {
@@ -136,7 +222,155 @@ MOUFLON = {
     ],
 }
 
-CREATURES = [MANNEQUIN, MOUFLON]
+CERF = {
+    "id": "cerf",
+    "nom": "Cerf",
+    "monde": "paisible",
+    "hostile": False,
+    "desc": "Fuit au moindre bruit ; on l’approche en restant accroupi.",
+    "mat": {
+        "poil": {"motif": "poil", "pal": ["#6a4428", "#865834", "#a47048"],
+                 "bas": ["#c8b490", "#dccaa6", "#ece0c0"]},
+        "museau": {"motif": "poil", "pal": ["#4a3020", "#5e3e2a", "#745036"]},
+        "bois": {"motif": "corne", "pal": ["#a09070", "#c4b48e", "#ddd0ae"]},
+        "blanc": {"motif": "uni", "pal": ["#dcd4c4", "#ece6d8", "#f8f4ec"]},
+    },
+    "c": {"ventre": "#d8c6a2", "oeil": "#141010", "truffe": "#1a1210", "sabot": "#2a2018"},
+    "parts": cervide(),
+}
+
+MOUFLON_TONDU = {
+    "id": "mouflonTondu",
+    "nom": "Mouflon tondu",
+    "monde": "paisible",
+    "hostile": False,
+    "desc": "Sa laine repousse en quelques jours ; il reste plus frileux en attendant.",
+    "mat": {
+        "tondu": {"motif": "laine", "pal": ["#b4a48a", "#c8baa0", "#d8ccb4"]},
+        "face": {"motif": "poil", "pal": ["#3a2a1e", "#4e3a2a", "#64503c"]},
+        "corne": {"motif": "corne", "pal": ["#7a6a4e", "#a09070", "#c4b690"]},
+    },
+    "c": {"oeil": "#c8a040", "truffe": "#1e1612", "museau": "#6a5646", "sabot": "#1e1814"},
+    "parts": [
+        P("corps", [7, 6, 11], [0, -10, 0], None, m="tondu"),
+        *pattes({"x": 2.5, "zf": 3.5, "zb": -3.5, "w": 2, "h": 7, "m": "face",
+                 "sabot": "sabot", "amp": 18}),
+        P("tete", [5, 6, 6], [0, -12, 5.5], [0, 0, 3], m="face",
+          a={"ax": "x", "amp": 6, "v": 0.5},
+          f=[oeilD(0, 2), oeilD(4, 2), ["devant", 1, 4, 3, 2, "museau"],
+             oeilD(2, 4, 1, "truffe")],
+          c=[piece for sg in (-1, 1) for piece in (
+              P("corneA%d" % sg, [2, 3, 4], [sg * 3.5, -3, 2], None, m="corne"),
+              P("corneB%d" % sg, [2, 4, 3], [sg * 3.5, -2, -1], None, m="corne"),
+              P("corneC%d" % sg, [2, 3, 3], [sg * 3.5, 1.5, -0.5], None, m="corne"),
+              P("corneD%d" % sg, [2, 2, 3], [sg * 3.8, 3, 2], None, m="corne"),
+          )]),
+        P("queue", [2, 2, 1], [0, -13, -6], None, m="tondu"),
+    ],
+}
+
+LAPIN = {
+    "id": "lapin",
+    "nom": "Lapin",
+    "monde": "paisible",
+    "hostile": False,
+    "saut": True,
+    "desc": "Détale en zigzag et se nourrit de trèfle au bord des champs.",
+    "mat": {
+        "poil": {"motif": "poil", "pal": ["#6e5640", "#8a6e52", "#a68a6a"],
+                 "bas": ["#c8bca8", "#dcd2c0", "#ece6d8"]},
+        "blanc": {"motif": "uni", "pal": ["#d8d0c0", "#ece6d8", "#f8f4ec"]},
+    },
+    "c": {"oeil": "#1a1210", "nez": "#d89090", "rose": "#d8a0a0"},
+    "parts": [
+        P("corps", [5, 5, 7], [0, -4.5, -0.5], None, m="poil"),
+        P("patteAVD", [1, 3, 1], [-1.5, -3, 2.5], [0, 1.5, 0], m="poil",
+          a={"ax": "x", "amp": 10, "v": 1.4}),
+        P("patteAVG", [1, 3, 1], [1.5, -3, 2.5], [0, 1.5, 0], m="poil",
+          a={"ax": "x", "amp": 10, "v": 1.4}),
+        P("cuisseD", [2, 3, 4], [-2, -3, -2], [0, 1.5, 0], m="poil"),
+        P("cuisseG", [2, 3, 4], [2, -3, -2], [0, 1.5, 0], m="poil"),
+        P("tete", [4, 4, 4], [0, -6, 3], [0, -1, 2], m="poil",
+          f=[["cotes", 1, 1, 1, 1, "oeil"], ["devant", 1, 2, 2, 1, "nez"],
+             ["devant", 1, 3, 2, 1, "oeil"]],
+          c=[P("oreilleD", [1, 5, 2], [-1, -3, 0.5], [0, -2.5, 0], m="poil",
+               r=[20, 0, -8], a={"ax": "x", "amp": 6, "v": 0.9},
+               f=[["devant", 0, 1, 1, 3, "rose"]]),
+             P("oreilleG", [1, 5, 2], [1, -3, 0.5], [0, -2.5, 0], m="poil",
+               r=[20, 0, 8], a={"ax": "x", "amp": 6, "ph": 1, "v": 0.9},
+               f=[["devant", 0, 1, 1, 3, "rose"]])]),
+        P("queue", [2, 2, 2], [0, -5, -4.5], None, m="blanc"),
+    ],
+}
+
+VACHE = {
+    "id": "vache",
+    "nom": "Vache",
+    "monde": "paisible",
+    "hostile": False,
+    "desc": "Se trait avec un seau et suit quiconque tient une gerbe de blé.",
+    "mat": {
+        "taches": {"motif": "taches", "pal": ["#221e1c", "#e6e0d4", "#cfc7b8", "#34302c"]},
+        "rose": {"motif": "peau", "pal": ["#c07a74", "#d8948c", "#e8aea6"]},
+        "noir": {"motif": "poil", "pal": ["#1a1614", "#2a2624", "#3a3432"]},
+        "corne": {"motif": "corne", "pal": ["#b0a68c", "#d0c8b0", "#e8e2d0"]},
+    },
+    "c": {"oeil": "#141010", "narine": "#6a3a34", "sabot": "#2a2420"},
+    "parts": [
+        P("corps", [12, 10, 18], [0, -16, 0], None, m="taches"),
+        P("pis", [4, 2, 5], [0, -10, -4], None, m="rose"),
+        *pattes({"x": 4, "zf": 6.5, "zb": -6.5, "w": 4, "h": 11, "m": "taches",
+                 "sabot": "sabot", "amp": 14, "v": 0.7}),
+        P("tete", [8, 8, 6], [0, -19, 9], [0, 0, 3], m="taches",
+          a={"ax": "x", "amp": 4, "v": 0.4}, f=[oeilD(1, 3), oeilD(6, 3)],
+          c=[P("mufle", [6, 4, 2], [0, 2, 6], [0, 0, 1], m="rose",
+               f=[oeilD(1, 1, 1, "narine"), oeilD(4, 1, 1, "narine")]),
+             P("corneD", [1, 3, 1], [-4, -3.5, 2], [0, -1.5, 0], m="corne", r=[0, 0, -30]),
+             P("corneG", [1, 3, 1], [4, -3.5, 2], [0, -1.5, 0], m="corne", r=[0, 0, 30]),
+             P("oreilleD", [2, 2, 1], [-4, -1.5, 2], [-1, 0, 0], m="noir"),
+             P("oreilleG", [2, 2, 1], [4, -1.5, 2], [1, 0, 0], m="noir")]),
+        P("queue", [1, 10, 1], [0, -20, -9], [0, 5, 0], m="noir", r=[-8, 0, 0],
+          a={"ax": "z", "amp": 12, "v": 0.8},
+          c=[P("touffe", [2, 3, 2], [0, 10, 0], [0, 1.5, 0], m="noir")]),
+    ],
+}
+
+FAISAN = {
+    "id": "faisan",
+    "nom": "Faisan",
+    "monde": "paisible",
+    "hostile": False,
+    "desc": "S’envole bruyamment des hautes herbes quand on s’en approche.",
+    "mat": {
+        "plume": {"motif": "plume", "pal": ["#5a2410", "#9a4a1c", "#c8742e"]},
+        "tete": {"motif": "peau", "pal": ["#0e2a24", "#16443a", "#236656"]},
+        "queue": {"motif": "uni", "pal": ["#8a6a3a", "#b08a50", "#c8a468"]},
+        "aile": {"motif": "plume", "pal": ["#4a3a2a", "#7a6446", "#a08660"]},
+        "patte": {"motif": "uni", "pal": ["#6a6458", "#8a8478", "#a49e92"]},
+        "bec": {"motif": "uni", "pal": ["#b0a278", "#cfc298", "#e2d8b4"]},
+    },
+    "c": {"rouge": "#c42a24", "blanc": "#ece8e0", "noir": "#0e0c0a", "barre": "#2a1a0e"},
+    "parts": [
+        P("patteD", [1, 4, 1], [-1, -4, 0.5], [0, 2, 0], m="patte",
+          a={"ax": "x", "amp": 18, "ph": 0, "v": 1.6}),
+        P("patteG", [1, 4, 1], [1, -4, 0.5], [0, 2, 0], m="patte",
+          a={"ax": "x", "amp": 18, "ph": PI, "v": 1.6}),
+        P("corps", [5, 5, 7], [0, -6.5, 0], None, m="plume"),
+        P("aileD", [1, 4, 6], [-3, -7, -0.5], None, m="aile"),
+        P("aileG", [1, 4, 6], [3, -7, -0.5], None, m="aile"),
+        P("cou", [3, 5, 3], [0, -8.5, 3], [0, -2.5, 0], m="tete", r=[-15, 0, 0],
+          a={"ax": "x", "amp": 8, "v": 1.2}, f=[["tour", 0, 4, 99, 1, "blanc"]],
+          c=[P("tete", [3, 3, 4], [0, -5, 0], [0, -1.5, 1], m="tete", r=[15, 0, 0],
+               f=[["cotes", 1, 0, 2, 2, "rouge"], ["cotes", 2, 1, 1, 1, "noir"]],
+               c=[P("bec", [1, 1, 2], [0, -1.5, 3], [0, 0, 1], m="bec")])]),
+        P("queue", [2, 1, 13], [0, -8, -3.5], [0, 0, -6.5], m="queue", r=[-20, 0, 0],
+          a={"ax": "y", "amp": 5, "v": 0.6},
+          f=[["dessus", 0, yy, 2, 1, "barre"] for yy in (1, 3, 5, 7, 9, 11)]
+            + [["dessous", 0, yy, 2, 1, "barre"] for yy in (1, 3, 5, 7, 9, 11)]),
+    ],
+}
+
+CREATURES = [MANNEQUIN, CERF, MOUFLON, MOUFLON_TONDU, LAPIN, VACHE, FAISAN]
 PAR_ID = {c["id"]: c for c in CREATURES}
 
 
@@ -192,23 +426,32 @@ def trouver(parts, n):
 
 
 def boite(parts):
-    """Boite englobante d'un arbre de pieces, en texels. Rend `(min, max)`."""
+    """Boite englobante d'un arbre de pieces, en texels. Rend `(min, max)`.
+
+    Une piece qui tourne n'est plus alignee sur les axes : ce sont ses HUIT
+    COINS qu'il faut mesurer, jamais son centre et sa taille. Une andouiller
+    couche a 60 degres deborde d'un tiers de plus que sa hauteur ne le dit.
+    """
     mn = [float("inf")] * 3
     mx = [float("-inf")] * 3
 
-    def marcher(ps, base):
+    def marcher(ps, base, repere):
         for p in ps:
-            if p.get("r"):
-                raise NotImplementedError("boite() ne porte pas les rotations de piece")
-            noeud = [base[i] + p["p"][i] for i in range(3)]
-            centre = [noeud[i] + p["o"][i] for i in range(3)]
-            for i in range(3):
-                mn[i] = min(mn[i], centre[i] - p["s"][i] / 2.0)
-                mx[i] = max(mx[i], centre[i] + p["s"][i] / 2.0)
+            local = produit(repere, rotation(p.get("r")))
+            noeud = [base[i] + appliquer(repere, p["p"])[i] for i in range(3)]
+            centre = [noeud[i] + appliquer(local, p["o"])[i] for i in range(3)]
+            demi = [p["s"][i] / 2.0 for i in range(3)]
+            for sx in (-1, 1):
+                for sy in (-1, 1):
+                    for sz in (-1, 1):
+                        coin = appliquer(local, (sx * demi[0], sy * demi[1], sz * demi[2]))
+                        for i in range(3):
+                            mn[i] = min(mn[i], centre[i] + coin[i])
+                            mx[i] = max(mx[i], centre[i] + coin[i])
             if p.get("c"):
-                marcher(p["c"], noeud)
+                marcher(p["c"], noeud, local)
 
-    marcher(parts, [0.0, 0.0, 0.0])
+    marcher(parts, [0.0, 0.0, 0.0], IDENTITE)
     return mn, mx
 
 
