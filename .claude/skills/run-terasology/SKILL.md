@@ -363,6 +363,14 @@ Other run targets exist in `facades/PC/build.gradle.kts`: `debug` (JDWP on 1044)
   turns that very block into the station, in reach and under the crosshair, ready
   for `key e`. And `console debugTarget` names the aimed block, which is the only
   reliable way to know what you are pointing at.
+- **Les yeux ne sont pas a la position du joueur.** `showView` rend la position
+  du personnage ; le rayon d'attaque part du regard, environ 0,6 bloc plus
+  haut. Viser `pitch 0` sur une cible de deux blocs postee a deux blocs de
+  distance passe donc AU-DESSUS de sa tete, et le coup ne porte pas : la
+  sante ne bouge pas, et cela ressemble trait pour trait a une boite de
+  collision restee en arriere. Calculer la pente vers le CENTRE de la cible
+  (`atan2(dy, dx)` depuis l'oeil) avant de conclure quoi que ce soit sur la
+  physique. Paye trois fois en une seance.
 - **Ghost mode blocks placing.** `console ghost` is the cure for a character
   stuck in terrain, but while it is on, right click places nothing and gives no
   message — the stack count simply never drops. Toggle it back off (`ghost`
