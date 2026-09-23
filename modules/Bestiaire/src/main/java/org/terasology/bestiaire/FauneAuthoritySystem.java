@@ -16,6 +16,7 @@ import org.terasology.engine.entitySystem.systems.RegisterMode;
 import org.terasology.engine.entitySystem.systems.RegisterSystem;
 import org.terasology.engine.entitySystem.systems.UpdateSubscriberSystem;
 import org.terasology.engine.logic.location.LocationComponent;
+import org.terasology.engine.physics.components.shapes.BoxShapeComponent;
 import org.terasology.engine.registry.In;
 import org.terasology.engine.registry.Share;
 import org.terasology.engine.world.WorldComponent;
@@ -101,6 +102,9 @@ public class FauneAuthoritySystem extends BaseComponentSystem implements UpdateS
     private static final String[] SOLS = {
         "CoreAssets:Grass", "CoreAssets:Snow", "CoreAssets:Sand", "CoreAssets:Dirt", "CoreAssets:Gravel",
     };
+
+    /** Least headroom a gallery must have for something to be hung from its roof, in blocks. */
+    private static final float VOUTE_MIN = 2.5f;
 
     private static final float TAU = (float) (Math.PI * 2);
 
@@ -258,18 +262,19 @@ public class FauneAuthoritySystem extends BaseComponentSystem implements UpdateS
         if (Math.abs(sol - joueur.y) > DENIVELE) {
             return noter("denivele");
         }
+        if (!Ground.libre(worldProvider, x, sol + 0.5f, z)) {
+            // `Ground.under` rend, faute de mieux, une hauteur huit blocs au-dessus des pieds quand il n'est
+            // pas sorti de la roche. Sur la surface le ciel ouvert eliminait ce cas sans qu'on le nomme ;
+            // sous terre il n'y a pas de ciel, et sans ce test une bete sur deux naissait dans le rocher.
+            return noter("enfoui");
+        }
         if (Ground.liquide(worldProvider, x, sol + 0.25f, z)) {
             return noter("liquide");
         }
-        if (!solNaturel(x, sol, z)) {
-            return noter("sol");
-        }
-        Optional<Biome> biome = biomeRegistry.getBiome((int) Math.floor(x),
-                (int) Math.floor(sol - 0.5f), (int) Math.floor(z));
-        if (biome.isEmpty()) {
+        Name ici = biome(x, sol, z);
+        if (ici == null) {
             return noter("sans biome");
         }
-        Name ici = biome.get().getId();
 
         float heure = worldProvider.getTime().getDays() % 1f;
         Prefab prefab = tirer(ici, heure);
@@ -282,6 +287,9 @@ public class FauneAuthoritySystem extends BaseComponentSystem implements UpdateS
         if (!cielOuvert(habitat, x, sol, z)) {
             return noter(espece + " : ciel");
         }
+        if (!solNaturel(habitat, x, sol, z)) {
+            return noter(espece + " : sol");
+        }
         if (!terrain(habitat, x, sol, z)) {
             return noter(espece + " : terrain");
         }
@@ -293,11 +301,35 @@ public class FauneAuthoritySystem extends BaseComponentSystem implements UpdateS
         return nes;
     }
 
-    /** Whether the ground is one a wild creature stands on, and flat enough that nobody built it. */
-    private boolean solNaturel(float x, float sol, float z) {
+    /**
+     * The biome of the cell the creature would stand in, falling back to the ground under it.
+     * <p>
+     * <strong>This is the one piece of block provenance the engine offers, and it arrived by accident.</strong>
+     * The rasterizer writes {@code UNDERGROUND} into the air of every gallery it carves, and
+     * {@code setBlock} does not touch extra data — so a tunnel a player dug keeps the surface biome of the
+     * rock it was cut from, and a room they walled off keeps it too. Asking the standing cell therefore
+     * answers "is this a gallery the world made", which is exactly what open sky answers up above and what
+     * nothing else could answer down here.
+     */
+    private Name biome(float x, float sol, float z) {
+        int bx = (int) Math.floor(x);
+        int bz = (int) Math.floor(z);
+        Optional<Biome> ici = biomeRegistry.getBiome(bx, (int) Math.floor(sol + 0.5f), bz);
+        if (ici.isEmpty()) {
+            ici = biomeRegistry.getBiome(bx, (int) Math.floor(sol - 0.5f), bz);
+        }
+        return ici.map(Biome::getId).orElse(null);
+    }
+
+    /** Whether the ground is one this species stands on, and flat enough that nobody built it. */
+    private boolean solNaturel(HabitatComponent habitat, float x, float sol, float z) {
         int y = (int) Math.floor(sol - 0.5f);
-        if (!sols.contains(worldProvider.getBlock((int) Math.floor(x), y, (int) Math.floor(z)))) {
+        Block dessous = worldProvider.getBlock((int) Math.floor(x), y, (int) Math.floor(z));
+        if (!matieres(habitat).contains(dessous)) {
             return false;
+        }
+        if (habitat.relief >= 8) {
+            return true;
         }
         // Deux voisines sur huit ont le droit de decrocher : une dune naturelle n'est pas une table, et
         // exiger les huit refusait des pentes parfaitement praticables. Ce n'est pas la planeite qui protege
@@ -314,7 +346,19 @@ public class FauneAuthoritySystem extends BaseComponentSystem implements UpdateS
                 }
             }
         }
-        return ecarts <= 2;
+        return ecarts <= habitat.relief;
+    }
+
+    /** The ground materials a species accepts: its own list, or the module's surface one. */
+    private Set<Block> matieres(HabitatComponent habitat) {
+        if (habitat.sols.isEmpty()) {
+            return sols;
+        }
+        Set<Block> propres = new HashSet<>();
+        for (String uri : habitat.sols) {
+            propres.add(blockManager.getBlock(uri));
+        }
+        return propres;
     }
 
     /** Draws a species among those whose habitat fits this biome and this hour, weighted by its density. */
@@ -448,10 +492,27 @@ public class FauneAuthoritySystem extends BaseComponentSystem implements UpdateS
                 continue;
             }
             Prefab quoi = (autre != null && hasard.nextFloat() < habitat.chanceMelange) ? autre : prefab;
+            float pieds = msol;
+            boolean accrochee = false;
+            if (habitat.voute > 0f) {
+                float toit = Ground.above(worldProvider, mx, msol, mz, (int) Math.ceil(habitat.voute) + 1);
+                float creux = toit - msol;
+                if (Float.isNaN(toit) || creux > habitat.voute || creux < VOUTE_MIN) {
+                    continue;
+                }
+                // Le dos contre le plafond, pas les pieds : une bete accrochee est posee par le haut, et sa
+                // hauteur vient du prefab, jamais d'un nombre recopie ici.
+                BoxShapeComponent boite = quoi.getComponent(BoxShapeComponent.class);
+                pieds = toit - (boite == null ? 1f : boite.extents.y);
+                accrochee = true;
+            }
             float regard = hasard.nextFloat() * TAU;
-            EntityRef bete = Spawns.spawn(entityManager, quoi, new Vector3f(mx, msol, mz),
+            EntityRef bete = Spawns.spawn(entityManager, quoi, new Vector3f(mx, pieds, mz),
                     (float) Math.sin(regard), (float) Math.cos(regard));
             bete.addComponent(new SauvageComponent());
+            if (accrochee) {
+                bete.addComponent(new AccrocheComponent());
+            }
             HomeComponent foyer = bete.getComponent(HomeComponent.class);
             if (foyer != null) {
                 foyer.point = new Vector3f(mx, msol, mz);

@@ -104,6 +104,38 @@ public class PredatorComponent implements Component<PredatorComponent> {
     public float portee;
 
     /**
+     * The cone, in degrees, inside which being looked at stops it. 0 means being watched changes nothing.
+     * <p>
+     * The three beasts of the deeps differ from the nine above by <em>what they perceive</em>, not by what
+     * they do, and this is the first of the three dials that say so. The giant centipede is still by default
+     * — {@code Wander.speed} of zero, which is the whole of "it stays particularly still" — and what starts
+     * it is a character near enough and looking elsewhere. Look back at it and it stops, mid-stride.
+     * <p>
+     * It is tested against the gaze and not against the body, and the cone is wide: a player sweeping a
+     * gallery with a torch should freeze it, and a player walking past staring at their feet should not.
+     */
+    public float guet;
+
+    /**
+     * How far it hears, in blocks. Above 0 it is <em>blind</em>: presence is nothing to it, only noise.
+     * <p>
+     * Both halves matter. A character is heard when it is within this radius <em>and</em> within its own
+     * {@link Veille.Presence#bruit()} — so walking gives itself away at nine blocks, a pickaxe blow at
+     * twenty-four, and crouching at none at all. And what the creature charges is the <em>place the noise
+     * came from</em>, not the character: go quiet and step aside, and it arrives where you were.
+     */
+    public float ouie;
+
+    /**
+     * How near, horizontally, a prey must pass under a clinging creature before it lets go. 0 never lets go.
+     * <p>
+     * The ambush is not a lunge and not an animation: {@link AccrocheComponent} comes off and gravity does
+     * the rest, from whatever height the ceiling happened to be. The radius is small on purpose — the lizard
+     * is placed on a roof and what the design asks of it is that you walk <em>under</em> it, not near it.
+     */
+    public float embuscade;
+
+    /**
      * Highest step it will climb and deepest drop it will take while hunting.
      * <p>
      * Bolder than the strolling limits of {@link WanderComponent} on purpose: an animal picking its way
@@ -127,6 +159,9 @@ public class PredatorComponent implements Component<PredatorComponent> {
         this.cercle = other.cercle;
         this.garde = other.garde;
         this.portee = other.portee;
+        this.guet = other.guet;
+        this.ouie = other.ouie;
+        this.embuscade = other.embuscade;
         this.stepUp = other.stepUp;
         this.dropMax = other.dropMax;
     }

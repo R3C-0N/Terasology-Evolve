@@ -93,6 +93,13 @@ public class WanderAuthoritySystem extends BaseComponentSystem implements Update
             if (wander == null || location == null) {
                 continue;
             }
+            if (creature.hasComponent(AccrocheComponent.class)) {
+                // Accrochee sous un plafond : elle ne se promene pas, et elle ne pivote meme pas. Le cap
+                // et l'horloge n'ont aucun sens pour une bete qui attend, et une bete qui tourne sur elle-
+                // meme au plafond se voit de loin — ce qui est exactement ce qu'une embuscade ne doit pas.
+                humeurs.remove(creature);
+                continue;
+            }
             if (creature.hasComponent(ChaseComponent.class)) {
                 // Une bete qui chasse a ses jambes ailleurs (HuntAuthoritySystem). Deux systemes qui
                 // deplacent la meme entite dans la meme image ne se partagent pas le mouvement : ils se

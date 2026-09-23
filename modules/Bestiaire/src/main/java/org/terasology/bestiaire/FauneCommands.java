@@ -44,6 +44,9 @@ public class FauneCommands extends BaseComponentSystem {
     @In
     private EntityManager entityManager;
 
+    @In
+    private Veille veille;
+
     @Command(shortDescription = "Dit ce que le monde a posé, et pourquoi il a refusé le reste",
             helpText = "Sans argument : le recensement autour de vous et les derniers verdicts du peupleur. "
                     + "Avec une espèce : son habitat, tel que le serveur l'a lu.",
@@ -92,6 +95,23 @@ public class FauneCommands extends BaseComponentSystem {
         return String.format("%d essais, %d bêtes", combien, nes);
     }
 
+    @Command(shortDescription = "Dit ce que le monde entend de vous",
+            helpText = "Le rampant aveugle ne chasse que le bruit, et le bruit ne se voit pas : sans cette "
+                    + "commande la règle est invérifiable de l'intérieur du jeu. Le nombre est un rayon en "
+                    + "blocs — marcher porte à une dizaine, un coup à vingt-quatre, s'accroupir à rien.",
+            runOnServer = true,
+            requiredPermission = PermissionManager.CHEAT_PERMISSION)
+    public String bruit(@Sender EntityRef client) {
+        EntityRef personnage = personnage(client);
+        for (Veille.Presence presence : veille.presences()) {
+            if (presence.personnage().equals(personnage)) {
+                return String.format("Bruit : %.1f blocs%s", presence.bruit(),
+                        presence.discret() ? " — accroupi, et l'accroupissement est le silence entier" : "");
+            }
+        }
+        return "Le monde ne vous remarque pas : mort, ou en créatif.";
+    }
+
     @Command(shortDescription = "Fait repousser tout de suite ce qui a été brouté",
             helpText = "La repousse court sur le temps de JEU, pas sur celui du monde : setWorldTime ne "
                     + "l'avance pas, et sans cette commande le brout serait invérifiable en une séance.",
@@ -117,12 +137,15 @@ public class FauneCommands extends BaseComponentSystem {
         }
         return String.format("%s%n  biomes   %s%n  densité  %.2f%n  groupe   %d à %d, écart %.1f"
                         + "%n  heures   %.2f à %.2f%n  plafond  %d dans la foule"
-                        + "%n  couvert  %s%n  eau      %.1f%n  ombre    %d%n  exige    %d"
+                        + "%n  couvert  %s%n  eau      %.1f%n  ciel     %d%n  ombre    %d%n  exige    %d"
+                        + "%n  sols     %s%n  relief   %d voisines%n  voûte    %s"
                         + "%n  mélange  %s (%.0f %%)",
                 espece, h.biomes, h.densite, h.groupeMin, h.groupeMax, h.ecart,
                 h.heureDe, h.heureA, h.plafond,
                 h.couvert.isEmpty() ? "(éteint)" : h.couvert.toString(),
-                h.eau, h.ombre, h.exige,
+                h.eau, h.ciel, h.ombre, h.exige,
+                h.sols.isEmpty() ? "(ceux de la surface)" : h.sols.toString(), h.relief,
+                h.voute > 0f ? String.format("%.1f blocs de creux", h.voute) : "(au sol)",
                 h.melange.isEmpty() ? "(aucun)" : h.melange, h.chanceMelange * 100f);
     }
 

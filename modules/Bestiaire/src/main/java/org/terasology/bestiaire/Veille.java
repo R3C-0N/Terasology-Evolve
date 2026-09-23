@@ -54,12 +54,16 @@ public interface Veille {
 
         private final EntityRef personnage;
         private final Vector3f position;
+        private final Vector3f regard;
         private final boolean discret;
+        private final float bruit;
 
-        Presence(EntityRef personnage, Vector3f position, boolean discret) {
+        Presence(EntityRef personnage, Vector3f position, Vector3f regard, boolean discret, float bruit) {
             this.personnage = personnage;
             this.position = position;
+            this.regard = regard;
             this.discret = discret;
+            this.bruit = bruit;
         }
 
         public EntityRef personnage() {
@@ -73,6 +77,28 @@ public interface Veille {
         /** Whether it is crouching, which is how one gets near a deer. */
         public boolean discret() {
             return discret;
+        }
+
+        /**
+         * Which way it is looking, as a unit vector of the world — the gaze entity's, pitch included.
+         * <p>
+         * The engine keeps yaw on the character and pitch on a mount point hung off it, and only their
+         * product is the view. Asking the character alone would say a centipede stared at is unwatched
+         * whenever the player is looking down at it, which is most of the time in a gallery.
+         */
+        public Vector3f regard() {
+            return regard;
+        }
+
+        /**
+         * How far away this character can be heard, in blocks. 0 is silence.
+         * <p>
+         * A radius rather than a flag, because the blind crawler is the only thing that reads it and a flag
+         * would make a footfall and a pickaxe blow the same event. Crouching sets it to zero outright, which
+         * is the brief's own rule and the only defence against the thing.
+         */
+        public float bruit() {
+            return bruit;
         }
     }
 }

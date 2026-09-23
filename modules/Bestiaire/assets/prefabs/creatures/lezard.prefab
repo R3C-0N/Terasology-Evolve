@@ -27,13 +27,30 @@
   "Predator": {
     "sight": 14,
     "giveUp": 20,
-    "reachUp": 4,
+    "reachUp": 6,
+    "embuscade": 3.5,
     "chaseSpeed": 3.9,
     "turnRate": 380,
     "reach": 1.6,
     "bite": 5,
     "cadence": 1.0,
     "dropMax": 5
+  },
+  "Habitat": {
+    "biomes": ["CoreWorlds:UNDERGROUND"],
+    "densite": 1.0,
+    "groupeMin": 1,
+    "groupeMax": 2,
+    "ecart": 5,
+    "plafond": 3,
+    "ombre": 3,
+    "ciel": 0,
+    "voute": 5,
+    "sols": [
+      "CoreAssets:Stone", "CoreAssets:HardStone", "CoreAssets:Dirt", "CoreAssets:Gravel",
+      "CoreAssets:Sand", "CoreAssets:Snow"
+    ],
+    "relief": 8
   },
   "Health": {
     "maxHealth": 30,

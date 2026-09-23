@@ -63,6 +63,13 @@ public class GravityAuthoritySystem extends BaseComponentSystem implements Updat
             if (location == null) {
                 continue;
             }
+            if (creature.hasComponent(AccrocheComponent.class)) {
+                // Elle tient au plafond, et c'est tout ce que tenir veut dire ici : la chute n'est pas
+                // desactivee, elle est simplement en attente. L'embuscade rend le composant, pas une
+                // impulsion — la bete tombe alors de la hauteur ou le plafond se trouvait.
+                vitesses.remove(creature);
+                continue;
+            }
             float demiHauteur = box == null ? 0.5f : box.extents.y / 2f;
 
             Vector3f position = location.getWorldPosition(new Vector3f());

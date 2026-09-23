@@ -66,6 +66,15 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
     /** How many points are sampled on a ring when a night hunter goes looking for shade at daybreak. */
     private static final int SONDES = 12;
 
+    /** Seconds a blind creature keeps going towards a noise after the noise has stopped. */
+    private static final float SOURDINE = 6f;
+
+    /** How close to that spot counts as having arrived, in blocks, and given up. */
+    private static final float TATONNE = 1.5f;
+
+    /** How far below a clinging creature a prey must be before the ambush is worth springing, in blocks. */
+    private static final float CHUTE = 1f;
+
     private static final float TAU = (float) (Math.PI * 2);
 
     @In
@@ -91,8 +100,11 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
         private float base;             // where the pack stands, as seen from the prey, in radians
         private float poste;            // seconds of station left before closing in
         private float allure;           // how fast the prey is going, in blocks per second
-        private Vector3f oùEtaitLaProie; // where it was at the last sniff
+        private Vector3f ouEtaitLaProie; // where it was at the last sniff
         private boolean terree;         // whether it has already found its shade today
+        private boolean reveille;       // whether a blow has taken its conditions away
+        private Vector3f echo;          // where a noise came from, for whatever cannot see
+        private float sourdine;         // seconds of walking towards that noise still owed
     }
 
     @Override
@@ -113,11 +125,12 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
             Chasse chasse = chasses.computeIfAbsent(creature, e -> naitre(location));
             chasse.flair -= delta;
             chasse.morsure -= delta;
+            chasse.sourdine -= delta;
 
             Vector3f position = location.getWorldPosition(new Vector3f());
             if (chasse.flair <= 0f) {
                 chasse.flair = FLAIR;
-                chasse.proie = juger(creature, chasse.proie, position, predator);
+                chasse.proie = juger(creature, chasse, position, predator);
                 if (chasse.proie.exists()) {
                     jauger(chasse);
                     meute(creature, predator, chasse, position, betes);
@@ -152,6 +165,15 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
         Chasse chasse = chasses.computeIfAbsent(creature, e -> naitre(location));
         chasse.proie = frappeur;
         chasse.flair = FLAIR;
+        // Un coup leve toutes les conditions. Le mille-pattes cesse de se figer sous le regard et le lezard
+        // lache prise sans attendre qu'on passe dessous : c'est le « sans conditions apres un coup » du
+        // cahier des charges, et c'est aussi la seule facon de rendre les deux combattables.
+        chasse.reveille = true;
+        chasse.sourdine = SOURDINE;
+        chasse.echo = null;
+        if (creature.hasComponent(AccrocheComponent.class)) {
+            creature.removeComponent(AccrocheComponent.class);
+        }
         marquer(creature, true);
     }
 
@@ -176,17 +198,33 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
      * {@link PredatorComponent#onlyWhenStruck} stops before the sweep, not before the keeping: a bear that
      * has been woken hunts exactly like a wolf, and lets go at the same distance.
      */
-    private EntityRef juger(EntityRef creature, EntityRef proie, Vector3f position,
+    private EntityRef juger(EntityRef creature, Chasse chasse, Vector3f position,
                            PredatorComponent predator) {
         List<Veille.Presence> presences = veille.presences();
+
+        // Les deux perceptions des Profondeurs passent avant tout le reste, parce qu'elles remplacent la
+        // vue et non parce qu'elles s'y ajoutent : accrochee, la bete ne voit que ce qui passe dessous ;
+        // aveugle, elle n'entend que le bruit. Une bete de la surface n'entre dans aucune des deux.
+        if (creature.hasComponent(AccrocheComponent.class)) {
+            return guetter(creature, presences, position, predator);
+        }
+        if (predator.ouie > 0f) {
+            return ecouter(chasse, presences, position, predator);
+        }
+
         HomeComponent foyer = creature.getComponent(HomeComponent.class);
         boolean chezSoi = predator.portee <= 0f || foyer == null
                 || plat(position, foyer.point) <= predator.portee;
-        for (Veille.Presence presence : presences) {
-            if (presence.personnage().equals(proie)
-                    && portee(presence.position(), position, predator) <= predator.giveUp
-                    && chezSoi) {
-                return proie;
+        // Sous le regard, rien ne se garde : une bete qui se fige quand on la fixe doit se figer aussi en
+        // pleine course, sans quoi elle ne se fige qu'a l'arret et le joueur n'a rien appris.
+        boolean surveillee = predator.guet > 0f && !chasse.reveille;
+        if (!surveillee) {
+            for (Veille.Presence presence : presences) {
+                if (presence.personnage().equals(chasse.proie)
+                        && portee(presence.position(), position, predator) <= predator.giveUp
+                        && chezSoi) {
+                    return chasse.proie;
+                }
             }
         }
         // Ni la bete qui attend un coup ni celle qui est hors de ses heures ne balayent leurs alentours :
@@ -202,6 +240,9 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
                     && plat(presence.position(), foyer.point) > predator.garde) {
                 continue;
             }
+            if (surveillee && regarde(presence, position, predator.guet)) {
+                continue;
+            }
             float distance = portee(presence.position(), position, predator);
             if (distance <= plusProche) {
                 plusProche = distance;
@@ -209,6 +250,90 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
             }
         }
         return trouvee;
+    }
+
+    /**
+     * Whether this character is looking at the point where the creature stands.
+     * <p>
+     * A dot product against the gaze, which carries the pitch — in a gallery one looks down far more often
+     * than ahead, and a test on the body's yaw alone would call that "not looking" and let the centipede walk
+     * up to somebody staring straight at it.
+     */
+    private boolean regarde(Veille.Presence presence, Vector3f position, float cone) {
+        Vector3f vers = new Vector3f(position).sub(presence.position());
+        if (vers.lengthSquared() < 1e-6f) {
+            return true;
+        }
+        Vector3f oeil = new Vector3f(presence.regard());
+        if (oeil.lengthSquared() < 1e-6f) {
+            return false;
+        }
+        return oeil.normalize().dot(vers.normalize()) >= (float) Math.cos(Math.toRadians(cone / 2f));
+    }
+
+    /**
+     * Hanging from a ceiling, waiting for somebody to walk underneath.
+     * <p>
+     * The whole ambush is the component coming off: {@link GravityAuthoritySystem} has been ready the entire
+     * time, and what falls on the prey is the creature's own weight from whatever height the roof was. There
+     * is no lunge to write, no arc to tune, and nothing to replicate — the client already receives the
+     * positions.
+     * <p>
+     * It springs on <em>underneath</em> and not on <em>near</em>: the horizontal radius is small and the prey
+     * must be a clear block lower. Walking past a lizard leaves it hanging there, which is the point of
+     * putting it on the ceiling in the first place.
+     */
+    private EntityRef guetter(EntityRef creature, List<Veille.Presence> presences, Vector3f position,
+                              PredatorComponent predator) {
+        if (predator.embuscade <= 0f) {
+            return EntityRef.NULL;
+        }
+        for (Veille.Presence presence : presences) {
+            Vector3f q = presence.position();
+            if (position.y - q.y < CHUTE || plat(q, position) > predator.embuscade) {
+                continue;
+            }
+            creature.removeComponent(AccrocheComponent.class);
+            return presence.personnage();
+        }
+        return EntityRef.NULL;
+    }
+
+    /**
+     * Blind, and therefore hunting a place rather than a person.
+     * <p>
+     * Two radii have to agree for a character to be heard: the creature's ear and the character's own noise,
+     * which is a walk, a run or a blow — and nothing at all while crouching. What is remembered is
+     * <strong>where the noise was</strong>, not who made it, and that is the whole difference between this
+     * and every other hunter in the module: go silent and step aside and it arrives at the wrong place, feels
+     * about, and gives up.
+     * <p>
+     * The prey reference is still carried, because a bite has to land on somebody; it is the aim that is
+     * frozen. Silence buys {@link #SOURDINE} seconds, and arriving at the spot ends it early.
+     */
+    private EntityRef ecouter(Chasse chasse, List<Veille.Presence> presences, Vector3f position,
+                              PredatorComponent predator) {
+        Veille.Presence entendue = null;
+        float plusProche = Float.POSITIVE_INFINITY;
+        for (Veille.Presence presence : presences) {
+            float distance = portee(presence.position(), position, predator);
+            if (distance > predator.ouie || distance > presence.bruit() || distance >= plusProche) {
+                continue;
+            }
+            plusProche = distance;
+            entendue = presence;
+        }
+        if (entendue != null) {
+            chasse.echo = new Vector3f(entendue.position());
+            chasse.sourdine = SOURDINE;
+            return entendue.personnage();
+        }
+        if (chasse.sourdine <= 0f || chasse.echo == null || !chasse.proie.exists()
+                || plat(position, chasse.echo) <= TATONNE) {
+            chasse.echo = null;
+            return EntityRef.NULL;
+        }
+        return chasse.proie;
     }
 
     /** Whether a creature is within the hours its habitat gives it. No habitat means every hour. */
@@ -224,10 +349,10 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
             return;
         }
         Vector3f ou = proie.getWorldPosition(new Vector3f());
-        if (chasse.oùEtaitLaProie != null) {
-            chasse.allure = plat(ou, chasse.oùEtaitLaProie) / FLAIR;
+        if (chasse.ouEtaitLaProie != null) {
+            chasse.allure = plat(ou, chasse.ouEtaitLaProie) / FLAIR;
         }
-        chasse.oùEtaitLaProie = ou;
+        chasse.ouEtaitLaProie = ou;
     }
 
     /**
@@ -401,6 +526,13 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
             return;
         }
         Vector3f but = proie.getWorldPosition(new Vector3f());
+        // Ce qui decide la morsure est la distance a la proie ; ce qui decide les jambes est la distance au
+        // but. Les deux ne sont la meme chose que pour une bete qui voit : l'aveugle court vers un lieu, et
+        // mordre parce qu'il y est arrive planterait ses crocs dans l'air a cote de quelqu'un.
+        float ecart = plat(but, position);
+        if (predator.ouie > 0f && chasse.echo != null) {
+            but = chasse.echo;
+        }
         float distance = plat(but, position);
 
         // Le poste : on court se placer sur le cercle tant qu'on n'y est pas, puis on plonge. Trois verrous
@@ -430,7 +562,7 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
         }
 
         Stride.tourner(creature, location, chasse.corps);
-        if (chasse.morsure <= 0f) {
+        if (ecart <= predator.reach && chasse.morsure <= 0f) {
             chasse.morsure = predator.cadence;
             chasse.proie.send(new DoDamageEvent(predator.bite, EngineDamageTypes.PHYSICAL.get(),
                     creature, creature));

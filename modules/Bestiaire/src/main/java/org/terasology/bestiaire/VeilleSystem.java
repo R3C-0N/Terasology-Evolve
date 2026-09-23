@@ -12,10 +12,13 @@ import org.terasology.engine.entitySystem.systems.RegisterSystem;
 import org.terasology.engine.logic.characters.AliveCharacterComponent;
 import org.terasology.engine.logic.characters.CharacterComponent;
 import org.terasology.engine.logic.characters.CharacterMovementComponent;
+import org.terasology.engine.logic.characters.GazeAuthoritySystem;
 import org.terasology.engine.logic.characters.MovementMode;
+import org.terasology.engine.logic.characters.events.AttackRequest;
 import org.terasology.engine.logic.location.LocationComponent;
 import org.terasology.engine.registry.In;
 import org.terasology.engine.registry.Share;
+import org.terasology.gestalt.entitysystem.event.ReceiveEvent;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,6 +50,19 @@ public class VeilleSystem extends BaseComponentSystem implements Veille {
      */
     private static final long SOUFFLE = 400L;
 
+    /**
+     * How many blocks of noise one block per second of travel is worth.
+     * <p>
+     * Walking is about three blocks a second and a sprint about four and a half, so a walk carries nine
+     * blocks and a run fourteen. Measured travel rather than a movement flag: it needs no engine field, it
+     * grades itself, and it is the same quantity for a player, a horse and anything that ever moves.
+     */
+    private static final float ECHO = 3f;
+
+    /** What one blow is worth, in blocks, and how many milliseconds it takes to die away. */
+    private static final float VACARME = 24f;
+    private static final float RESONANCE = 2000f;
+
     @In
     private EntityManager entityManager;
 
@@ -56,6 +72,15 @@ public class VeilleSystem extends BaseComponentSystem implements Veille {
     private final List<Presence> presences = new ArrayList<>();
     private final List<Vector3f> joueurs = new ArrayList<>();
     private final Map<Long, Vector3f> centres = new HashMap<>();
+    private final Map<EntityRef, Bruit> bruits = new HashMap<>();
+
+    /** What is known about one character's noise: where it was, and when it last struck something. */
+    private static final class Bruit {
+        private Vector3f ou;
+        private long quand;
+        private float coup;
+        private long coupQuand = Long.MIN_VALUE / 2;
+    }
     /**
      * When the last sweep ran, in game milliseconds.
      * <p>
@@ -97,6 +122,20 @@ public class VeilleSystem extends BaseComponentSystem implements Veille {
         return centres.get(bande);
     }
 
+    /**
+     * A swing is a noise, whether or not it lands.
+     * <p>
+     * {@code AttackRequest} rather than {@code AttackEvent} on purpose: the second is sent to whatever was
+     * hit, so a pickaxe swung at air — or at a block the ray missed — would be silent, and the player would
+     * learn a rule with a hole in it. This one is sent to the character, on the authority, every time.
+     */
+    @ReceiveEvent(components = CharacterComponent.class)
+    public void onCoup(AttackRequest event, EntityRef personnage) {
+        Bruit bruit = bruits.computeIfAbsent(personnage, e -> new Bruit());
+        bruit.coup = VACARME;
+        bruit.coupQuand = time.getGameTimeInMs();
+    }
+
     private void balayer() {
         long maintenant = time.getGameTimeInMs();
         if (maintenant - dernier < SOUFFLE) {
@@ -117,6 +156,8 @@ public class VeilleSystem extends BaseComponentSystem implements Veille {
     private void recenserPersonnages() {
         presences.clear();
         joueurs.clear();
+        bruits.keySet().removeIf(entity -> !entity.exists());
+        long maintenant = time.getGameTimeInMs();
         for (EntityRef personnage : entityManager.getEntitiesWith(CharacterComponent.class,
                 AliveCharacterComponent.class, LocationComponent.class)) {
             LocationComponent location = personnage.getComponent(LocationComponent.class);
@@ -128,15 +169,54 @@ public class VeilleSystem extends BaseComponentSystem implements Veille {
                 continue;
             }
             joueurs.add(position);
+            CharacterMovementComponent mouvement = personnage.getComponent(CharacterMovementComponent.class);
+            boolean discret = mouvement != null && mouvement.mode == MovementMode.CROUCHING;
+            float bruit = mesurerBruit(personnage, position, discret, maintenant);
             BeforeHuntedEvent question = new BeforeHuntedEvent();
             personnage.send(question);
             if (question.isConsumed()) {
                 continue;
             }
-            CharacterMovementComponent mouvement = personnage.getComponent(CharacterMovementComponent.class);
-            boolean discret = mouvement != null && mouvement.mode == MovementMode.CROUCHING;
-            presences.add(new Presence(personnage, position, discret));
+            presences.add(new Presence(personnage, position, regard(personnage), discret, bruit));
         }
+    }
+
+    /**
+     * How loud this character is, from how far it has travelled since the last sweep and what it has struck.
+     * <p>
+     * <strong>Crouching is silence, and it is the last word</strong> — not a reduction, not a divisor. The
+     * design promises one counter to the blind crawler and this is it, so it has to be an answer a player can
+     * trust rather than a smaller number they have to guess at.
+     * <p>
+     * The travel reading is capped at a blow's worth. Without the cap a teleport, a fall down a shaft or a
+     * chunk arriving late would put a hundred blocks of distance into four tenths of a second and shout
+     * across the whole cave system.
+     */
+    private float mesurerBruit(EntityRef personnage, Vector3f position, boolean discret, long maintenant) {
+        Bruit bruit = bruits.computeIfAbsent(personnage, e -> new Bruit());
+        float vitesse = 0f;
+        if (bruit.ou != null && maintenant > bruit.quand) {
+            vitesse = bruit.ou.distance(position) / ((maintenant - bruit.quand) / 1000f);
+        }
+        bruit.ou = new Vector3f(position);
+        bruit.quand = maintenant;
+        if (discret) {
+            return 0f;
+        }
+        float marche = Math.min(VACARME, vitesse * ECHO);
+        float frappe = bruit.coup * Math.max(0f, 1f - (maintenant - bruit.coupQuand) / RESONANCE);
+        return Math.max(marche, frappe);
+    }
+
+    /** The full view direction: the character carries the yaw, a mount point hung off it carries the pitch. */
+    private Vector3f regard(EntityRef personnage) {
+        EntityRef oeil = GazeAuthoritySystem.getGazeEntityForCharacter(personnage);
+        LocationComponent vue = oeil.getComponent(LocationComponent.class);
+        if (vue == null) {
+            return new Vector3f(0f, 0f, 1f);
+        }
+        Vector3f direction = vue.getWorldDirection(new Vector3f());
+        return direction.isFinite() && direction.lengthSquared() > 1e-6f ? direction : new Vector3f(0f, 0f, 1f);
     }
 
     /** The centre of each band, from one pass over the creatures that wear one. */

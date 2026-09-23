@@ -77,6 +77,35 @@ public class HabitatComponent implements Component<HabitatComponent> {
      */
     public int exige;
 
+    /**
+     * Ground it stands on, as block uris. Empty means the module's own list of surface materials.
+     * <p>
+     * The deeps needed it and nothing else does: a gallery floor is stone, and stone on the surface is a
+     * mountain top a cow has no business on. A list rather than a flag for the same reason {@link #couvert}
+     * is one — the day a cave grows its own floor material, the fix is a string in a prefab.
+     */
+    public List<String> sols = new ArrayList<>();
+
+    /**
+     * How many of the eight neighbouring columns may sit more than a block off. 8 turns the flatness test off.
+     * <p>
+     * Flatness is a proxy for "nobody built this", and it is the wrong proxy underground: a gallery is a tube,
+     * so two or three of the eight neighbours are wall wherever one stands, and a cave creature would be
+     * refused every spot in the world. What replaces it down there is stronger than flatness ever was — see
+     * {@link FauneAuthoritySystem}, where the underground biome is the one piece of real provenance the
+     * engine offers.
+     */
+    public int relief = 2;
+
+    /**
+     * Blocks of headroom for a species laid <em>under the ceiling</em> rather than on the floor. 0 is the floor.
+     * <p>
+     * The cave lizard is the only one, and the number is both a placement and a test: a roof further up than
+     * this is no roof at all, and the spot is refused. Its fall is then whatever the gallery was high, which
+     * is why the number is small — a lizard dropping from twelve blocks would kill itself on the landing.
+     */
+    public float voute;
+
     /** A species that takes the place of a group member, with this chance, keeping the same band. */
     public String melange = "";
     public float chanceMelange;
@@ -96,6 +125,9 @@ public class HabitatComponent implements Component<HabitatComponent> {
         this.ombre = other.ombre;
         this.ciel = other.ciel;
         this.exige = other.exige;
+        this.sols = new ArrayList<>(other.sols);
+        this.relief = other.relief;
+        this.voute = other.voute;
         this.melange = other.melange;
         this.chanceMelange = other.chanceMelange;
     }

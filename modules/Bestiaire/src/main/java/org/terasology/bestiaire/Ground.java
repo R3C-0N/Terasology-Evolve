@@ -67,6 +67,35 @@ final class Ground {
         return limite + 0.5f;
     }
 
+    /**
+     * How far above the feet the nearest ceiling is, or {@code NaN} when there is none within {@code portee}.
+     * <p>
+     * The mirror of {@link #under}, and it exists for one creature: the cave lizard is laid down against a
+     * roof rather than on a floor. The answer is the underside of the first solid cell — where a creature
+     * hanging from it has its back — so it is a height in the same units as {@link #under}, and the two
+     * subtract to give the headroom of a gallery.
+     */
+    static float above(WorldProvider world, float x, float feet, float z, int portee) {
+        Vector3f sonde = new Vector3f(x, 0, z);
+        int depart = (int) Math.floor(feet + 0.5f);
+        for (int y = depart; y <= depart + portee; y++) {
+            Boolean plein = solide(world, sonde, y);
+            if (plein == null) {
+                return Float.NaN;
+            }
+            if (plein) {
+                return y - 0.5f;
+            }
+        }
+        return Float.NaN;
+    }
+
+    /** Whether a creature could stand in this cell — {@code false} when the world has not arrived either. */
+    static boolean libre(WorldProvider world, float x, float y, float z) {
+        Boolean plein = solide(world, new Vector3f(x, 0, z), (int) Math.floor(y + 0.5f));
+        return plein != null && !plein;
+    }
+
     /** {@code true} when the cell holds a liquid — water counts as penetrable, so it is asked separately. */
     static boolean liquide(WorldProvider world, float x, float y, float z) {
         Vector3f sonde = new Vector3f(x, y, z);

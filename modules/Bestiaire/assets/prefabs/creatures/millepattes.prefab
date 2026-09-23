@@ -16,24 +16,40 @@
     "item": "Bestiaire:millepattesTotem"
   },
   "Wander": {
-    "speed": 2.2,
-    "pauseMin": 0.5,
-    "pauseMax": 2,
-    "walkMin": 2,
-    "walkMax": 6,
-    "turnCalm": 160,
+    "speed": 0,
+    "pauseMin": 4,
+    "pauseMax": 9,
+    "walkMin": 4,
+    "walkMax": 9,
+    "turnCalm": 0,
     "turnRate": 420
   },
   "Predator": {
     "sight": 13,
     "giveUp": 18,
-    "reachUp": 4,
+    "reachUp": 5,
+    "guet": 100,
     "chaseSpeed": 4.3,
     "turnRate": 520,
     "reach": 1.8,
     "bite": 4,
     "cadence": 0.7,
     "dropMax": 5
+  },
+  "Habitat": {
+    "biomes": ["CoreWorlds:UNDERGROUND"],
+    "densite": 1.0,
+    "groupeMin": 1,
+    "groupeMax": 2,
+    "ecart": 6,
+    "plafond": 3,
+    "ombre": 4,
+    "ciel": 0,
+    "sols": [
+      "CoreAssets:Stone", "CoreAssets:HardStone", "CoreAssets:Dirt", "CoreAssets:Gravel",
+      "CoreAssets:Sand", "CoreAssets:Snow"
+    ],
+    "relief": 8
   },
   "Health": {
     "maxHealth": 26,
