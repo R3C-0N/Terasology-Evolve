@@ -28,6 +28,6 @@
   },
   "RigidBody": {
     "kinematic": true,
-    "mass": 0
+    "mass": 1
   }
 }
