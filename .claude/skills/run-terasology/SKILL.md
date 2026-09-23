@@ -227,7 +227,7 @@ curl -X POST -d "look 42 10" http://127.0.0.1:17888/console
 | `GET /cube` | The dense neighbourhood, layers in descending Y. `r` ≤ 8 |
 | `GET /surface` | Top-down map: material and height per column, heights in base 36. `r` ≤ 24 |
 | `GET /block` | One cell, in the exact vocabulary of the `liquidFlow` command |
-| `GET /stats` | FPS, heap, entity count, chunks, world time — **and `paused=true`**, which otherwise only shows as two identical screenshots |
+| `GET /stats` | FPS, heap, entity count, chunks, world time — **and `paused=true`**, which otherwise only shows as two identical screenshots. A `render` line says what the last frame drew: visible chunks, triangles, empty meshes. `chunks ready` counts what exists, not what is on screen |
 | `GET /entities` | One line per entity: id, prefab, position, component **names**. `r=`, `with=`, `limit=` |
 | `GET /entity/…` | Every component value. An id, or the aliases `player`, `client`, `target` |
 
@@ -248,6 +248,53 @@ A cap that would be exceeded is **refused with 400, never silently clamped**.
 in `.mcp.json` — exposing all of the above as eleven `tera_*` tools. Use those
 when they are available; `curl` stays valid and equivalent. Standard library
 only, so there is nothing to install.
+
+## Linux, without a graphics card
+
+The driver above is Windows only. On a Linux box, `docker/` already runs the game
+in Xvfb over Mesa's llvmpipe (OpenGL 4.5), and its image carries JDK 17. For
+work rather than for a browser, run a container of your own next to any
+deployed one, never inside it:
+
+```bash
+docker run -d --name tera-lod --entrypoint bash -e LP_NUM_THREADS=6 \
+  -v "$PWD":/work -v "$HOME/.gradle":/home/game/.gradle -v tera-lod-home:/home/game/terasology \
+  --shm-size=512m <image of docker/Dockerfile> -c 'Xvfb :99 -screen 0 1280x800x24 -nolisten tcp & exec sleep infinity'
+docker exec -w /work tera-lod ./gradlew -q -I .claude/skills/run-terasology/dump-classpath.init.gradle :facades:PC:dumpRunSpec
+docker exec -d -e DISPLAY=:99 -w /work tera-lod bash -c 'exec java -XX:MaxDirectMemorySize=3G -Xmx3G \
+  -cp $(cat build/run-classpath.txt) org.terasology.engine.Terasology --homedir=/home/game/terasology \
+  --load-last-game --inspect-port=17888 --inspect-allow-console > /tmp/game.log 2>&1'
+docker exec tera-lod curl -s http://127.0.0.1:17888/health
+docker exec -e DISPLAY=:99 tera-lod import -window root /tmp/s.png   # screenshot
+docker exec -e DISPLAY=:99 tera-lod xdotool mousemove 640 321 click 1 # menus
+```
+
+Launching `java` directly rather than `gradlew game` leaves Gradle free for the
+tests while the game runs, and lets the direct-memory ceiling be raised: the
+512 MB that `exec.kt` sets overflows at altitude even on a plain world. Do not
+compile modules while the game runs — it reads their classes from disk.
+
+What bit, in the order it bit:
+
+- **`docker exec` without `-i` does not pass stdin.** A script fed through a
+  here-doc silently never runs; the config you "edited" is untouched.
+- **Ghost mode is not saved.** A character saved in mid-air falls and dies on
+  the next load. Land and walk before `exit`.
+- **Under load `POST /console` can answer `503` and not run the command.**
+  Retry until the answer is not `error=…`, and read the state back (`/view`,
+  `/entity/player`'s `mode`) rather than trusting the call.
+- **Milliseconds are a software rasteriser's**: 0.6 to 1.2 frames a second.
+  Compare runs, never quote them as the game's cost.
+- **The view distance is not in `config.cfg`**: writing `viewDistance` there is
+  silently dropped. In game, `Home` raises it a step and `End` lowers it.
+- **A dead character ignores `ghost` and `teleport`**, and the console still
+  answers as if they ran. After a load, take a screenshot: a death screen wants
+  a click on *Respawn* (640, 375) before anything else.
+- **After the machine restarts, Xvfb may not come back**: a stale
+  `/tmp/.X99-lock` in the container makes it exit at once. Remove the lock and
+  the socket, then start `Xvfb :99` again with `docker exec -d`.
+- **`pkill -f some-script.sh` kills the shell that runs it**, whose own command
+  line matches. Kill by PID.
 
 ## The JVM debugger — and the one rule that matters
 

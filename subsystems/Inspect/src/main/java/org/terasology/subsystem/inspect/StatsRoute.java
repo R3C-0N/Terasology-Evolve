@@ -8,6 +8,7 @@ import org.terasology.engine.context.Context;
 import org.terasology.engine.core.Time;
 import org.terasology.engine.entitySystem.entity.EntityManager;
 import org.terasology.engine.monitoring.PerformanceMonitor;
+import org.terasology.engine.rendering.world.WorldRenderer;
 import org.terasology.engine.world.WorldProvider;
 import org.terasology.engine.world.chunks.Chunk;
 import org.terasology.engine.world.chunks.ChunkProvider;
@@ -21,7 +22,7 @@ import java.util.Map;
 
 /**
  * Ce que l'incrustation F3 montre, mais lisible sans capture d'ecran : images par seconde, tas,
- * entites, chunks, heure du monde, et les moyennes de performance.
+ * entites, chunks, ce que le rendu a dessine, heure du monde, et les moyennes de performance.
  * <p>
  * <b>Le piege qui rendrait cette route inutile.</b> {@code PerformanceMonitor} est eteint par
  * defaut, et pas par configuration : son instance statique est un moniteur nul dont les cartes sont
@@ -62,6 +63,7 @@ public final class StatsRoute {
         }
 
         out.append(chunks(context));
+        out.append(render(context));
         out.append(performance(params));
         return InspectResponse.ok(out.toString());
     }
@@ -96,6 +98,29 @@ public final class StatsRoute {
         }
         return String.format(Locale.ROOT, "chunks total=%d ready=%d dirty=%d est_mb=%d%n",
                 all.size(), ready, dirty, bytes >> 20);
+    }
+
+    /**
+     * Ce que le moteur de rendu a dessine a la derniere image : chunks visibles, sales, maillages
+     * vides, triangles. Repris des metriques de l'incrustation F3, une ligne {@code Cle: valeur} par
+     * chiffre, remises sur une seule ligne {@code cle=valeur}. C'est la seule preuve qu'un chunk
+     * charge est aussi dessine : {@code chunks ready} compte ce qui existe, pas ce qui est a l'ecran.
+     */
+    private static String render(Context context) {
+        WorldRenderer renderer = context.get(WorldRenderer.class);
+        if (renderer == null) {
+            return "render unavailable=no-renderer\n";
+        }
+        StringBuilder out = new StringBuilder("render");
+        for (String line : renderer.getMetrics().split("\n")) {
+            int colon = line.indexOf(':');
+            if (colon <= 0) {
+                continue;
+            }
+            String key = line.substring(0, colon).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+            out.append(' ').append(key).append('=').append(line.substring(colon + 1).trim());
+        }
+        return out.append('\n').toString();
     }
 
     private static String performance(Map<String, String> params) {
