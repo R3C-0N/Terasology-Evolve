@@ -285,6 +285,16 @@ What bit, in the order it bit:
   `/entity/player`'s `mode`) rather than trusting the call.
 - **Milliseconds are a software rasteriser's**: 0.6 to 1.2 frames a second.
   Compare runs, never quote them as the game's cost.
+- **The view distance is not in `config.cfg`**: writing `viewDistance` there is
+  silently dropped. In game, `Home` raises it a step and `End` lowers it.
+- **A dead character ignores `ghost` and `teleport`**, and the console still
+  answers as if they ran. After a load, take a screenshot: a death screen wants
+  a click on *Respawn* (640, 375) before anything else.
+- **After the machine restarts, Xvfb may not come back**: a stale
+  `/tmp/.X99-lock` in the container makes it exit at once. Remove the lock and
+  the socket, then start `Xvfb :99` again with `docker exec -d`.
+- **`pkill -f some-script.sh` kills the shell that runs it**, whose own command
+  line matches. Kill by PID.
 
 ## The JVM debugger — and the one rule that matters
 
