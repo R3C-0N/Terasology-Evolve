@@ -134,10 +134,18 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
      * A prey already held is kept out to {@link PredatorComponent#giveUp} and never swapped for a closer one:
      * a creature that changed its mind every time someone walked past would stand between two people and
      * follow neither.
+     * <p>
+     * {@link PredatorComponent#onlyWhenStruck} stops before the sweep, not before the keeping: a bear that
+     * has been woken hunts exactly like a wolf, and lets go at the same distance.
      */
     private EntityRef juger(EntityRef proie, Vector3f position, PredatorComponent predator) {
         if (chassable(proie) && portee(proie, position, predator) <= predator.giveUp) {
             return proie;
+        }
+        if (predator.onlyWhenStruck) {
+            // Une bete qui attend d'etre frappee ne balaye pas ses alentours : elle n'a de proie que celle
+            // que `onDamaged` lui donne, et la garde jusqu'a `giveUp` comme les autres.
+            return EntityRef.NULL;
         }
         EntityRef trouvee = EntityRef.NULL;
         float plusProche = predator.sight;

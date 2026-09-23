@@ -1,0 +1,57 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:sanglier",
+    "material": "Bestiaire:sanglierPeau",
+    "animation": "Bestiaire:sanglier#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Sanglier",
+    "description": "Charge en ligne droite, tête baissée, sur tout ce qui bouge près de sa bauge."
+  },
+  "Creature": {
+    "species": "sanglier",
+    "item": "Bestiaire:sanglierTotem"
+  },
+  "Wander": {
+    "speed": 1.2,
+    "pauseMin": 1,
+    "pauseMax": 4,
+    "walkMin": 2,
+    "walkMax": 6,
+    "turnCalm": 100,
+    "turnRate": 200
+  },
+  "Predator": {
+    "sight": 13,
+    "giveUp": 20,
+    "reachUp": 5,
+    "chaseSpeed": 4.4,
+    "turnRate": 130,
+    "reach": 1.7,
+    "bite": 10,
+    "cadence": 1.8,
+    "dropMax": 4
+  },
+  "Health": {
+    "maxHealth": 55,
+    "currentHealth": 55
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 20
+  },
+  "BoxShape": {
+    "extents": [
+      0.6188,
+      0.9381,
+      1.5945
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

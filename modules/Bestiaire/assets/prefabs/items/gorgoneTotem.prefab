@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : gorgone florale",
+    "description": "Posé au sol, fait apparaître une gorgone florale."
+  },
+  "Item": {
+    "icon": "Bestiaire:gorgoneIcone",
+    "stackId": "Bestiaire:gorgoneTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:gorgone"
+  }
+}

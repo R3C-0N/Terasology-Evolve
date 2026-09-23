@@ -221,6 +221,25 @@ def marche(parts):
             yield from marche(p["c"])
 
 
+def teinte(creature, nom):
+    """La couleur d'un decalque : une entree de `c`, une MATIERE, ou un hexa.
+
+    Le renvoi a une matiere est ce que la maquette voulait dire sans le dire :
+    la crete d'un sanglier y est peinte « crin », qui n'est pas une couleur mais
+    le poil dur de sa nuque, et le brassard de la brute est peint « fer ». Le
+    canevas du navigateur ignore une `fillStyle` invalide et garde la
+    precedente, donc la faute ne s'y voit pas la-bas ; ici le nom prend le ton
+    median de la matiere, qui est ce qu'on lit a l'ecran.
+    """
+    couleurs = creature.get("c", {})
+    if nom in couleurs:
+        return couleurs[nom]
+    matiere = creature["mat"].get(nom)
+    if matiere:
+        return matiere["pal"][1]
+    return nom
+
+
 def _couleur(hexa):
     h = hexa.lstrip("#")
     return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16), 255)
@@ -267,7 +286,6 @@ def atlas(creature):
         i = (py * largeur + px) * 4
         return pixels[i:i + 4]
 
-    couleurs = creature.get("c", {})
     rects = {}
     for o in cases:
         part, f = o["part"], o["f"]
@@ -305,7 +323,7 @@ def atlas(creature):
             if x1 <= x0 or y1 <= y0:
                 continue
             vide = ft[5] == "vide"
-            c = (0, 0, 0, 0) if vide else _couleur(couleurs.get(ft[5], ft[5]))
+            c = (0, 0, 0, 0) if vide else _couleur(teinte(creature, ft[5]))
             for j in range(y0, y1):
                 for i in range(x0, x1):
                     poser(o["x"] + i, o["y"] + j, c)

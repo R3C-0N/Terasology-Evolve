@@ -1,0 +1,57 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:rampant",
+    "material": "Bestiaire:rampantPeau",
+    "animation": "Bestiaire:rampant#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Rampant aveugle",
+    "description": "N’a pas d’yeux : il chasse au bruit et s’immobilise quand le silence revient."
+  },
+  "Creature": {
+    "species": "rampant",
+    "item": "Bestiaire:rampantTotem"
+  },
+  "Wander": {
+    "speed": 0.9,
+    "pauseMin": 3,
+    "pauseMax": 9,
+    "walkMin": 2,
+    "walkMax": 5,
+    "turnCalm": 110,
+    "turnRate": 220
+  },
+  "Predator": {
+    "sight": 20,
+    "giveUp": 28,
+    "reachUp": 6,
+    "chaseSpeed": 4.0,
+    "turnRate": 300,
+    "reach": 1.8,
+    "bite": 7,
+    "cadence": 1.3,
+    "dropMax": 5
+  },
+  "Health": {
+    "maxHealth": 45,
+    "currentHealth": 45
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 20
+  },
+  "BoxShape": {
+    "extents": [
+      0.916,
+      1.0099,
+      1.4661
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

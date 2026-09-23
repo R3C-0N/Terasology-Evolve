@@ -35,6 +35,17 @@ public class PredatorComponent implements Component<PredatorComponent> {
     public float reachUp = 5f;
 
     /**
+     * Whether it hunts nobody until somebody hits it.
+     * <p>
+     * The bear is slow to anger and the treant stands still until a tree of its grove comes down: two
+     * creatures the design describes by what does <em>not</em> set them off. Both already have the whole
+     * temperament — reach, bite, the lot — and what they lack is the first step, so this takes away the sweep
+     * of the surroundings and leaves the blow. Struck, such a creature is exactly as dangerous as its numbers
+     * say, and it is the only one you choose to fight.
+     */
+    public boolean onlyWhenStruck;
+
+    /**
      * Pace once it has a prey.
      * <p>
      * A shade <em>under</em> a sprinting player, and that is the whole balance of the thing. Faster, and the
@@ -73,6 +84,7 @@ public class PredatorComponent implements Component<PredatorComponent> {
         this.sight = other.sight;
         this.giveUp = other.giveUp;
         this.reachUp = other.reachUp;
+        this.onlyWhenStruck = other.onlyWhenStruck;
         this.chaseSpeed = other.chaseSpeed;
         this.turnRate = other.turnRate;
         this.reach = other.reach;

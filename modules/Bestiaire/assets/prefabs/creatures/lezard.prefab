@@ -1,0 +1,57 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:lezard",
+    "material": "Bestiaire:lezardPeau",
+    "animation": "Bestiaire:lezard#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Lézard cavernicole",
+    "description": "Se repère aux vibrations du sol et luit faiblement dans l’obscurité."
+  },
+  "Creature": {
+    "species": "lezard",
+    "item": "Bestiaire:lezardTotem"
+  },
+  "Wander": {
+    "speed": 1.3,
+    "pauseMin": 1,
+    "pauseMax": 3,
+    "walkMin": 1.5,
+    "walkMax": 5,
+    "turnCalm": 140,
+    "turnRate": 300
+  },
+  "Predator": {
+    "sight": 14,
+    "giveUp": 20,
+    "reachUp": 4,
+    "chaseSpeed": 3.9,
+    "turnRate": 380,
+    "reach": 1.6,
+    "bite": 5,
+    "cadence": 1.0,
+    "dropMax": 5
+  },
+  "Health": {
+    "maxHealth": 30,
+    "currentHealth": 30
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 15
+  },
+  "BoxShape": {
+    "extents": [
+      0.7692,
+      0.45,
+      2.1375
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

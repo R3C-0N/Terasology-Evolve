@@ -1,0 +1,57 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:millepattes",
+    "material": "Bestiaire:millepattesPeau",
+    "animation": "Bestiaire:millepattes#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Mille-pattes géant",
+    "description": "Court sur les parois des galeries et mord d’un venin qui paralyse."
+  },
+  "Creature": {
+    "species": "millepattes",
+    "item": "Bestiaire:millepattesTotem"
+  },
+  "Wander": {
+    "speed": 2.2,
+    "pauseMin": 0.5,
+    "pauseMax": 2,
+    "walkMin": 2,
+    "walkMax": 6,
+    "turnCalm": 160,
+    "turnRate": 420
+  },
+  "Predator": {
+    "sight": 13,
+    "giveUp": 18,
+    "reachUp": 4,
+    "chaseSpeed": 4.3,
+    "turnRate": 520,
+    "reach": 1.8,
+    "bite": 4,
+    "cadence": 0.7,
+    "dropMax": 5
+  },
+  "Health": {
+    "maxHealth": 26,
+    "currentHealth": 26
+  },
+  "BaseRegen": {
+    "regenRate": 1,
+    "waitBeforeRegen": 15
+  },
+  "BoxShape": {
+    "extents": [
+      1.0148,
+      0.7517,
+      3.0098
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

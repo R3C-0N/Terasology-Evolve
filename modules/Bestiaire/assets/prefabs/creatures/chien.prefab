@@ -1,0 +1,57 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:chien",
+    "material": "Bestiaire:chienPeau",
+    "animation": "Bestiaire:chien#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Chien des enfers",
+    "description": "Son souffle enflamme l’herbe sèche ; il chasse toujours par deux."
+  },
+  "Creature": {
+    "species": "chien",
+    "item": "Bestiaire:chienTotem"
+  },
+  "Wander": {
+    "speed": 1.9,
+    "pauseMin": 1,
+    "pauseMax": 3,
+    "walkMin": 2,
+    "walkMax": 7,
+    "turnCalm": 120,
+    "turnRate": 280
+  },
+  "Predator": {
+    "sight": 18,
+    "giveUp": 26,
+    "reachUp": 5,
+    "chaseSpeed": 4.4,
+    "turnRate": 420,
+    "reach": 1.9,
+    "bite": 8,
+    "cadence": 1.1,
+    "dropMax": 4
+  },
+  "Health": {
+    "maxHealth": 50,
+    "currentHealth": 50
+  },
+  "BaseRegen": {
+    "regenRate": 2,
+    "waitBeforeRegen": 15
+  },
+  "BoxShape": {
+    "extents": [
+      0.5882,
+      1.3888,
+      2.3479
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

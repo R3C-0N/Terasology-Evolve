@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : ours",
+    "description": "Posé au sol, fait apparaître un ours."
+  },
+  "Item": {
+    "icon": "Bestiaire:oursIcone",
+    "stackId": "Bestiaire:oursTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:ours"
+  }
+}

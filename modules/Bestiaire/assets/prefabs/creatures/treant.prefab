@@ -1,0 +1,58 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:treant",
+    "material": "Bestiaire:treantPeau",
+    "animation": "Bestiaire:treant#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Tréant gardien",
+    "description": "Reste immobile tant qu’on n’abat aucun arbre de son bosquet."
+  },
+  "Creature": {
+    "species": "treant",
+    "item": "Bestiaire:treantTotem"
+  },
+  "Wander": {
+    "speed": 0.35,
+    "pauseMin": 6,
+    "pauseMax": 14,
+    "walkMin": 2,
+    "walkMax": 5,
+    "turnCalm": 60,
+    "turnRate": 90
+  },
+  "Predator": {
+    "sight": 10,
+    "giveUp": 16,
+    "reachUp": 6,
+    "chaseSpeed": 2.2,
+    "turnRate": 150,
+    "reach": 3.0,
+    "bite": 18,
+    "cadence": 2.4,
+    "dropMax": 2,
+    "onlyWhenStruck": true
+  },
+  "Health": {
+    "maxHealth": 200,
+    "currentHealth": 200
+  },
+  "BaseRegen": {
+    "regenRate": 2,
+    "waitBeforeRegen": 30
+  },
+  "BoxShape": {
+    "extents": [
+      2.2758,
+      2.925,
+      0.7875
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

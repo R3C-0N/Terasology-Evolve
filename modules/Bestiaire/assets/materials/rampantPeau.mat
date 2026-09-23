@@ -1,0 +1,13 @@
+{
+  "shader": "engine:genericMeshMaterial",
+  "params": {
+    "diffuse": "Bestiaire:rampant",
+    "colorOffset": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "textured": true,
+    "alphaThreshold": 0.5
+  }
+}

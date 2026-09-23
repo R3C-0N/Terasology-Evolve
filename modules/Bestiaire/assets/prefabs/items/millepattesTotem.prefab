@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : mille-pattes géant",
+    "description": "Posé au sol, fait apparaître un mille-pattes géant."
+  },
+  "Item": {
+    "icon": "Bestiaire:millepattesIcone",
+    "stackId": "Bestiaire:millepattesTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:millepattes"
+  }
+}

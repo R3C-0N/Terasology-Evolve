@@ -1,0 +1,57 @@
+{
+  "SkeletalMesh": {
+    "mesh": "Bestiaire:brute",
+    "material": "Bestiaire:brutePeau",
+    "animation": "Bestiaire:brute#repos",
+    "loop": true
+  },
+  "Location": {},
+  "Network": {},
+  "DisplayName": {
+    "name": "Brute cornue",
+    "description": "Charge cornes en avant et renverse les boucliers levés."
+  },
+  "Creature": {
+    "species": "brute",
+    "item": "Bestiaire:bruteTotem"
+  },
+  "Wander": {
+    "speed": 1.1,
+    "pauseMin": 2,
+    "pauseMax": 5,
+    "walkMin": 2,
+    "walkMax": 6,
+    "turnCalm": 90,
+    "turnRate": 170
+  },
+  "Predator": {
+    "sight": 15,
+    "giveUp": 22,
+    "reachUp": 6,
+    "chaseSpeed": 4.1,
+    "turnRate": 150,
+    "reach": 2.6,
+    "bite": 15,
+    "cadence": 1.7,
+    "dropMax": 4
+  },
+  "Health": {
+    "maxHealth": 120,
+    "currentHealth": 120
+  },
+  "BaseRegen": {
+    "regenRate": 2,
+    "waitBeforeRegen": 25
+  },
+  "BoxShape": {
+    "extents": [
+      2.1557,
+      2.8224,
+      1.5083
+    ]
+  },
+  "RigidBody": {
+    "kinematic": true,
+    "mass": 1
+  }
+}

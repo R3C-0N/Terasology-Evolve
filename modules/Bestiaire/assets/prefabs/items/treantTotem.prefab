@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : tréant gardien",
+    "description": "Posé au sol, fait apparaître un tréant gardien."
+  },
+  "Item": {
+    "icon": "Bestiaire:treantIcone",
+    "stackId": "Bestiaire:treantTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:treant"
+  }
+}

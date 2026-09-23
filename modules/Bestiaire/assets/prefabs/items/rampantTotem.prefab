@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : rampant aveugle",
+    "description": "Posé au sol, fait apparaître un rampant aveugle."
+  },
+  "Item": {
+    "icon": "Bestiaire:rampantIcone",
+    "stackId": "Bestiaire:rampantTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:rampant"
+  }
+}

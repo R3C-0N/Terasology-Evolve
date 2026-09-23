@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : chien des enfers",
+    "description": "Posé au sol, fait apparaître un chien des enfers."
+  },
+  "Item": {
+    "icon": "Bestiaire:chienIcone",
+    "stackId": "Bestiaire:chienTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:chien"
+  }
+}

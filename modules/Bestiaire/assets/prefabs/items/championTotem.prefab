@@ -1,0 +1,16 @@
+{
+  "parent": "engine:iconItem",
+  "DisplayName": {
+    "name": "Totem : champion démon",
+    "description": "Posé au sol, fait apparaître un champion démon."
+  },
+  "Item": {
+    "icon": "Bestiaire:championIcone",
+    "stackId": "Bestiaire:championTotem",
+    "maxStackSize": 16,
+    "consumedOnUse": true
+  },
+  "Spawner": {
+    "creature": "Bestiaire:champion"
+  }
+}
