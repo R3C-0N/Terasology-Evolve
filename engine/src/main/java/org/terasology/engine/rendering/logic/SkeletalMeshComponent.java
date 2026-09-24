@@ -63,6 +63,21 @@ public class SkeletalMeshComponent implements VisualComponent<SkeletalMeshCompon
     @Replicate
     public Color color = Color.WHITE;
 
+    /**
+     * Where to read the light from, if not from where the mesh is.
+     * <p>
+     * Lighting is normally sampled at the entity's own position, which is right for anything that walks
+     * about in the open. It is wrong for a body that ends up somewhere its lighting has no business
+     * following — sinking into the ground, say, where it would sample the pitch dark inside a block and
+     * render as a black silhouette. Setting this pins the sample to one world position, once, and the mesh
+     * goes on being lit as it was when it was still out in the air.
+     * <p>
+     * Null means the ordinary behaviour. This is a fixed point, not an offset: it is written once and never
+     * has to follow the entity, so it costs one replication and nothing per frame.
+     */
+    @Replicate
+    public Vector3f lightPosition;
+
     @Override
     public void copyFrom(SkeletalMeshComponent other) {
         this.mesh = other.mesh;
@@ -78,5 +93,6 @@ public class SkeletalMeshComponent implements VisualComponent<SkeletalMeshCompon
         this.scale = new Vector3f(other.scale);
         this.translate = new Vector3f(other.translate);
         this.color = new Color(other.color);
+        this.lightPosition = other.lightPosition == null ? null : new Vector3f(other.lightPosition);
     }
 }

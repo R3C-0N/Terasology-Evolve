@@ -303,8 +303,10 @@ public class SkeletonRenderer extends BaseComponentSystem implements RenderSyste
             modelViewMatrix.normal(new Matrix3f()).get(tempMatrixBuffer33);
             skeletalMesh.material.setMatrix3("normalMatrix", tempMatrixBuffer33, true);
 
-            skeletalMesh.material.setFloat("sunlight", worldRenderer.getMainLightIntensityAt(worldPos), true);
-            skeletalMesh.material.setFloat("blockLight", worldRenderer.getBlockLightIntensityAt(worldPos), true);
+            // Lit where it is, unless it has been told otherwise — see SkeletalMeshComponent.lightPosition.
+            Vector3f lightPos = skeletalMesh.lightPosition == null ? worldPos : skeletalMesh.lightPosition;
+            skeletalMesh.material.setFloat("sunlight", worldRenderer.getMainLightIntensityAt(lightPos), true);
+            skeletalMesh.material.setFloat("blockLight", worldRenderer.getBlockLightIntensityAt(lightPos), true);
 
             Matrix4f[] boneTransforms = new Matrix4f[skeletalMesh.mesh.getBones().size()];
             for (Bone bone : skeletalMesh.mesh.getBones()) {

@@ -20,6 +20,7 @@ import org.terasology.engine.physics.CollisionGroup;
 import org.terasology.engine.physics.StandardCollisionGroup;
 import org.terasology.engine.physics.components.RigidBodyComponent;
 import org.terasology.engine.registry.In;
+import org.terasology.engine.rendering.logic.SkeletalMeshComponent;
 import org.terasology.gestalt.entitysystem.event.ReceiveEvent;
 import org.terasology.module.health.components.HealthComponent;
 import org.terasology.module.health.components.RegenComponent;
@@ -117,6 +118,7 @@ public class CadavreAuthoritySystem extends BaseComponentSystem implements Updat
 
         coucher(bete, location);
         traverser(bete);
+        eclairer(bete, location);
         delayManager.addDelayedAction(bete, POURRITURE, (long) (DUREE * 1000f));
     }
 
@@ -156,6 +158,27 @@ public class CadavreAuthoritySystem extends BaseComponentSystem implements Updat
         Quaternionf rotation = location.getWorldRotation(new Quaternionf());
         location.setWorldRotation(rotation.rotateZ((float) (Math.PI / 2f)));
         bete.saveComponent(location);
+    }
+
+    /**
+     * The body keeps the light it died in.
+     * <p>
+     * Sinking is a piece of staging, not a move to somewhere darker: a carcass lit where it actually is
+     * samples the inside of a block the moment its centre passes under the grass, finds no light at all, and
+     * turns into a black silhouette lying in a sunlit field. So the sample point is pinned, once, to where
+     * the beast stood when it fell — at its own mid-height, which is air, not the ground it was standing on.
+     * The body then goes on taking the day and the night like everything above the surface, because the
+     * daylight factor is a function of the hour and not of the place.
+     */
+    private void eclairer(EntityRef bete, LocationComponent location) {
+        SkeletalMeshComponent maillage = bete.getComponent(SkeletalMeshComponent.class);
+        if (maillage == null) {
+            return;
+        }
+        Vector3f position = location.getWorldPosition(new Vector3f());
+        position.y += Stride.demiHauteur(bete);
+        maillage.lightPosition = position;
+        bete.saveComponent(maillage);
     }
 
     private void traverser(EntityRef bete) {
