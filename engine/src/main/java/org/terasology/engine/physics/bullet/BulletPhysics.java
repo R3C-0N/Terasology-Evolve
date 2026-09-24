@@ -376,6 +376,10 @@ public class BulletPhysics implements PhysicsEngine, Physics {
                 rigidBody.rb.setAngularFactor(rb.angularFactor);
                 rigidBody.rb.setLinearFactor(rb.linearFactor);
                 rigidBody.rb.setFriction(rb.friction);
+                // Kinematic is a state, not just a birth setting: a body can be handed to Bullet for the
+                // length of a shove and taken back afterwards. Without this the flag could only ever be read
+                // once, at creation, and flipping it on the component changed nothing at all — in silence.
+                updateKinematicSettings(rb, rigidBody);
             }
 
             return true;

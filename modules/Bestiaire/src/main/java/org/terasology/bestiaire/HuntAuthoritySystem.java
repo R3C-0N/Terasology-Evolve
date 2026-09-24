@@ -122,6 +122,11 @@ public class HuntAuthoritySystem extends BaseComponentSystem implements UpdateSu
             if (predator == null || location == null) {
                 continue;
             }
+            if (ReculAuthoritySystem.enCours(creature)) {
+                // Projetee : le corps appartient a Bullet jusqu'a ce qu'il se pose. Les horloges de la
+                // chasse s'arretent avec les jambes, sinon elle mord depuis les airs.
+                continue;
+            }
             Chasse chasse = chasses.computeIfAbsent(creature, e -> naitre(location));
             chasse.flair -= delta;
             chasse.morsure -= delta;

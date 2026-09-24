@@ -63,6 +63,12 @@ public class GravityAuthoritySystem extends BaseComponentSystem implements Updat
             if (location == null) {
                 continue;
             }
+            if (ReculAuthoritySystem.enCours(creature)) {
+                // Bullet fait deja tomber ce corps-la, et bien mieux : il tient compte de ce qu'il percute.
+                // Deux gravites sur la meme bete la feraient descendre deux fois plus vite.
+                vitesses.remove(creature);
+                continue;
+            }
             if (creature.hasComponent(AccrocheComponent.class)) {
                 // Elle tient au plafond, et c'est tout ce que tenir veut dire ici : la chute n'est pas
                 // desactivee, elle est simplement en attente. L'embuscade rend le composant, pas une

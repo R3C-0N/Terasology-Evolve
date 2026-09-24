@@ -30,5 +30,6 @@
   "RigidBody": {
     "kinematic": true,
     "mass": 1
-  }
+  },
+  "Scelle": {}
 }

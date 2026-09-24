@@ -100,6 +100,13 @@ public class WanderAuthoritySystem extends BaseComponentSystem implements Update
                 humeurs.remove(creature);
                 continue;
             }
+            if (ReculAuthoritySystem.enCours(creature)) {
+                // Elle est en l'air, et c'est Bullet qui la porte. Marcher pendant ce temps reviendrait a
+                // reecrire la position que le moteur physique vient d'ecrire : la bete avancerait par
+                // saccades au lieu d'etre projetee.
+                humeurs.remove(creature);
+                continue;
+            }
             if (creature.hasComponent(ChaseComponent.class)) {
                 // Une bete qui chasse a ses jambes ailleurs (HuntAuthoritySystem). Deux systemes qui
                 // deplacent la meme entite dans la meme image ne se partagent pas le mouvement : ils se
