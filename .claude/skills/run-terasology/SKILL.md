@@ -209,7 +209,7 @@ without a single keystroke.
 
 ```bash
 python .claude/skills/run-terasology/driver.py launch --load-last-game -- \
-    --inspect-port=17888 --inspect-allow-console
+    --inspect-port=17888 --inspect-allow-console --inspect-allow-write
 
 curl http://127.0.0.1:17888/health
 curl http://127.0.0.1:17888/view
@@ -230,6 +230,8 @@ curl -X POST -d "look 42 10" http://127.0.0.1:17888/console
 | `GET /stats` | FPS, heap, entity count, chunks, world time — **and `paused=true`**, which otherwise only shows as two identical screenshots. A `render` line says what the last frame drew: visible chunks, triangles, empty meshes. `chunks ready` counts what exists, not what is on screen |
 | `GET /entities` | One line per entity: id, prefab, position, component **names**. `r=`, `with=`, `limit=` |
 | `GET /entity/…` | Every component value. An id, or the aliases `player`, `client`, `target` |
+| `/record/*` | The tape: positions frame by frame and timestamped actions. See below |
+| `POST /place` | Write blocks with no player involved. Needs `--inspect-allow-write` |
 
 **The grids centre on the player by default, never on the aimed block** — water
 and lava are `targetable: false`, so the crosshair ray goes straight through a
@@ -244,8 +246,56 @@ Measured cost: `/slice` 24×16 is 0.40 ms, 48×32 is 0.80 ms, `/cube?r=4` 0.90 m
 
 A cap that would be exceeded is **refused with 400, never silently clamped**.
 
+### The tape, and placing blocks
+
+Two channels that write rather than read, both added for measuring combat.
+
+**`/record/*` samples the world frame by frame.** Anything that happens faster
+than you can think to ask for it — a knockback lasts 0.4 s — is unmeasurable by
+polling. Arm it, act, stop it, read it back:
+
+```bash
+curl -X POST "$P/record/start?ids=1378568&hz=30&flags=Recul,Cadavre&probes=Health.currentHealth"
+curl -X POST -d "clic-gauche" $P/record/mark      # AT THE MOMENT the driver clicks
+python driver.py click --press 0.08
+curl -X POST $P/record/stop
+curl -X POST "$P/record/save?name=scene"          # -> <game home>/records/scene.txt
+```
+
+`with=Creature&r=20` replaces `ids=` when you do not know the id yet. The subject
+set is frozen at start, which is what you want: a beast that dies keeps its line,
+because the carcass *is* the creature.
+
+Events are **derived, not listened to** — a subsystem may not be an ECS system.
+Three sources: `lastItemUsedTime` advancing (a blow that passed the cooldown
+gate), a numeric probe moving, a component appearing or vanishing. Two readings
+fall out of that and are worth knowing: **a `mark` with no `use` after it is a
+click the cooldown ate**, and **a `use` with no `probe` after it is a swing that
+missed**. The screen shows neither.
+
+`/record/mark` is the only channel for what the driver does — a click that misses
+leaves nothing in the world state. Stamp it as you send the input.
+
+For a long tape use `save`, not `dump`: the 8 KiB response cap would cut a line
+in half, and a truncated position reads like a position.
+
+**`POST /place` writes blocks with no player.** No aiming, no reach, no
+inventory. Build an arena, a flat floor, a marker at a measured spot:
+
+```bash
+curl -X POST "$P/place?x=12&y=34&z=12&x2=20&y2=35&z2=20&uri=CoreAssets:Brick" -d " "
+printf '0 3 0
+1 3 0
+' | curl -X POST "$P/place?rel=player&uri=CoreAssets:Iron" --data-binary @-
+```
+
+`rel=player` offsets from the block the player stands on; a POST body takes one
+`x y z [uri]` per line, up to 4096. An unknown block name is **refused before the
+first write** rather than silently placed as air, and a block outside a loaded
+chunk comes back in `refused=` rather than being swallowed.
+
 **There is also an MCP server** — `.claude/mcp/terasology_inspect.py`, declared
-in `.mcp.json` — exposing all of the above as eleven `tera_*` tools. Use those
+in `.mcp.json` — exposing all of the above as seventeen `tera_*` tools. Use those
 when they are available; `curl` stays valid and equivalent. Standard library
 only, so there is nothing to install.
 

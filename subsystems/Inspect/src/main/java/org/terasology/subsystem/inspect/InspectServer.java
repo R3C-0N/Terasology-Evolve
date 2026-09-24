@@ -10,6 +10,7 @@ import org.joml.Vector3i;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terasology.engine.context.Context;
+import org.terasology.engine.core.PathManager;
 import org.terasology.engine.input.cameraTarget.CameraTargetSystem;
 import org.terasology.engine.logic.console.Console;
 import org.terasology.engine.logic.console.commandSystem.ConsoleCommand;
@@ -19,6 +20,8 @@ import org.terasology.gestalt.naming.Name;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
@@ -53,17 +56,25 @@ public final class InspectServer {
 
     private static final int HTTP_THREADS = 3;
 
+    /** Budget de la page de bande : sous le plafond de reponse, pour que le pied tienne aussi. */
+    private static final int PAGE_BYTES = 7 * 1024;
+
     private final InspectBridge bridge;
+    private final Recorder recorder;
     private final int port;
     private final boolean allowConsole;
+    private final boolean allowWrite;
     private final long startedNanos = System.nanoTime();
 
     private HttpServer server;
 
-    public InspectServer(InspectBridge bridge, int port, boolean allowConsole) {
+    public InspectServer(InspectBridge bridge, Recorder recorder, int port, boolean allowConsole,
+                         boolean allowWrite) {
         this.bridge = bridge;
+        this.recorder = recorder;
         this.port = port;
         this.allowConsole = allowConsole;
+        this.allowWrite = allowWrite;
     }
 
     /**
@@ -105,12 +116,15 @@ public final class InspectServer {
                     bridge.call(context -> StatsRoute.stats(context, query(exchange)))));
             server.createContext("/entities", exchange -> respond(exchange,
                     bridge.call(context -> EntityRoutes.entities(context, query(exchange)))));
+            server.createContext("/record", this::handleRecord);
+            server.createContext("/place", this::handlePlace);
             server.createContext("/entity", exchange -> respond(exchange,
                     bridge.call(context -> EntityRoutes.entity(context, suffix(exchange, "/entity"),
                             query(exchange)))));
             server.start();
-            logger.info("Canal d'inspection ouvert sur http://127.0.0.1:{} (console {})",
-                    port, allowConsole ? "autorisee" : "fermee");
+            logger.info("Canal d'inspection ouvert sur http://127.0.0.1:{} (console {}, ecriture {})",
+                    port, allowConsole ? "autorisee" : "fermee",
+                    allowWrite ? "autorisee" : "fermee");
         } catch (IOException e) {
             logger.warn("Canal d'inspection indisponible sur le port {} : {}", port, e.toString());
             server = null;
@@ -263,6 +277,109 @@ public final class InspectServer {
             return InspectResponse.ok(result.endsWith("\n") ? result : result + "\n");
         } catch (Exception e) {
             return InspectResponse.error(e);
+        }
+    }
+
+
+    /**
+     * Le magnetophone : {@code /record/start}, {@code /stop}, {@code /mark}, {@code /dump} et
+     * {@code /save}. Voir {@link Recorder} pour ce qui est enregistre et pourquoi.
+     * <p>
+     * {@code /save} est le seul a ne pas rendre son contenu : la bande entiere depasse de loin le
+     * plafond de reponse, et une bande tronquee au milieu d'une position ne vaut rien. Elle part
+     * donc dans un fichier, sous le repertoire de jeu, et la reponse en donne le chemin. Le fichier
+     * est ecrit ici, sur le thread HTTP : le thread de jeu n'a rendu qu'une chaine.
+     */
+    private void handleRecord(HttpExchange exchange) throws IOException {
+        String action = suffix(exchange, "/record");
+        Map<String, String> params = query(exchange);
+        switch (action) {
+            case "start":
+                respond(exchange, bridge.call(context -> recorder.start(context, params)
+                        ? InspectResponse.ok(recorder.entete())
+                        : InspectResponse.text(409,
+                                "error=no-player reason=aucun joueur local, rien a suivre\n")));
+                return;
+            case "stop":
+                respond(exchange, bridge.call(context -> {
+                    recorder.stop();
+                    return InspectResponse.ok(recorder.entete());
+                }));
+                return;
+            case "mark": {
+                String label = body(exchange);
+                if (label.isBlank()) {
+                    label = params.getOrDefault("label", "");
+                }
+                final String texte = label.trim();
+                respond(exchange, bridge.call(context -> recorder.mark(texte)
+                        ? InspectResponse.ok("ok\n")
+                        : InspectResponse.text(409, "error=not-recording reason=bande a l'arret\n")));
+                return;
+            }
+            case "dump": {
+                int from = (int) parseLong(params.get("from"), 0);
+                respond(exchange, bridge.call(context ->
+                        InspectResponse.ok(recorder.dump(from, PAGE_BYTES))));
+                return;
+            }
+            case "save":
+                respond(exchange, sauver(params.getOrDefault("name", "bande")));
+                return;
+            default:
+                respond(exchange, bridge.call(context -> InspectResponse.ok(recorder.entete())));
+        }
+    }
+
+    private InspectResponse sauver(String nom) {
+        InspectResponse bande = bridge.call(context -> InspectResponse.ok(recorder.tout()));
+        if (bande.getStatus() != 200) {
+            return bande;
+        }
+        // Le nom vient du reseau et finit en chemin : tout ce qui n'est pas anodin est remplace,
+        // ce qui exclut « .. » et les separateurs sans avoir a les enumerer.
+        String propre = nom.replaceAll("[^A-Za-z0-9._-]", "_");
+        try {
+            Path dossier = PathManager.getInstance().getHomePath().resolve("records");
+            Files.createDirectories(dossier);
+            Path fichier = dossier.resolve(propre + ".txt");
+            Files.writeString(fichier, bande.getBody());
+            return InspectResponse.ok(String.format(Locale.ROOT, "saved path=%s bytes=%d%n",
+                    fichier.toAbsolutePath(), bande.getBody().length()));
+        } catch (IOException e) {
+            return InspectResponse.error(e);
+        }
+    }
+
+    /**
+     * Ecrit des blocs dans le monde, sans le joueur. Voir {@link BuildRoute} — c'est une porte
+     * d'ecriture, et elle a sa propre clef.
+     */
+    private void handlePlace(HttpExchange exchange) throws IOException {
+        if (!allowWrite) {
+            respond(exchange, InspectResponse.notFound("/place"));
+            return;
+        }
+        String body = body(exchange);
+        Map<String, String> params = query(exchange);
+        respond(exchange, bridge.call(context -> BuildRoute.place(context, params, body)));
+    }
+
+    private static String body(HttpExchange exchange) throws IOException {
+        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            return "";
+        }
+        return new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+    }
+
+    private static long parseLong(String brut, long defaut) {
+        if (brut == null || brut.isBlank()) {
+            return defaut;
+        }
+        try {
+            return Long.parseLong(brut.trim());
+        } catch (NumberFormatException e) {
+            return defaut;
         }
     }
 

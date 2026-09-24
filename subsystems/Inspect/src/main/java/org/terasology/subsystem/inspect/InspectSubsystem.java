@@ -61,9 +61,17 @@ public class InspectSubsystem implements EngineSubsystem {
      */
     public static final String ALLOW_CONSOLE_PROPERTY = "org.terasology.inspectAllowConsole";
 
+    /**
+     * Ouvre {@code /place}, qui ecrit des blocs dans le monde sans passer par le joueur. Separee de
+     * la clef de la console parce que les deux n'ont pas le meme usage : une session qui lit l'etat
+     * n'a aucune raison de pouvoir refaire le terrain sous les pieds de qui joue.
+     */
+    public static final String ALLOW_WRITE_PROPERTY = "org.terasology.inspectAllowWrite";
+
     private static final Logger logger = LoggerFactory.getLogger(InspectSubsystem.class);
 
     private final InspectBridge bridge = new InspectBridge();
+    private final Recorder recorder = new Recorder();
 
     private InspectServer server;
 
@@ -83,13 +91,22 @@ public class InspectSubsystem implements EngineSubsystem {
             logger.debug("Canal d'inspection eteint : {} n'est pas defini.", PORT_PROPERTY);
             return;
         }
-        server = new InspectServer(bridge, port, Boolean.getBoolean(ALLOW_CONSOLE_PROPERTY));
+        server = new InspectServer(bridge, recorder, port,
+                Boolean.getBoolean(ALLOW_CONSOLE_PROPERTY), Boolean.getBoolean(ALLOW_WRITE_PROPERTY));
         server.start();
     }
 
+    /**
+     * Le vidage du sas d'abord, l'image du magnetophone ensuite : une bande armee dans ce tour de
+     * boucle doit prendre son premier releve dans le meme, sinon son origine de temps precede sa
+     * premiere mesure.
+     */
     @Override
     public void postUpdate(GameState currentState, float delta) {
         bridge.drain(currentState);
+        if (currentState != null && currentState.getContext() != null) {
+            recorder.tick(currentState.getContext());
+        }
     }
 
     @Override

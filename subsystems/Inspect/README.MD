@@ -19,6 +19,12 @@ curl -X POST -d "look 42 10" http://127.0.0.1:17888/console
 
 Sans `--inspect-port`, rien n'écoute : pas de port, pas de thread.
 
+Les deux portes d'écriture s'arment séparément, et l'une n'ouvre pas l'autre :
+
+```bash
+java … --inspect-port=17888 --inspect-allow-console --inspect-allow-write
+```
+
 | Route | Réponse |
 |---|---|
 | `GET /health` | `ok state=… last_tick_ms=… queue=… uptime_s=… port=…` — répondue sur le thread HTTP, donc elle répond quand le thread de jeu ne répond plus |
@@ -32,6 +38,8 @@ Sans `--inspect-port`, rien n'écoute : pas de port, pas de thread.
 | `GET /stats` | Images par seconde, tas, entités, chunks, heure du monde, moyennes de performance |
 | `GET /entities` | Une ligne par entité : identifiant, prefab, position, **noms** de composants. `r=`, `with=`, `limit=` |
 | `GET /entity/…` | Toutes les valeurs. Identifiant, ou les alias `player`, `client`, `target` |
+| `/record/start|stop|mark|dump|save` | Le magnétophone : positions image par image et actions horodatées |
+| `POST /place` | Pose des blocs sans passer par le joueur. Exige `--inspect-allow-write` |
 
 ## Les grilles de terrain
 
@@ -100,6 +108,109 @@ monde. C'est acceptable pour un harnais de développement, pas ailleurs.
 effet en solo, où le client local fait autorité ; sur un client distant, une
 commande serveur resterait sans effet.
 
+## Le magnétophone
+
+Une question comme « de combien recule un loup frappé ? » ne se lit ni sur une
+capture d'écran, ni sur deux `/entity` séparés d'une seconde : le mouvement dure
+quatre dixièmes de seconde, et le canal répond en vingt millisecondes **quand on
+pense à demander**. On arme la bande, on frappe, on l'arrête, on relit.
+
+```bash
+curl -X POST "$P/record/start?ids=1378568&hz=30&flags=Recul,Cadavre&probes=Health.currentHealth"
+curl -X POST -d "clic-gauche" $P/record/mark     # au moment où le pilote clique
+curl -X POST $P/record/stop
+curl -X POST "$P/record/save?name=scene-loup"    # la bande entière, dans un fichier
+curl "$P/record/dump?from=0"                     # ou page par page
+```
+
+| Paramètre de `start` | Effet |
+|---|---|
+| `ids=` | Les entités à suivre, par identifiant |
+| `with=` + `r=` | Ou bien : tout ce qui porte ce composant dans ce rayon |
+| `hz=` | Relevés de position par seconde, 20 par défaut, 120 au plus |
+| `flags=` | Composants suivis en tout-ou-rien, par **nom court** — `Recul,Cadavre` |
+| `probes=` | Champs numériques suivis, `Composant.champ`, `Health.currentHealth` par défaut |
+
+Une ligne par image, une par événement :
+
+```
+f 5.921 P 5.780,37.210,24.140 -134.5 20.0 currentHealth=100.00 | 1378568 4.114,37.006,22.505 45.5 currentHealth=34.00
+ev 5.921 use item=CoreSampleGameplay:FlintKnife cooldown=0.200
+ev 5.921 probe 1378568 currentHealth 34.00->32.00
+ev 5.921 flag 1378568 +Recul
+ev 6.341 flag 1378568 -Recul
+```
+
+**Le lot de sujets est figé à l'armement.** Une bête qui meurt garde son
+identifiant — le cadavre *est* la créature —, et un lot rescanné à chaque image
+ferait entrer et sortir des lignes au milieu de la bande.
+
+**Les événements sont déduits, pas écoutés.** Un sous-système n'a pas le droit
+d'être un système ECS, donc rien ici ne reçoit `AttackEvent` : les trois sources
+sont des *différences* relevées d'une image à l'autre —
+`CharacterHeldItemComponent.lastItemUsedTime` avance quand un coup part **et
+passe le verrou de cadence**, une sonde tombe, un composant apparaît. C'est moins
+riche qu'un événement, et c'est plus honnête. Corollaire utile : un `mark` sans
+`use` derrière est un clic mangé par la cadence, un `use` sans `probe` est un coup
+qui n'a pas porté — la bande les distingue, l'œil non.
+
+**Les événements sont relevés à chaque tick**, jamais à la cadence des images :
+un coup porté entre deux relevés disparaîtrait, et c'est précisément ce qu'on
+enregistre. Seule la ligne de position obéit à `hz`.
+
+**Les marques viennent du pilote.** Ce qu'un joueur fait au clavier et à la
+souris n'est visible nulle part dans l'état du monde — un clic qui rate n'y
+laisse rien. `POST /record/mark` est le seul canal pour cela, horodaté au tick
+suivant son arrivée : au plus une image de retard.
+
+**Le joueur se relève autrement que les bêtes.** Son *regard* n'est pas dans sa
+`LocationComponent`, qui ne porte que le cap ; le tangage vit dans la caméra, et
+c'est lui qui décide si un coup porte. La bande lit donc `LocalPlayer`, comme
+`/view`.
+
+**`/save` plutôt que `/dump` dès que la bande est longue.** Le plafond de réponse
+couperait une ligne en deux, et une position tronquée se lit comme une position :
+`dump` ferme donc sa page sur un budget d'octets et dit `next=`, et `save` écrit
+tout d'un bloc dans `<jeu>/records/<nom>.txt`.
+
+Plafonds : 6 000 images, 800 événements, 16 sujets. Atteint, la bande s'arrête
+d'elle-même et le dit (`full=true`) — une fuite silencieuse serait pire.
+
+## Poser des blocs sans le joueur
+
+Tout ce qui posait un bloc passait par le personnage : viser, tenir l'objet, être
+à portée. C'est la bonne règle pour un joueur et un mur pour qui doit bâtir un
+décor d'essai — une arène, un sol plat sous une bête, un repère à un endroit
+mesuré. `POST /place` écrit le monde directement, et n'existe qu'avec
+`--inspect-allow-write`.
+
+```bash
+curl -X POST "$P/place?x=12&y=34&z=16&uri=CoreAssets:Stone" -d " "              # un bloc
+curl -X POST "$P/place?x=12&y=34&z=12&x2=20&y2=35&z2=20&uri=CoreAssets:Brick" -d " "   # un pavé
+printf '0 3 0
+1 3 0
+' | curl -X POST "$P/place?rel=player&uri=CoreAssets:Iron" --data-binary @-
+```
+
+`rel=player` compte les coordonnées depuis le bloc où se tient le joueur. Le
+corps POST porte une pose par ligne, `x y z [uri]`, ce qui bâtit autre chose
+qu'une boîte. Plafond : 4 096 blocs par requête.
+
+La réponse compte les trois cas séparément — `placed`, `unchanged`, `refused` —
+et nomme la première case refusée. **Un refus est un chunk non chargé**, ce que
+`setBlock` signale en rendant `null` ; l'avaler laisserait un mur troué que rien
+n'expliquerait.
+
+**Un nom de bloc inconnu rend de l'air, en silence** : c'est le contrat de
+`BlockManager.getBlock`, qui journalise et dégrade. Poser mille blocs d'air à la
+place d'un mur serait une destruction pure, donc tous les noms sont résolus
+**avant la première écriture** et la requête entière est refusée — sauf si c'est
+bien de l'air qu'on a demandé.
+
+`setBlock` est le bon niveau : `WorldProvider` le fait suivre à
+`EntityAwareWorldProvider`, qui émet `OnChangedBlock` et tient les entités de
+bloc. Un bloc posé par ici vit exactement comme un bloc posé à la main.
+
 ## Les entités, et les pièges qu'elles cachent
 
 Deux étages, et c'est l'étagement qui tient le volume : `/entities` ne donne que
@@ -134,7 +245,7 @@ la pause ne se détecte qu'en comparant deux captures d'écran à trois secondes
 ## L'enveloppe MCP
 
 `.claude/mcp/terasology_inspect.py`, déclaré par `.mcp.json` à la racine : un
-outil par route, onze en tout. **Bibliothèque standard seule** — c'est la
+outil par route, dix-sept en tout. **Bibliothèque standard seule** — c'est la
 propriété que `driver.py` tient déjà, et la perdre imposerait un `pip install`
 sur une machine où rien ne le garantit. Le serveur parle donc JSON-RPC 2.0 sur
 stdio directement.

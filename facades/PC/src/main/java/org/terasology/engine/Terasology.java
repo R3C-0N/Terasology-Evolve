@@ -134,6 +134,10 @@ public final class Terasology implements Callable<Integer> {
             description = "Autorise POST /console sur le canal d'inspection : ecriture dans le monde.")
     private boolean inspectAllowConsole;
 
+    @Option(names = "--inspect-allow-write",
+            description = "Autorise POST /place sur le canal d'inspection : pose de blocs sans le joueur.")
+    private boolean inspectAllowWrite;
+
     @Option(names = "--override-default-config", description = "Override default config")
     private Path overrideConfigPath;
 
@@ -310,6 +314,9 @@ public final class Terasology implements Callable<Integer> {
         }
         if (inspectAllowConsole) {
             System.setProperty(InspectSubsystem.ALLOW_CONSOLE_PROPERTY, "true");
+        }
+        if (inspectAllowWrite) {
+            System.setProperty(InspectSubsystem.ALLOW_WRITE_PROPERTY, "true");
         }
         if (overrideConfigPath != null) {
             System.setProperty(Config.PROPERTY_OVERRIDE_DEFAULT_CONFIG, overrideConfigPath.toString());

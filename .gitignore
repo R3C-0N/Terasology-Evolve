@@ -82,6 +82,7 @@ Thumbs.db
 *.log
 /saves/
 /recordings/
+/records/
 /configs/
 /screenshots/
 /logs/

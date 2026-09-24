@@ -134,12 +134,70 @@ TOOLS = [
                       "description": "The full command line, e.g. 'look 90 20' or "
                                      "'replaceBlock CoreAssets:Water'."}},
          ["command"]),
+    tool("tera_record_start",
+         "Arm the tape: sample the position of the player and of chosen entities "
+         "every frame, and derive events from what changes. THE tool for anything "
+         "that happens too fast to poll — knockback, a fall, a chase, a cooldown. "
+         "Events come from differences, not listeners: an item use (past the "
+         "cooldown gate), a numeric probe moving (health), a component appearing "
+         "or vanishing, an entity gone. Arming replaces any previous tape.",
+         {"with": {"type": "string",
+                   "description": "Track every entity carrying this component, by short "
+                                  "name (e.g. 'Creature'). Frozen at start — a beast that "
+                                  "dies keeps its line, because the carcass IS the creature."},
+          "ids": {"type": "string", "description": "Comma-separated entity ids, instead of `with`."},
+          "r": {"type": "number", "description": "Radius around the player for `with`, default 32."},
+          "hz": {"type": "number", "description": "Position samples per second, default 20, max 120. "
+                                                  "Events are caught every tick regardless."},
+          "flags": {"type": "string",
+                    "description": "Comma-separated short component names to watch as on/off, "
+                                   "e.g. 'Recul,Cadavre'. Each change is an event."},
+          "probes": {"type": "string",
+                     "description": "Comma-separated 'Component.field' numeric probes, default "
+                                    "'Health.currentHealth'. Read by reflection, so any public "
+                                    "numeric field of any module works."}}),
+    tool("tera_record_mark",
+         "Stamp an action into the tape as the driver performs it — a click, a key, "
+         "a teleport. Nothing in the world state records a player input (a click "
+         "that misses leaves no trace), so this is the only channel for it. Stamped "
+         "on the next tick, so up to one frame late.",
+         {"label": {"type": "string", "description": "Short label, e.g. 'clic-gauche'."}},
+         ["label"]),
+    tool("tera_record_stop",
+         "Stop the tape and return its header (frames, events, duration)."),
+    tool("tera_record_dump",
+         "Read the tape back: header, every event, then position frames from `from` "
+         "onwards until the page budget is spent. The footer gives `next=` when "
+         "there is more. For a long tape prefer tera_record_save.",
+         {"from": {"type": "integer", "description": "First frame index of the page, default 0."}}),
+    tool("tera_record_save",
+         "Write the whole tape to a file under the game home directory and return "
+         "its path. The way to get a long recording out in one piece — the HTTP "
+         "response cap would cut it mid-line.",
+         {"name": {"type": "string", "description": "File name, sanitised; default 'bande'."}}),
+    tool("tera_place",
+         "Place blocks directly in the world, with no player involved: no aiming, "
+         "no reach, no inventory consumed. For building test scenery — an arena, a "
+         "flat floor under a beast, a marker at a measured spot. Needs the game "
+         "launched with --inspect-allow-write. An unknown block name is refused "
+         "rather than silently placed as air, and blocks outside loaded chunks are "
+         "counted as refused.",
+         {"uri": {"type": "string", "description": "Block name, e.g. 'CoreAssets:Stone'."},
+          "x": INT, "y": INT, "z": INT,
+          "x2": INT, "y2": INT, "z2": INT,
+          "rel": {"type": "string", "enum": ["player"],
+                  "description": "Count the coordinates from the block the player stands on."},
+          "lines": {"type": "string",
+                    "description": "Instead of a box: one placement per line, 'x y z [uri]'. "
+                                   "Up to 4096 blocks per call."}}),
 ]
 
 ROUTES = {
     "tera_health": "/health", "tera_view": "/view", "tera_stats": "/stats",
     "tera_slice": "/slice", "tera_surface": "/surface", "tera_cube": "/cube",
     "tera_block": "/block", "tera_entities": "/entities", "tera_commands": "/commands",
+    "tera_record_start": "/record/start", "tera_record_stop": "/record/stop",
+    "tera_record_dump": "/record/dump", "tera_record_save": "/record/save",
 }
 
 
@@ -157,7 +215,7 @@ def fetch(path, data=None):
     except urllib.error.URLError as e:
         return ("Le jeu ne repond pas sur %s (%s).\n"
                 "Lancer : python .claude/skills/run-terasology/driver.py launch "
-                "--load-last-game -- --inspect-port=%s --inspect-allow-console"
+                "--load-last-game -- --inspect-port=%s --inspect-allow-console --inspect-allow-write"
                 % (BASE, e.reason, PORT))
 
 
@@ -166,6 +224,15 @@ def call(name, arguments):
         return fetch("/entity/" + urllib.parse.quote(str(arguments.get("ref", ""))))
     if name == "tera_console":
         return fetch("/console", data=str(arguments.get("command", "")).encode("utf-8"))
+    if name == "tera_record_mark":
+        return fetch("/record/mark", data=str(arguments.get("label", "")).encode("utf-8"))
+    if name == "tera_place":
+        # The block list travels in the body; everything else stays in the query, so a
+        # single-block call needs no body at all.
+        lines = arguments.pop("lines", None)
+        query = {k: str(v) for k, v in arguments.items() if v is not None and v != ""}
+        path = "/place" + ("?" + urllib.parse.urlencode(query) if query else "")
+        return fetch(path, data=(lines or " ").encode("utf-8"))
     path = ROUTES.get(name)
     if path is None:
         return "Outil inconnu : %s" % name
