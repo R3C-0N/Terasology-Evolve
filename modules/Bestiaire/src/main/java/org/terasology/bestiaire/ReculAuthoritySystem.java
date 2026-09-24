@@ -50,11 +50,17 @@ import java.util.List;
 @RegisterSystem(RegisterMode.AUTHORITY)
 public class ReculAuthoritySystem extends BaseComponentSystem implements UpdateSubscriberSystem {
 
-    /** How long the body belongs to Bullet, in seconds. */
-    private static final float DUREE = 0.4f;
+    /**
+     * How long the body belongs to Bullet, in seconds.
+     * <p>
+     * Shortened from 0.4 s, which read as a slow slide rather than a blow. The push went up by the
+     * same factor so the distance is unchanged: the beast ends up where it used to, it simply gets
+     * there faster — which is what makes a hit feel like a hit.
+     */
+    private static final float DUREE = 0.28f;
 
     /** Backward speed given to a creature of the reference size, in blocks per second. */
-    private static final float POUSSEE = 2f;
+    private static final float POUSSEE = 2.9f;
 
     /** The half-height that speed is calibrated on: a wolf. */
     private static final float ETALON = 0.5f;
